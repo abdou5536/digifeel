@@ -1,0 +1,6 @@
+{
+  "name": "NFC Resto - Avis Serveurs & QR Tables",
+  "description": "Système de puces électroniques NFC pour serveurs et QR codes sur table pour évaluer la prestation en 1 clic, donner des pourboires et piloter la satisfaction client.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
