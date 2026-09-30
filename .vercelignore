@@ -1,0 +1,10 @@
+.env*
+.git/
+.vercel/
+coverage/
+dist/
+node_modules/
+server/
+*.db
+*.log
+*.sqlite
