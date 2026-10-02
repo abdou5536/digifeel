@@ -1,17 +1,30 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
-import { RestaurantConfig, Waiter, Review, TableItem, ProviderPayoutConfig, EmailLog, HardwareStatus, FaqItem, TipSharingConfig, TipPoolCalculationResult, ManagerToastNotification, ManagerNotificationType, RegisteredNfcChip, MirrorThemeId } from '../types';
+import { RestaurantConfig, Waiter, Review, TableItem, ProviderPayoutConfig, EmailLog, HardwareStatus, FaqItem, TipSharingConfig, TipPoolCalculationResult, ManagerToastNotification, ManagerNotificationType, RegisteredNfcChip, MirrorThemeId, SubscriptionInfo } from '../types';
 import { INITIAL_RESTAURANTS, INITIAL_WAITERS, INITIAL_REVIEWS, INITIAL_TABLES, DEFAULT_PROVIDER_PAYOUT, INITIAL_EMAIL_LOGS, INITIAL_FAQ_ITEMS } from '../data/mockData';
 import { DEFAULT_TIP_SHARING_CONFIG, calculateTipDistribution } from '../utils/tipSharingUtils';
 import { applyMirrorThemeToDom } from '../utils/mirrorThemeUtils';
 import { soundFX } from '../utils/soundEffects';
+import { translations, type Language, type Translations } from '../utils/i18n';
 
-export type AppMode = 'landing' | 'client' | 'server' | 'manager' | 'demo' | 'studio' | 'tutorial' | 'super_admin';
+export type AppMode = 'landing' | 'client' | 'server' | 'manager' | 'demo' | 'studio' | 'tutorial' | 'super_admin' | 'chip_activation';
 
 interface AppContextType {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
   isDemoMode: boolean;
   setIsDemoMode: (isDemoMode: boolean) => void;
+  
+  // Language & i18n
+  lang: Language;
+  setLang: (lang: Language) => void;
+  t: Translations;
+  isRtl: boolean;
+
+  // Active Scanned Chip & Direct URL Routing
+  activeChipId: string | null;
+  setActiveChipId: (chipId: string | null) => void;
+  isChipActivated: boolean;
+  setIsChipActivated: (active: boolean) => void;
   
   // Super Admin / Demo Toggle
   showDemoAccount: boolean;
@@ -141,6 +154,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clientSimulatedDevice, setClientSimulatedDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [activeEmailModal, setActiveEmailModal] = useState<EmailLog | null>(null);
   const [notificationToast, setNotificationToast] = useState<EmailLog | null>(null);
+
+  // Internationalization (French & Arabic)
+  const [lang, setLang] = useState<Language>(() => {
+    try {
+      const savedLang = localStorage.getItem('digifeel_lang');
+      return savedLang === 'ar' ? 'ar' : 'fr';
+    } catch {
+      return 'fr';
+    }
+  });
+
+  const isRtl = lang === 'ar';
+  const t = translations[lang];
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('digifeel_lang', lang);
+      document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+      document.documentElement.lang = lang;
+    } catch {
+      // ignore
+    }
+  }, [lang, isRtl]);
+
+  // Active Scanned Chip state
+  const [activeChipId, setActiveChipId] = useState<string | null>(null);
+  const [isChipActivated, setIsChipActivated] = useState<boolean>(true);
 
   // Real-time Manager Toast Notifications state
   const [managerNotifications, setManagerNotifications] = useState<ManagerToastNotification[]>(() => {
@@ -1025,6 +1065,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setMode,
         isDemoMode,
         setIsDemoMode,
+        lang,
+        setLang,
+        t,
+        isRtl,
+        activeChipId,
+        setActiveChipId,
+        isChipActivated,
+        setIsChipActivated,
         showDemoAccount,
         setShowDemoAccount,
         superAdminEmail,

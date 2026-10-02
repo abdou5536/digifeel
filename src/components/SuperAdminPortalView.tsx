@@ -55,6 +55,70 @@ export const SuperAdminPortalView: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedIban, setCopiedIban] = useState(false);
 
+  // Batch Generation State
+  const [batchCount, setBatchCount] = useState<number>(20);
+  const [batchPrefix, setBatchPrefix] = useState<string>('PARIS');
+  const [isGeneratingBatch, setIsGeneratingBatch] = useState(false);
+  const [latestBatch, setLatestBatch] = useState<{ batchId: string; chips: any[] } | null>(null);
+
+  const handleGenerateBatch = async () => {
+    setIsGeneratingBatch(true);
+    try {
+      const res = await fetch('/api/admin/chips/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: batchCount, prefix: batchPrefix })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLatestBatch(data);
+      } else {
+        // Local generation fallback
+        const batchId = `BATCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const chips = [];
+        for (let i = 1; i <= batchCount; i++) {
+          const chipId = `chip-df-${Math.floor(10000 + Math.random() * 90000)}`;
+          const activationCode = `DF-${Math.floor(1000 + Math.random() * 9000)}-${batchPrefix}`;
+          chips.push({ id: chipId, uid: `04:${Math.floor(10 + Math.random() * 89)}:A2:8B:19:64:30`, activation_code: activationCode, batch_id: batchId });
+        }
+        setLatestBatch({ batchId, chips });
+      }
+    } catch {
+      // Local generation fallback
+      const batchId = `BATCH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const chips = [];
+      for (let i = 1; i <= batchCount; i++) {
+        const chipId = `chip-df-${Math.floor(10000 + Math.random() * 90000)}`;
+        const activationCode = `DF-${Math.floor(1000 + Math.random() * 9000)}-${batchPrefix}`;
+        chips.push({ id: chipId, uid: `04:${Math.floor(10 + Math.random() * 89)}:A2:8B:19:64:30`, activation_code: activationCode, batch_id: batchId });
+      }
+      setLatestBatch({ batchId, chips });
+    } finally {
+      setIsGeneratingBatch(false);
+    }
+  };
+
+  const handleExportBatchCsv = () => {
+    if (!latestBatch) return;
+    const headers = ['Batch ID', 'Puce ID', 'NFC UID (NTAG)', 'Code Activation Imprimé', 'URL Scan Client', 'Statut'];
+    const rows = latestBatch.chips.map(c => [
+      `"${latestBatch.batchId}"`,
+      `"${c.id}"`,
+      `"${c.uid || '04:A2:8B:19:64:30'}"`,
+      `"${c.activation_code || c.activationCode}"`,
+      `"${window.location.origin}/r/${c.id}"`,
+      `"NON_ASSIGNE"`
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Digifeel_Lot_${latestBatch.batchId}_Puces_NFC.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // New restaurant state
   const [name, setName] = useState('');
   const [ownerName, setOwnerName] = useState('');
@@ -288,6 +352,89 @@ export const SuperAdminPortalView: React.FC = () => {
             Identifiants & guides délivrés
           </div>
         </div>
+      </div>
+
+      {/* Super Admin Batch Generator for NFC Chips */}
+      <div className="glass-card-dark rounded-3xl p-6 border border-white/10 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
+              <Radio className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">
+                Générateur de Lots de Puces NFC & Codes d'Activation
+              </h3>
+              <p className="text-xs text-slate-400">
+                Générez des séries de puces avec codes sécurisés (DF-XXXX) prêts pour encodage usine NTAG et impression.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={batchCount}
+              onChange={e => setBatchCount(Number(e.target.value))}
+              className="px-3 py-2 bg-white/5 border border-white/15 rounded-xl text-xs text-white"
+            >
+              <option value={10} className="bg-slate-900">10 Puces</option>
+              <option value={20} className="bg-slate-900">20 Puces</option>
+              <option value={50} className="bg-slate-900">50 Puces</option>
+              <option value={100} className="bg-slate-900">100 Puces</option>
+            </select>
+
+            <input
+              type="text"
+              value={batchPrefix}
+              onChange={e => setBatchPrefix(e.target.value.toUpperCase())}
+              placeholder="PREFIXE"
+              className="w-24 px-3 py-2 bg-white/5 border border-white/15 rounded-xl text-xs text-white font-mono uppercase"
+            />
+
+            <button
+              type="button"
+              disabled={isGeneratingBatch}
+              onClick={handleGenerateBatch}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isGeneratingBatch ? 'Génération...' : 'Générer Lot'}</span>
+            </button>
+          </div>
+        </div>
+
+        {latestBatch && (
+          <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-mono text-amber-300">
+                <span className="font-bold">Lot ID: {latestBatch.batchId}</span>
+                <span>• {latestBatch.chips.length} puces générées</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportBatchCsv}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Télécharger Tableur CSV Encodage</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-mono">
+              {latestBatch.chips.slice(0, 8).map(chip => (
+                <div key={chip.id} className="p-2.5 rounded-xl bg-black/40 border border-white/10">
+                  <div className="text-white font-bold">{chip.id}</div>
+                  <div className="text-amber-400 font-semibold">{chip.activation_code || chip.activationCode}</div>
+                  <div className="text-slate-400 text-[10px] truncate">{chip.uid}</div>
+                </div>
+              ))}
+            </div>
+            {latestBatch.chips.length > 8 && (
+              <div className="text-[11px] text-slate-400 text-center">
+                + {latestBatch.chips.length - 8} autres puces incluses dans le lot et le fichier CSV.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Restaurant & Hotel Accounts Management Section */}

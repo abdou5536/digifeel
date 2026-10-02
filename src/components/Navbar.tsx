@@ -42,7 +42,10 @@ export const Navbar: React.FC = () => {
     displayCurrency,
     currentMirrorTheme,
     isSpecularMirrorActive,
-    setIsMirrorModalOpen
+    setIsMirrorModalOpen,
+    lang,
+    setLang,
+    t
   } = useApp();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -235,6 +238,21 @@ export const Navbar: React.FC = () => {
             >
               <Coins className="w-3.5 h-3.5 text-amber-400" />
               <span className="navbar-currency-label">Devise · {activeCurrencyInfo.code}</span>
+            </motion.button>
+
+            {/* Language Switcher (FR / AR with RTL support) */}
+            <motion.button
+              onClick={() => {
+                setLang(lang === 'fr' ? 'ar' : 'fr');
+                soundFX.playSuccessChime();
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-300 border border-white/10 text-xs font-bold font-sans transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              title={lang === 'fr' ? 'Passer en Arabe (العربية)' : 'Passer en Français'}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.18 }}
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span>{t.switchLang}</span>
             </motion.button>
 
             {/* Quick Order Pack Button */}

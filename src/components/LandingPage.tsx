@@ -1,13 +1,18 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * 
+ * Digifeel Landing Page
+ * Immersive futuristic presentation featuring the interactive 3D NFC hero,
+ * 3-step explanation, live interactive smartphone simulator, transparent pricing,
+ * WhatsApp contact, and multilingual French/Arabic support.
+ */
+
 import React, { useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  Activity,
-  ArrowDown,
   ArrowRight,
-  ArrowUpRight,
-  Check,
-  CreditCard,
-  Globe,
+  CheckCircle2,
   Lock,
   QrCode,
   Radio,
@@ -16,41 +21,33 @@ import {
   Sparkles,
   Star,
   Users,
-  Zap
+  Zap,
+  HelpCircle,
+  MessageCircle,
+  ShieldCheck,
+  Award,
+  TrendingUp
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { soundFX } from '../utils/soundEffects';
-import { CustomDomainModal } from './CustomDomainModal';
-
-const particles = Array.from({ length: 22 }, (_, index) => index);
+import { NfcHero3D } from './NfcHero3D';
+import { InteractivePhoneDemo } from './InteractivePhoneDemo';
 
 export const LandingPage: React.FC = () => {
   const {
+    t,
+    lang,
     setMode,
     setIsOrderModalOpen,
     setCurrentRestaurantId,
     setShowDemoAccount,
     setIsDemoMode,
     restaurant,
-    registeredNfcChips
+    faqItems,
+    payoutConfig
   } = useApp();
+
   const prefersReducedMotion = useReducedMotion();
-  const heroRef = useRef<HTMLElement>(null);
-  const [isDomainOpen, setIsDomainOpen] = React.useState(false);
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (prefersReducedMotion || event.pointerType !== 'mouse') return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - bounds.left}px`);
-    event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - bounds.top}px`);
-    event.currentTarget.style.setProperty('--pointer-tilt-x', `${(event.clientY / window.innerHeight - 0.5) * -7}deg`);
-    event.currentTarget.style.setProperty('--pointer-tilt-y', `${(event.clientX / window.innerWidth - 0.5) * 9}deg`);
-  };
-
-  const resetPointer = () => {
-    heroRef.current?.style.removeProperty('--pointer-tilt-x');
-    heroRef.current?.style.removeProperty('--pointer-tilt-y');
-  };
 
   const openDemo = (view: 'dashboard' | 'server' = 'dashboard') => {
     setShowDemoAccount(true);
@@ -63,264 +60,372 @@ export const LandingPage: React.FC = () => {
     soundFX.playHoverTick();
   };
 
-  return (
-    <div className="landing-page">
-      <section
-        ref={heroRef}
-        className="landing-hero"
-        onPointerMove={handlePointerMove}
-        onPointerLeave={resetPointer}
-      >
-        <div className="landing-hero__grid" aria-hidden="true" />
-        <div className="landing-hero__glow landing-hero__glow--one" aria-hidden="true" />
-        <div className="landing-hero__glow landing-hero__glow--two" aria-hidden="true" />
-        <div className="landing-particles" aria-hidden="true">
-          {particles.map(particle => (
-            <span
-              className="landing-particle"
-              key={particle}
-              style={{
-                '--particle-x': `${(particle * 47 + 13) % 100}%`,
-                '--particle-y': `${(particle * 67 + 9) % 100}%`,
-                '--particle-delay': `${(particle % 9) * -0.7}s`,
-                '--particle-duration': `${5 + (particle % 6)}s`
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
+  const whatsappUrl = `https://wa.me/${(payoutConfig.whatsappNumber || '+33612345678').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+    'Bonjour Digifeel, je souhaite équiper mon restaurant avec le pack de puces NFC & QR codes.'
+  )}`;
 
-        <div className="landing-hero__inner">
+  return (
+    <div className="landing-page min-h-screen text-slate-100 overflow-x-hidden selection:bg-amber-500/20 selection:text-amber-200">
+      
+      {/* ------------------------------------------------------------- */}
+      {/* 1. HERO SECTION WITH 3D NFC CHIP */}
+      {/* ------------------------------------------------------------- */}
+      <section className="relative pt-8 pb-20 px-4 sm:px-6 max-w-7xl mx-auto overflow-hidden">
+        {/* Ambient background glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+        <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Left Hero Copy */}
           <motion.div
-            className="landing-copy"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.8, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: prefersReducedMotion ? 0.15 : 0.8 }}
+            className="lg:col-span-7 space-y-6 text-left"
           >
-            <div className="landing-eyebrow">
-              <span className="landing-eyebrow__pulse" />
-              <span>LA NOUVELLE EXPÉRIENCE RESTAURANT</span>
-              <Sparkles aria-hidden="true" />
+            {/* Pill Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-amber-300 text-xs font-semibold backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span>{t.nfcChipLabel}</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 ml-1" />
             </div>
 
-            <h1 className="landing-title">
-              Chaque instant
-              <br />
-              <span>compte.</span>
+            {/* Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.15] font-sans">
+              {t.heroTitle1}{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 underline decoration-amber-400/30 decoration-wavy decoration-2">
+                {t.heroTitleHighlight}
+              </span>{' '}
+              {t.heroTitle2}
             </h1>
-            <p className="landing-description">
-              Le service laisse une impression. Digifeel vous aide à la comprendre,
-              à la mesurer et à la rendre inoubliable.
+
+            {/* Subtitle */}
+            <p className="text-base sm:text-lg text-white/70 max-w-2xl leading-relaxed">
+              {t.heroSubtitle}
             </p>
 
-            <div className="landing-actions">
+            {/* CTA Buttons */}
+            <div className="pt-2 flex flex-wrap gap-4 items-center">
               <motion.button
                 type="button"
-                className="landing-button landing-button--primary"
-                onClick={() => openDemo()}
-                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  setIsOrderModalOpen(true);
+                  soundFX.playHoverTick();
+                }}
+                className="py-4 px-8 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_35px_rgba(245,158,11,0.35)] hover:shadow-[0_0_50px_rgba(245,158,11,0.55)] transition-all flex items-center gap-2.5 cursor-pointer active:scale-98"
+                whileTap={{ scale: 0.98 }}
               >
-                <span>Explorer le tableau de bord</span>
-                <ArrowRight aria-hidden="true" />
+                <span>{t.heroCtaOrder}</span>
+                <ArrowRight className="w-4 h-4" />
               </motion.button>
+
               <motion.button
                 type="button"
-                className="landing-button landing-button--quiet"
-                onClick={() => setMode('client')}
-                whileTap={{ scale: 0.97 }}
+                onClick={() => openDemo('dashboard')}
+                className="py-4 px-6 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-sm sm:text-base font-bold transition-all flex items-center gap-2 backdrop-blur-md cursor-pointer active:scale-98"
+                whileTap={{ scale: 0.98 }}
               >
-                <span className="landing-play"><Smartphone aria-hidden="true" /></span>
-                <span>Voir l’expérience client</span>
+                <Smartphone className="w-4 h-4 text-amber-400" />
+                <span>{t.heroCtaDemo}</span>
               </motion.button>
             </div>
 
-            <div className="landing-proof">
-              <div className="landing-proof__avatars" aria-hidden="true">
-                <span>J</span><span>M</span><span>A</span><span><Users /></span>
-              </div>
+            {/* Quick Proof Metrics */}
+            <div className="pt-6 border-t border-white/10 grid grid-cols-3 gap-4">
               <div>
-                <div className="landing-proof__stars" aria-label="5 étoiles">
-                  {[0, 1, 2, 3, 4].map(star => <Star key={star} fill="currentColor" />)}
+                <div className="flex items-center gap-1 text-amber-400 font-extrabold text-lg sm:text-xl">
+                  <span>4.9</span>
+                  <div className="flex text-amber-400">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Star key={i} className="w-3 h-3 fill-amber-400" />
+                    ))}
+                  </div>
                 </div>
-                <span>Le service qui fait la différence</span>
+                <p className="text-[11px] text-white/50 mt-0.5">{t.heroStatRating}</p>
               </div>
-              <span className="landing-proof__divider" />
-              <span className="landing-proof__live"><i /> En temps réel</span>
+
+              <div>
+                <div className="text-white font-extrabold text-lg sm:text-xl font-mono">
+                  3 sec
+                </div>
+                <p className="text-[11px] text-white/50 mt-0.5">{t.heroStatSpeed}</p>
+              </div>
+
+              <div>
+                <div className="text-emerald-400 font-extrabold text-lg sm:text-xl font-mono">
+                  +300%
+                </div>
+                <p className="text-[11px] text-white/50 mt-0.5">{t.heroStatConversion}</p>
+              </div>
             </div>
           </motion.div>
 
+          {/* Right 3D Interactive NFC Display */}
+          <div className="lg:col-span-5 flex justify-center">
+            <NfcHero3D />
+          </div>
+
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. HOW IT WORKS (3 SIMPLE STEPS) */}
+      {/* ------------------------------------------------------------- */}
+      <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t border-white/10">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold mb-3">
+            <Radio className="w-3.5 h-3.5 text-amber-400" />
+            <span>Processus sans friction</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            {t.howTitle}
+          </h2>
+          <p className="mt-3 text-white/60 text-sm sm:text-base">
+            {t.howSubtitle}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Step 1 */}
           <motion.div
-            className="landing-visual"
-            initial={{ opacity: 0, scale: 0.92, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 1, delay: prefersReducedMotion ? 0 : 0.12, ease: [0.22, 1, 0.36, 1] }}
-            aria-label="Aperçu de l’expérience Digifeel"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="p-8 rounded-3xl bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/10 backdrop-blur-xl shadow-xl space-y-4 hover:border-amber-400/40 transition-colors"
           >
-            <div className="landing-orbit landing-orbit--outer" aria-hidden="true" />
-            <div className="landing-orbit landing-orbit--inner" aria-hidden="true" />
-            <div className="landing-orb-halo" aria-hidden="true" />
-            <div className="landing-token-scene" aria-hidden="true">
-              <div className="landing-token">
-                <div className="landing-token__edge" />
-                <div className="landing-token__face">
-                  <div className="landing-token__shine" />
-                  <span className="landing-token__mark"><Radio /></span>
-                  <span className="landing-token__brand">DIGIFEEL</span>
-                  <span className="landing-token__caption">TAP TO CONNECT</span>
-                </div>
-              </div>
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
+              <ScanLine className="w-7 h-7" />
             </div>
-            <div className="landing-float-card landing-float-card--review glass-interactive">
-              <div className="landing-float-card__icon"><Star fill="currentColor" /></div>
-              <div>
-                <span className="landing-float-card__label">Nouvel avis</span>
-                <strong>Une équipe au top !</strong>
-                <span className="landing-float-card__rating">★★★★★ <small>5.0</small></span>
-              </div>
-              <span className="landing-float-card__check"><Check /></span>
+            <h3 className="text-xl font-bold text-white">{t.step1Title}</h3>
+            <p className="text-sm text-white/65 leading-relaxed">{t.step1Desc}</p>
+          </motion.div>
+
+          {/* Step 2 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="p-8 rounded-3xl bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/10 backdrop-blur-xl shadow-xl space-y-4 hover:border-amber-400/40 transition-colors"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
+              <Star className="w-7 h-7 fill-amber-400" />
             </div>
-            <div className="landing-float-card landing-float-card--score glass-interactive">
-              <span className="landing-float-card__label">Satisfaction client</span>
-              <div className="landing-score">
-                <strong>4.9</strong><span>/ 5</span>
-                <span className="landing-score__trend"><ArrowUpRight /> +12%</span>
-              </div>
-              <div className="landing-score__bars" aria-hidden="true">
-                {[34, 48, 42, 63, 55, 78, 68, 91, 73, 100, 83, 96].map((height, index) => (
-                  <i key={index} style={{ height: `${height}%` }} />
-                ))}
-              </div>
+            <h3 className="text-xl font-bold text-white">{t.step2Title}</h3>
+            <p className="text-sm text-white/65 leading-relaxed">{t.step2Desc}</p>
+          </motion.div>
+
+          {/* Step 3 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="p-8 rounded-3xl bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/10 backdrop-blur-xl shadow-xl space-y-4 hover:border-emerald-400/40 transition-colors"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+              <TrendingUp className="w-7 h-7" />
             </div>
-            <div className="landing-float-card landing-float-card--nfc">
-              <span className="landing-nfc-icon"><ScanLine /></span>
-              <span><strong>Un simple geste.</strong><small>Un retour précieux.</small></span>
-              <Zap aria-hidden="true" />
-            </div>
-            <span className="landing-visual-caption"><i /> TECHNOLOGIE NFC · SIMPLE & INSTANTANÉE</span>
+            <h3 className="text-xl font-bold text-white">{t.step3Title}</h3>
+            <p className="text-sm text-white/65 leading-relaxed">{t.step3Desc}</p>
           </motion.div>
         </div>
+      </section>
 
-        <div className="landing-hero__bottom">
-          <span>LA SUITE DE VOTRE SERVICE, EN MIEUX.</span>
-          <a href="#landing-features" aria-label="Découvrir les fonctionnalités">
-            <ArrowDown aria-hidden="true" />
+      {/* ------------------------------------------------------------- */}
+      {/* 3. INTERACTIVE SMARTPHONE DEMO SECTION */}
+      {/* ------------------------------------------------------------- */}
+      <section className="py-12 bg-gradient-to-b from-transparent via-[#0a0f1d]/60 to-transparent border-t border-white/10">
+        <InteractivePhoneDemo />
+      </section>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 4. PRICING & PACK INSTALLATION */}
+      {/* ------------------------------------------------------------- */}
+      <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t border-white/10" id="tarifs">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-3">
+            <Award className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Rentable dès le 1er week-end</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            {t.pricingTitle}
+          </h2>
+          <p className="mt-3 text-white/60 text-sm sm:text-base">
+            {t.pricingSubtitle}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Main Pack: 100€ */}
+          <div className="p-8 sm:p-10 rounded-[2.5rem] bg-[#0d1322] border-2 border-amber-400/50 relative shadow-[0_20px_70px_rgba(245,158,11,0.15)] flex flex-col justify-between">
+            <div className="absolute -top-4 right-8 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black font-extrabold text-xs tracking-wider uppercase shadow-md">
+              Offre Complète
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-bold text-white">{t.packTitle}</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight font-sans">
+                  {t.packPrice}
+                </span>
+                <span className="text-xs text-amber-300 font-semibold">
+                  {t.packPriceSub}
+                </span>
+              </div>
+
+              <ul className="mt-8 space-y-3.5 text-sm text-white/80">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{t.packFeature1}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{t.packFeature2}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{t.packFeature3}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{t.packFeature4}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{t.packFeature5}</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOrderModalOpen(true);
+                soundFX.playHoverTick();
+              }}
+              className="mt-8 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-sm sm:text-base shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            >
+              <span>{t.packCta}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Subscription Card: 29€ / month */}
+          <div className="p-8 sm:p-10 rounded-[2.5rem] bg-white/[0.03] border border-white/15 relative backdrop-blur-xl flex flex-col justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-white">{t.subTitle}</h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight font-sans">
+                  {t.subPrice}
+                </span>
+                <span className="text-xs text-white/50">
+                  {t.subPriceSub}
+                </span>
+              </div>
+
+              <ul className="mt-8 space-y-3.5 text-sm text-white/80">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{t.subFeature1}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{t.subFeature2}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{t.subFeature3}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{t.subFeature4}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="mt-8 p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-white/60">
+              Inclus d’office sans frais pendant 30 jours avec le Pack d’Installation.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 5. FAQ & DIRECT WHATSAPP CONTACT */}
+      {/* ------------------------------------------------------------- */}
+      <section className="py-20 px-4 sm:px-6 max-w-5xl mx-auto border-t border-white/10">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">
+            Questions Fréquentes
+          </h2>
+          <p className="text-sm text-white/60 mt-2">
+            Tout ce que vous devez savoir pour démarrer simplement.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <details className="group p-5 rounded-2xl bg-white/[0.03] border border-white/10 open:border-amber-400/40 transition-colors">
+            <summary className="font-bold text-white text-sm sm:text-base cursor-pointer list-none flex items-center justify-between">
+              <span>Mes clients ont-ils besoin d’installer une application ?</span>
+              <span className="text-amber-400 font-mono group-open:rotate-45 transition-transform">+</span>
+            </summary>
+            <p className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed">
+              Non, absolument aucune. Les smartphones récents (iPhone et Android) intègrent un lecteur NFC automatique. Il suffit de poser le téléphone sur la puce pour que le navigateur ouvre la page d’avis en une seconde.
+            </p>
+          </details>
+
+          <details className="group p-5 rounded-2xl bg-white/[0.03] border border-white/10 open:border-amber-400/40 transition-colors">
+            <summary className="font-bold text-white text-sm sm:text-base cursor-pointer list-none flex items-center justify-between">
+              <span>Comment mes pourboires et avis sont-ils comptabilisés ?</span>
+              <span className="text-amber-400 font-mono group-open:rotate-45 transition-transform">+</span>
+            </summary>
+            <p className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed">
+              Chaque puce NFC est assignée soit à un serveur en salle, soit à une table spécifique. Vous pouvez suivre les statistiques précises dans votre tableau de bord et exporter des bilans au format PDF ou Excel.
+            </p>
+          </details>
+
+          <details className="group p-5 rounded-2xl bg-white/[0.03] border border-white/10 open:border-amber-400/40 transition-colors">
+            <summary className="font-bold text-white text-sm sm:text-base cursor-pointer list-none flex items-center justify-between">
+              <span>Quel est le délai de livraison et de configuration ?</span>
+              <span className="text-amber-400 font-mono group-open:rotate-45 transition-transform">+</span>
+            </summary>
+            <p className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed">
+              Votre compte administrateur est activé instantanément. Les puces et chevalets physiques pré-encodés vous sont expédiés sous 48h à 72h.
+            </p>
+          </details>
+        </div>
+
+        {/* Direct WhatsApp Callout */}
+        <div className="mt-12 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-950/40 via-emerald-900/20 to-transparent border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-[0_0_25px_rgba(16,185,129,0.3)]">
+              <MessageCircle className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-base sm:text-lg">
+                Une question ? Échangez avec notre équipe
+              </h3>
+              <p className="text-xs text-white/60 mt-0.5">
+                Réponse rapide 7j/7 pour vous conseiller sur le meilleur équipement.
+              </p>
+            </div>
+          </div>
+
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="py-3 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 shadow-lg active:scale-95"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>{t.whatsappContact}</span>
           </a>
-          <span>01 — 02</span>
         </div>
       </section>
 
-      <section className="landing-metrics" aria-label="Les avantages de Digifeel">
-        <div className="landing-metric">
-          <span className="landing-metric__icon"><Radio /></span>
-          <span><strong>NFC & QR</strong><small>Sans application à installer</small></span>
-        </div>
-        <div className="landing-metric">
-          <span className="landing-metric__icon landing-metric__icon--violet"><Activity /></span>
-          <span><strong>Instantané</strong><small>Les retours, en direct</small></span>
-        </div>
-        <div className="landing-metric">
-          <span className="landing-metric__icon landing-metric__icon--green"><Lock /></span>
-          <span><strong>À votre image</strong><small>Votre établissement, vos règles</small></span>
-        </div>
-        <div className="landing-metric">
-          <span className="landing-metric__value">{registeredNfcChips.length}</span>
-          <span><strong>{restaurant.name || 'Votre restaurant'}</strong><small>Puces prêtes à l’emploi</small></span>
-        </div>
-      </section>
-
-      <section className="landing-features" id="landing-features">
-        <motion.div
-          className="landing-section-heading"
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: prefersReducedMotion ? 0.15 : 0.55 }}
-        >
-          <span className="landing-section-kicker">UNE EXPÉRIENCE QUI FAIT SENS</span>
-          <h2>Le détail qui change <span>tout.</span></h2>
-          <p>La technologie s’efface. Le lien humain reste au premier plan.</p>
-        </motion.div>
-        <div className="landing-feature-grid">
-          <motion.article
-            className="landing-feature-card landing-feature-card--cyan glass-interactive"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.55 }}
-          >
-            <div className="landing-feature-card__icon"><Radio /></div>
-            <span className="landing-feature-card__index">01 / CONNECTER</span>
-            <h3>Un geste suffit.</h3>
-            <p>Une puce NFC ou un QR code à table. Vos clients accèdent instantanément à votre expérience.</p>
-            <button type="button" onClick={() => setIsOrderModalOpen(true)}>
-              Découvrir les packs <ArrowRight />
-            </button>
-            <div className="landing-feature-card__glow" />
-          </motion.article>
-          <motion.article
-            className="landing-feature-card landing-feature-card--violet glass-interactive"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.55, delay: 0.08 }}
-          >
-            <div className="landing-feature-card__icon"><Star /></div>
-            <span className="landing-feature-card__index">02 / ÉCOUTER</span>
-            <h3>Chaque avis compte.</h3>
-            <p>Recueillez des retours sincères sur le service et invitez vos clients satisfaits à partager leur expérience.</p>
-            <button type="button" onClick={() => setMode('client')}>
-              Tester le parcours <ArrowRight />
-            </button>
-            <div className="landing-feature-card__glow" />
-          </motion.article>
-          <motion.article
-            className="landing-feature-card landing-feature-card--green glass-interactive"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.55, delay: 0.16 }}
-          >
-            <div className="landing-feature-card__icon"><CreditCard /></div>
-            <span className="landing-feature-card__index">03 / PROGRESSER</span>
-            <h3>Voyez plus clair.</h3>
-            <p>Un tableau de bord simple pour suivre les retours, les pourboires et l’expérience de votre équipe.</p>
-            <button type="button" onClick={() => openDemo()}>
-            Explorer la démo interactive <ArrowRight />
-            </button>
-            <div className="landing-feature-card__glow" />
-          </motion.article>
-        </div>
-      </section>
-
-      <section className="landing-bottom-cta">
-        <div className="landing-bottom-cta__orb" aria-hidden="true" />
-        <div>
-          <span className="landing-section-kicker">VOTRE PROCHAINE BELLE HISTOIRE COMMENCE ICI</span>
-          <h2>Prêt à écouter autrement ?</h2>
-          <p>Un petit geste pour vos clients. Une grande différence pour votre équipe.</p>
-        </div>
-        <div className="landing-bottom-cta__actions">
-          <button type="button" className="landing-button landing-button--primary" onClick={() => setIsOrderModalOpen(true)}>
-            <span>Voir les packs</span><ArrowRight />
-          </button>
-          <button
-            type="button"
-            className="landing-domain-link"
-            onClick={() => {
-              setIsDomainOpen(true);
-              soundFX.playHoverTick();
-            }}
-          >
-            <Globe /> Configurer un domaine
-          </button>
-          <button type="button" className="landing-domain-link" onClick={() => setMode('studio')}>
-            <QrCode /> Gérer mes QR codes
-          </button>
-          <button type="button" className="landing-domain-link" onClick={() => openDemo('server')}>
-            <Smartphone /> Voir l’espace serveur en démo
-          </button>
-        </div>
-      </section>
-      <CustomDomainModal isOpen={isDomainOpen} onClose={() => setIsDomainOpen(false)} />
     </div>
   );
 };

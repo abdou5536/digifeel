@@ -1,44 +1,107 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Digifeel — Puces NFC & QR Codes pour Avis Clients & Pourboires Restaurant
 
-# Run and deploy your AI Studio app
+Digifeel est une solution clé en main pour les restaurateurs et hôteliers permettant à leurs clients d’évaluer la prestation de service, d’attribuer des pourboires et de déposer un avis 5 étoiles sur Google Maps en moins de 3 secondes, sans installer d'application.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/21db5e81-574a-4abf-b24b-a6c256175147
+## 🌟 Fonctionnalités Clés
 
-## Run Locally
+1. **Parcours Client 100% sans application (NFC & QR)** :
+   - Scan direct d’une puce porte-clé serveur ou d’un chevalet de table QR via l’URL unique `/r/[chipId]`.
+   - Évaluation instantanée avec étoiles illuminées, choix des compliments et pourboire libre.
+   - Redirection 1-clic vers la fiche officielle Google Reviews pour maximiser le référencement local.
 
-**Prerequisites:**  Node.js
+2. **Activation de Puce Sécurisée** :
+   - Puce non activée : le scan ouvre directement l’interface d’activation avec le code imprimé (ex: `DF-8492-PARIS`).
+   - Le restaurateur associe la puce à son établissement, configure son lien Google et l’assigne à un serveur ou une table.
 
+3. **Dashboard Restaurateur Complet** :
+   - **Accueil** : Compteurs animés en direct, note moyenne globale, scans du jour.
+   - **Avis** : Flux d’avis en temps réel, analyse de sentiments et filtres par date.
+   - **Serveurs** : Classement de l’équipe, notes individuelles et répartition intelligente des pourboires.
+   - **Gestion & Exports** : Exports comptables officiels en PDF et tableur Excel (CSV).
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+4. **Portail Super-Administrateur** :
+   - Pilotage de l'ensemble des restaurants et hôtels clients.
+   - **Générateur de Lots de Puces NFC** : Génération de séries (10, 20, 50, 100 puces) avec codes d'activation uniques et export CSV pour machine d'encodage usine.
 
-## Installation et mode hors connexion
+5. **Architecture Paiement & Abonnements Modulaire (`paymentProvider`)** :
+   - Pack d’installation à **100 €** (compte admin + matériel + 1er mois offert).
+   - Abonnement Pro à **29 € / mois** (ou 4 500 DZD) pour les exports illimités.
+   - Abstraction prête pour **Stripe** (France/CB Visa) et **BaridiMob / Algérie Poste CCP**.
 
-En production, ouvrez l’application sur une adresse HTTPS dans un navigateur compatible, puis choisissez **Installer** dans le menu de l’application. Sur iPhone ou iPad, ouvrez Digifeel dans Safari, touchez **Partager**, puis **Sur l’écran d’accueil**.
+6. **Bilingue & Support RTL** :
+   - Français et Arabe (العربية) intégrés avec bascule instantanée et gestion directionnelle RTL fluide.
 
-Après une première ouverture en ligne, l’application et ses fichiers principaux sont disponibles hors connexion. Les données restent stockées sur l’appareil; l’ouverture de Google nécessite une connexion Internet.
+---
 
-Pour tester la version de production en local, lancez `npm run build`, puis `npm run preview` et ouvrez l’adresse affichée par Vite.
+## 🚀 Lancement du Projet
 
-## Partager les démonstrations
+### 1. Installation des dépendances
+```bash
+npm install
+```
 
-Les parcours de démonstration sont accessibles avec `?demo=dashboard` pour le tableau de bord et `?demo=server` pour l’espace serveur. Ils utilisent des données d’exemple et ne nécessitent pas de compte.
+### 2. Démarrage du serveur unifié (Front-End Vite + API Express sur le port 3000)
+```bash
+npm run dev
+```
 
-Pour publier l’aperçu sur Vercel, connectez le projet à votre compte puis lancez `npx vercel --prod` depuis la racine du projet. Les deux liens à partager sont `https://VOTRE-DOMAINE/?demo=dashboard` et `https://VOTRE-DOMAINE/?demo=server`. Cette configuration publie uniquement le front-end statique; l’API et les espaces privés ne sont pas déployés par cette configuration.
+L'application démarre sur `http://localhost:3000`.
 
-## API de connexion (fondation en cours)
+### 3. Variables d'environnement optionnelles (`.env`)
+```env
+PORT=3000
+DATABASE_URL=postgresql://user:password@host:5432/digifeel
+AUTH_BOOTSTRAP_TOKEN=digifeel-admin-bootstrap-token
+STRIPE_SECRET_KEY=
+BARIDIMOB_RIP=00799999001234567899
+```
+*Note : Si aucune base de données PostgreSQL n'est connectée, Digifeel fonctionne automatiquement en mémoire avec des données de démonstration réalistes.*
 
-Les vues de gestion nécessitent maintenant une session côté serveur. Le serveur d'authentification exige PostgreSQL; renseignez `DATABASE_URL`, `APP_ORIGIN`, `PORT` et un secret temporaire `AUTH_BOOTSTRAP_TOKEN` dans l'environnement. Ne publiez jamais ces valeurs.
+---
 
-Pour le développement, démarrez PostgreSQL, lancez `npm run api` dans un terminal, puis `npm run dev` dans un second terminal. Vite transmet `/api` au serveur local. Créez le premier super-administrateur une seule fois avec `POST /api/auth/bootstrap`, en envoyant `token`, `email` et un mot de passe d'au moins 14 caractères depuis la même origine. Supprimez ensuite `AUTH_BOOTSTRAP_TOKEN` de l'environnement et redémarrez l'API. Les sessions sont stockées côté serveur et le cookie est `HttpOnly`, `Secure` et `SameSite=Strict`.
+## 🏷️ Guide d'Encodage des Puces Physiques NFC (NTAG 213 / 215 / 216)
 
-Cette API ne migre pas encore les données métier existantes : restaurants, avis, réglages et coordonnées bancaires restent dans le stockage du navigateur. L'authentification ne constitue donc pas une isolation complète des données ni une autorisation serveur des opérations métier. Ne déployez pas la gestion multi-restaurant en production avant la migration de ces données vers l'API et l'application des permissions au niveau de chaque endpoint.
+Pour programmer les puces NFC physiques ou badges serveurs avec l'application :
 
-En production, faites servir le front-end et `/api` sous la même origine HTTPS via un reverse proxy configuré pour transmettre correctement l'origine et les en-têtes clients. `npm run preview` ne démarre que le front-end; il ne remplace pas l'API PostgreSQL.
+1. **Matériel requis** :
+   - Puces ou cartes NFC standards **NTAG213**, **NTAG215** ou **NTAG216** (13.56 MHz).
+   - Un smartphone compatible NFC (iPhone sous iOS 13+ ou Android).
+   - L'application gratuite **NFC Tools** (App Store / Google Play Store).
+
+2. **Étapes d'encodage** :
+   1. Ouvrez l'application **NFC Tools** sur votre smartphone.
+   2. Allez dans l'onglet **Écrire** (Write) ➔ **Ajouter un enregistrement** (Add a record).
+   3. Choisissez **URL / URI**.
+   4. Saisissez l'URL de la puce :
+      ```
+      https://votre-domaine.com/r/chip-df-8492
+      ```
+      *(ou `https://votre-domaine.com/?chip=chip-df-8492`)*
+   5. Cliquez sur **Écrire** (Write) et approchez la puce NFC du haut de votre téléphone.
+   6. La puce émet un son de validation : elle est désormais prête à être scannée par vos clients !
+
+---
+
+## 📂 Structure du Projet
+
+- `server.ts` : Point d'entrée serveur unifié Express + Vite middleware.
+- `server/` :
+  - `database.ts` : Connecteur PostgreSQL + Fallback Store In-Memory.
+  - `chipService.ts` : Résolution des scans, générateur de lots & protection anti-spam.
+  - `paymentProvider.ts` : Couche d'abstraction modulaire Stripe & BaridiMob.
+  - `index.ts` : Routes API REST (`/api/auth`, `/api/r/:chipId`, `/api/reviews`, `/api/chips/activate`, etc.).
+- `src/` :
+  - `components/` :
+    - `NfcHero3D.tsx` : Hero 3D immersif avec ondes électromagnétiques réactives.
+    - `InteractivePhoneDemo.tsx` : Simulateur d'expérience client interactif.
+    - `ChipActivationView.tsx` : Page d'activation pour puce scannée non enregistrée.
+    - `CustomerRatingView.tsx` : Parcours d'évaluation & bouton Google Reviews direct.
+    - `ManagerDashboard.tsx` : Dashboard restaurant (Avis, Serveurs, Exports).
+    - `SuperAdminPortalView.tsx` : Gestion globale & générateur de lots de puces.
+    - `Navbar.tsx` & `Footer.tsx` : Navigation futuriste et sélecteur FR / AR.
+  - `utils/` :
+    - `i18n.ts` : Traductions complètes Français / Arabe avec support RTL.
+    - `accountingExport.ts` : Moteurs d'export PDF & Excel CSV.
+    - `soundEffects.ts` : Retours sonores haptiques Web Audio.

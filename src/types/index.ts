@@ -64,10 +64,22 @@ export interface RegisteredNfcChip {
   assignedWaiterId?: string; // Serveur auquel elle appartient
   assignedTableNumbers?: number[]; // Tables assignées (ex: [1, 2, 3])
   payloadUrl: string; // e.g. "https://...?resto=david&server=waiter-1"
-  status: 'active' | 'pending';
+  status: 'active' | 'pending' | 'unassigned';
   encodedAt: string;
   lastScannedAt?: string;
   totalScans?: number;
+}
+
+export type SubscriptionPlanId = 'pack_installation' | 'monthly_pro' | 'custom_enterprise';
+
+export interface SubscriptionInfo {
+  id: string;
+  restaurantId: string;
+  planId: SubscriptionPlanId;
+  status: 'trial' | 'active' | 'past_due' | 'canceled';
+  packInstalled: boolean;
+  exportsUnlocked: boolean;
+  expiresAt: string;
 }
 
 export type MirrorThemeId = 'ice_glass' | 'specular_chrome' | 'amber_gold' | 'emerald_palace' | 'sapphire_cobalt' | 'ruby_velvet' | 'pure_gold';

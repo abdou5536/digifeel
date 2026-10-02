@@ -22,6 +22,7 @@ const ManagerDashboard = lazy(() => import('./components/ManagerDashboard').then
 const QrNfcStudio = lazy(() => import('./components/QrNfcStudio').then(module => ({ default: module.QrNfcStudio })));
 const TutorialGuideView = lazy(() => import('./components/TutorialGuideView').then(module => ({ default: module.TutorialGuideView })));
 const SuperAdminPortalView = lazy(() => import('./components/SuperAdminPortalView').then(module => ({ default: module.SuperAdminPortalView })));
+const ChipActivationView = lazy(() => import('./components/ChipActivationView').then(module => ({ default: module.ChipActivationView })));
 const OrderPackModal = lazy(() => import('./components/OrderPackModal').then(module => ({ default: module.OrderPackModal })));
 const ProviderPayoutModal = lazy(() => import('./components/ProviderPayoutModal').then(module => ({ default: module.ProviderPayoutModal })));
 const EmailViewerModal = lazy(() => import('./components/EmailViewerModal').then(module => ({ default: module.EmailViewerModal })));
@@ -43,7 +44,9 @@ const AppContent: React.FC = () => {
     setIsMirrorModalOpen,
     isOrderModalOpen,
     isPayoutModalOpen,
-    activeEmailModal
+    activeEmailModal,
+    registeredNfcChips,
+    activeChipId
   } = useApp();
   const shouldReduceMotion = useReducedMotion();
   const isCustomerFlow = mode === 'client';
@@ -169,8 +172,52 @@ const AppContent: React.FC = () => {
     const serverParam = params.get('server');
     const tableParam = params.get('table');
     const nfcParam = params.get('nfc');
+    const chipParam = params.get('chip') || params.get('chipId');
     const viewParam = params.get('view');
     const demoParam = params.get('demo');
+
+    // Check direct /r/:chipId in URL pathname
+    const pathname = window.location.pathname;
+    const rMatch = pathname.match(/^\/r\/([^/?#]+)/);
+    const detectedChip = chipParam || (rMatch ? rMatch[1] : null);
+
+    if (detectedChip) {
+      // Resolve chip via API
+      fetch(`/api/r/${encodeURIComponent(detectedChip)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data || data.error) return;
+          if (!data.isActivated) {
+            setMode('chip_activation');
+          } else {
+            if (data.restaurant?.id) {
+              setCurrentRestaurantId(data.restaurant.id);
+            }
+            if (data.server?.id) {
+              setSelectedWaiterId(data.server.id);
+            }
+            if (typeof data.tableNumber === 'number') {
+              setSelectedTableNumber(data.tableNumber);
+            }
+            setMode('client');
+          }
+        })
+        .catch(() => {
+          // Fallback local check
+          const localChip = registeredNfcChips.find(c => c.id === detectedChip || c.uid === detectedChip);
+          if (localChip && localChip.status === 'active') {
+            if (localChip.targetType === 'server' && localChip.targetId) {
+              setSelectedWaiterId(localChip.targetId);
+            } else if (localChip.targetType === 'table' && localChip.targetId) {
+              setSelectedTableNumber(parseInt(localChip.targetId, 10) || 1);
+            }
+            setMode('client');
+          } else {
+            setMode('chip_activation');
+          }
+        });
+      return;
+    }
 
     let matchedResto = restaurant;
 
@@ -408,6 +455,7 @@ const AppContent: React.FC = () => {
                 {mode === 'studio' && <QrNfcStudio />}
                 {mode === 'super_admin' && <SuperAdminPortalView />}
                 {mode === 'tutorial' && <TutorialGuideView />}
+                {mode === 'chip_activation' && <ChipActivationView chipId={activeChipId || 'chip-new-101'} />}
               </motion.div>
             </AnimatePresence>
           </Suspense>
