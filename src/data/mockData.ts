@@ -3,18 +3,18 @@ import { generateRealisticHistoricalReviews } from '../utils/analyticsData';
 import { DEFAULT_TIP_SHARING_CONFIG } from '../utils/tipSharingUtils';
 
 export const DEFAULT_PROVIDER_PAYOUT: ProviderPayoutConfig = {
-  accountHolder: 'Rahou Abdallah',
-  iban: 'FR76 3000 4000 0000 1234 5678 901',
-  bic: 'BNPAFRPPXXX',
-  bankName: 'BNP Paribas & Algérie Poste',
-  visaCardNumber: '4970 **** **** 8888',
-  ccpAccountNumber: '0012345678',
-  ccpKey: '99',
-  baridiMobRip: '00799999001234567899',
-  phonePayment: '06 12 34 56 78',
+  accountHolder: '',
+  iban: '',
+  bic: '',
+  bankName: '',
+  visaCardNumber: '',
+  ccpAccountNumber: '',
+  ccpKey: '',
+  baridiMobRip: '',
+  phonePayment: '',
   stripePaymentLink: '',
-  contactEmail: 'rahouabdallah27@gmail.com',
-  whatsappNumber: '+33612345678'
+  contactEmail: '',
+  whatsappNumber: ''
 };
 
 export const DEFAULT_STAR_TIERS: StarTier[] = [
@@ -112,7 +112,7 @@ export const INITIAL_RESTAURANTS: RestaurantConfig[] = [
     email: 'david.gerant@lebistroparisien.fr',
     address: '24 Rue de la Paix',
     city: 'Paris (75002)',
-    phone: '06 12 34 56 78',
+    phone: '',
     googleReviewUrl: 'https://g.page/r/bistro-parisien/review',
     setupKitCost: 100,
     tableCount: 16,
@@ -523,4 +523,3 @@ export const INITIAL_FAQ_ITEMS: FaqItem[] = [
     updatedAt: '2025-01-20T10:00:00Z'
   }
 ];
-

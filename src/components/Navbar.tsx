@@ -33,7 +33,6 @@ export const Navbar: React.FC = () => {
   const {
     mode,
     setMode,
-    setIsOrderModalOpen,
     visibleRestaurants,
     currentRestaurantId,
     setCurrentRestaurantId,
@@ -240,7 +239,7 @@ export const Navbar: React.FC = () => {
             {/* Quick Order Pack Button */}
             <motion.button
               onClick={() => {
-                setIsOrderModalOpen(true);
+                setMode('pricing');
                 setIsMobileMenuOpen(false);
                 soundFX.playHoverTick();
               }}
@@ -378,7 +377,7 @@ export const Navbar: React.FC = () => {
               <motion.button
                 type="button"
                 onClick={() => {
-                  setIsOrderModalOpen(true);
+                  setMode('pricing');
                   setIsMobileMenuOpen(false);
                   soundFX.playHoverTick();
                 }}

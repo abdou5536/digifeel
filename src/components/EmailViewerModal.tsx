@@ -374,7 +374,7 @@ export const EmailViewerModal: React.FC = () => {
 
                   {/* Footer signature */}
                   <div className="pt-2 text-center text-slate-500 text-[11px] border-t border-slate-100">
-                    Une question ? L'équipe Digifeel est à votre disposition 7j/7 au <strong>06 12 34 56 78</strong> ou par email à <strong>support@digifeel.io</strong>.
+                    Une question ? Contactez votre interlocuteur Digifeel.
                   </div>
                 </div>
               </div>

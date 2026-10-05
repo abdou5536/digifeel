@@ -9,6 +9,7 @@ export interface QrPdfOptions {
   ctaText?: string;
   showNfcMention?: boolean;
   showGoogleLogo?: boolean;
+  tableUrls?: Record<number, string>;
   format: 'a4_tent' | 'a6_standee' | 'a4_sheet' | 'table_stickers';
 }
 
@@ -69,7 +70,7 @@ export async function generateRestaurantPdf(
     for (let i = 0; i < tablesToPrint.length; i++) {
       if (i > 0) doc.addPage('a4', 'landscape');
       const t = tablesToPrint[i];
-      const tableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
+      const tableUrl = options.tableUrls?.[t.number] || `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
       const qrData = await generateHighResQr(tableUrl, {
         colorDark: options.theme === 'clean_minimal' ? '#0f172a' : '#050711',
         colorLight: '#ffffff',
@@ -190,7 +191,7 @@ export async function generateRestaurantPdf(
     for (let i = 0; i < tablesToPrint.length; i++) {
       if (i > 0) doc.addPage('a6', 'portrait');
       const t = tablesToPrint[i];
-      const tableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
+      const tableUrl = options.tableUrls?.[t.number] || `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
       const qrData = await generateHighResQr(tableUrl, { size: 900 });
 
       // Page background
@@ -310,7 +311,7 @@ export async function generateRestaurantPdf(
         const quad = quadrants[idx];
         const cx = quad.x + quad.w / 2;
 
-        const tableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
+        const tableUrl = options.tableUrls?.[t.number] || `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
         const qrData = await generateHighResQr(tableUrl, { size: 600 });
 
         // Outer Card Border
@@ -397,7 +398,7 @@ export async function generateRestaurantPdf(
         const s = stickerGrid[idx];
         const cx = s.x + s.size / 2;
 
-        const tableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
+        const tableUrl = options.tableUrls?.[t.number] || `${baseUrl}/?resto=${restaurant.slug}&table=${t.number}`;
         const qrData = await generateHighResQr(tableUrl, { size: 500 });
 
         // Circular or rounded sticker border

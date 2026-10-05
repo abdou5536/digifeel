@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { RestaurantConfig, Waiter, Review, TableItem, ProviderPayoutConfig, EmailLog, HardwareStatus, FaqItem, TipSharingConfig, TipPoolCalculationResult, ManagerToastNotification, ManagerNotificationType, RegisteredNfcChip, MirrorThemeId } from '../types';
 import { INITIAL_RESTAURANTS, INITIAL_WAITERS, INITIAL_REVIEWS, INITIAL_TABLES, DEFAULT_PROVIDER_PAYOUT, INITIAL_EMAIL_LOGS, INITIAL_FAQ_ITEMS } from '../data/mockData';
 import { DEFAULT_TIP_SHARING_CONFIG, calculateTipDistribution } from '../utils/tipSharingUtils';
 import { applyMirrorThemeToDom } from '../utils/mirrorThemeUtils';
 import { soundFX } from '../utils/soundEffects';
 
-export type AppMode = 'landing' | 'client' | 'server' | 'manager' | 'demo' | 'studio' | 'tutorial' | 'super_admin';
+export type AppMode = 'landing' | 'client' | 'server' | 'manager' | 'demo' | 'studio' | 'tutorial' | 'super_admin' | 'pricing' | 'workspace_demo' | 'workspace_locked' | 'admin_demo' | 'chip_error';
 
 interface AppContextType {
   mode: AppMode;
@@ -25,6 +25,7 @@ interface AppContextType {
   setCurrentRestaurantId: (id: string) => void;
   switchToEstablishment: (id: string) => void;
   restaurant: RestaurantConfig;
+  hydrateAuthenticatedRestaurant: (restaurant: Pick<RestaurantConfig, 'id' | 'slug' | 'name' | 'googleReviewUrl' | 'email' | 'address' | 'city' | 'tableCount' | 'tipSharingConfig'> & Partial<RestaurantConfig>) => void;
   updateRestaurant: (updates: Partial<RestaurantConfig>) => void;
   updateRestaurantGoogleUrl: (url: string) => void;
   createRestaurant: (newRestoData: Omit<RestaurantConfig, 'id'>) => RestaurantConfig;
@@ -49,6 +50,7 @@ interface AppContextType {
   
   // Scoped data for current restaurant
   waiters: Waiter[];
+  hydrateWaiters: (waiters: Array<Pick<Waiter, 'id' | 'name' | 'role' | 'tablesAssigned'>>) => void;
   addWaiter: (name: string, role: string, tables: number[]) => void;
   selectedWaiterId: string;
   setSelectedWaiterId: (id: string) => void;
@@ -90,7 +92,7 @@ interface AppContextType {
   clientSimulatedDevice: 'mobile' | 'desktop';
   setClientSimulatedDevice: (d: 'mobile' | 'desktop') => void;
   
-  // Payout Configuration (RIB & Virement du prestataire: Abdallah)
+  // Demo-only payment configuration; real details are read by the API from environment variables.
   payoutConfig: ProviderPayoutConfig;
   updatePayoutConfig: (cfg: Partial<ProviderPayoutConfig>) => void;
   isPayoutModalOpen: boolean;
@@ -118,7 +120,6 @@ const STORAGE_KEY_CURRENT_RESTO = 'nfcresto_current_resto_v5';
 const STORAGE_KEY_WAITERS = 'nfcresto_waiters_v5';
 const STORAGE_KEY_REVIEWS = 'nfcresto_reviews_v5';
 const STORAGE_KEY_TABLES = 'nfcresto_tables_v5';
-const STORAGE_KEY_PAYOUT = 'nfcresto_payout_config_v5';
 const STORAGE_KEY_SHOW_DEMO = 'nfcresto_show_demo_v5';
 const STORAGE_KEY_EMAIL_LOGS = 'nfcresto_email_logs_v5';
 const STORAGE_KEY_FAQS = 'nfcresto_faqs_v5';
@@ -130,8 +131,20 @@ const getDemoViewFromUrl = (): 'dashboard' | 'server' | null => {
   return demoView === 'dashboard' || demoView === 'server' ? demoView : null;
 };
 
+const getShowcaseModeFromUrl = (): AppMode | null => {
+  const showcase = new URLSearchParams(window.location.search).get('showcase');
+  if (showcase === 'pricing') return 'pricing';
+  if (showcase === 'dashboard') return 'workspace_demo';
+  if (showcase === 'dashboard-locked') return 'workspace_locked';
+  if (showcase === 'admin') return 'admin_demo';
+  if (showcase === 'chip-error') return 'chip_error';
+  return null;
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<AppMode>(() => {
+    const showcaseMode = getShowcaseModeFromUrl();
+    if (showcaseMode) return showcaseMode;
     const demoView = getDemoViewFromUrl();
     return demoView === 'server' ? 'server' : demoView === 'dashboard' ? 'demo' : 'landing';
   });
@@ -153,7 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [activeManagerToast, setActiveManagerToast] = useState<ManagerToastNotification | null>(null);
 
-  const superAdminEmail = 'rahouabdallah27@gmail.com';
+  const superAdminEmail = 'administrateur@digifeel.local';
 
   // Toggle to show / hide demo restaurant (Le Bistro Parisien)
   const [showDemoAccount, setShowDemoAccount] = useState<boolean>(() => {
@@ -165,15 +178,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Load provider payout settings (RIB, IBAN, nom)
-  const [payoutConfig, setPayoutConfig] = useState<ProviderPayoutConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_PAYOUT);
-      return saved ? { ...DEFAULT_PROVIDER_PAYOUT, ...JSON.parse(saved) } : DEFAULT_PROVIDER_PAYOUT;
-    } catch {
-      return DEFAULT_PROVIDER_PAYOUT;
-    }
-  });
+  const [payoutConfig, setPayoutConfig] = useState<ProviderPayoutConfig>(DEFAULT_PROVIDER_PAYOUT);
 
   // Load restaurants list (merging initial demo accounts if not already present)
   const [restaurants, setRestaurants] = useState<RestaurantConfig[]>(() => {
@@ -365,6 +370,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     () => allWaiters.filter(waiter => waiter.restaurantId === currentRestaurantId),
     [allWaiters, currentRestaurantId]
   );
+  const hydrateWaiters = useCallback((waiters: Array<Pick<Waiter, 'id' | 'name' | 'role' | 'tablesAssigned'>>) => {
+    setAllWaiters(previous => {
+      const current = previous.filter(waiter => waiter.restaurantId === currentRestaurantId);
+      const same = current.length === waiters.length && waiters.every(waiter => {
+        const existing = current.find(item => item.id === waiter.id);
+        return existing?.name === waiter.name && existing.role === waiter.role &&
+          JSON.stringify(existing.tablesAssigned || []) === JSON.stringify(waiter.tablesAssigned || []);
+      });
+      if (same) return previous;
+      return [
+        ...previous.filter(waiter => waiter.restaurantId !== currentRestaurantId),
+        ...waiters.map(waiter => ({
+          id: waiter.id,
+          restaurantId: currentRestaurantId,
+          name: waiter.name,
+          role: waiter.role,
+          tablesAssigned: waiter.tablesAssigned || [],
+          ratingAverage: 0,
+          totalReviews: 0,
+          totalTips: 0,
+          joinedDate: new Date().toISOString().slice(0, 10)
+        }))
+      ];
+    });
+  }, [currentRestaurantId]);
   const currentReviews = useMemo(
     () => allReviews.filter(review => review.restaurantId === currentRestaurantId),
     [allReviews, currentRestaurantId]
@@ -574,6 +604,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateRestaurant({ googleReviewUrl: url });
   };
 
+  const hydrateAuthenticatedRestaurant = useCallback((
+    serverRestaurant: Pick<RestaurantConfig, 'id' | 'slug' | 'name' | 'googleReviewUrl' | 'email' | 'address' | 'city' | 'tableCount' | 'tipSharingConfig'> & Partial<RestaurantConfig>
+  ) => {
+    const base = restaurants.find(item => item.id === serverRestaurant.id) || INITIAL_RESTAURANTS[0];
+    const hydrated: RestaurantConfig = {
+      ...base,
+      ...serverRestaurant,
+      registeredNfcChips: base.id === serverRestaurant.id ? base.registeredNfcChips : [],
+      starTiers: base.starTiers,
+      equipmentChoice: base.equipmentChoice,
+      shippingPreference: base.shippingPreference
+    };
+    const current = restaurants.find(item => item.id === hydrated.id);
+    const unchanged = current && Object.keys(hydrated).every(key =>
+      JSON.stringify(current[key as keyof RestaurantConfig]) === JSON.stringify(hydrated[key as keyof RestaurantConfig])
+    );
+    if (!unchanged) {
+      setRestaurants(previous => previous.some(item => item.id === hydrated.id)
+        ? previous.map(item => item.id === hydrated.id ? hydrated : item)
+        : [...previous, hydrated]);
+    }
+    setCurrentRestaurantId(hydrated.id);
+  }, [restaurants, setCurrentRestaurantId]);
+
   // Real-time NFC Chip Scan Alert State
   const [lastScannedChipAlert, setLastScannedChipAlert] = useState<RegisteredNfcChip | null>(null);
 
@@ -673,35 +727,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const triggerNfcChipScan = (uid: string): RegisteredNfcChip | null => {
     const found = registeredNfcChips.find(c => c.uid.toLowerCase() === uid.toLowerCase());
-    if (found) {
-      const updated = {
-        ...found,
-        lastScannedAt: new Date().toISOString(),
-        totalScans: (found.totalScans || 0) + 1
-      };
-      updateNfcChip(found.id, updated);
-      setLastScannedChipAlert(updated);
-      soundFX.playSuccessChime();
-      return updated;
-    } else {
-      // Auto-register newly detected tag
-      const defaultWaiter = allWaiters.find(w => w.restaurantId === currentRestaurantId) || allWaiters[0];
-      const newlyCreated = registerNfcChip({
-        uid,
-        customName: `Puce NFC Détectée (${uid.slice(-5)})`,
-        restaurantId: currentRestaurantId,
-        restaurantName: restaurant.name,
-        targetType: 'server',
-        targetId: defaultWaiter?.id || 'waiter-1',
-        targetName: defaultWaiter?.name || 'Serveur',
-        assignedWaiterId: defaultWaiter?.id || 'waiter-1',
-        assignedTableNumbers: [1],
-        payloadUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/?resto=${restaurant.slug}&server=${defaultWaiter?.id || 'waiter-1'}&nfc=${encodeURIComponent(uid)}`,
-        status: 'active'
-      });
-      setLastScannedChipAlert(newlyCreated);
-      return newlyCreated;
-    }
+    if (!found) return null;
+    const updated = {
+      ...found,
+      lastScannedAt: new Date().toISOString(),
+      totalScans: (found.totalScans || 0) + 1
+    };
+    updateNfcChip(found.id, updated);
+    setLastScannedChipAlert(updated);
+    soundFX.playSuccessChime();
+    return updated;
   };
 
   const updateTipSharingConfig = (updates: Partial<TipSharingConfig>) => {
@@ -990,15 +1025,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updatePayoutConfig = (cfg: Partial<ProviderPayoutConfig>) => {
     setPayoutConfig(prev => {
-      const updated = { ...prev, ...cfg };
-      try {
-        if (!isDemoMode) {
-          localStorage.setItem(STORAGE_KEY_PAYOUT, JSON.stringify(updated));
-        }
-      } catch {
-        // ignore
-      }
-      return updated;
+      return { ...prev, ...cfg };
     });
   };
 
@@ -1034,6 +1061,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentRestaurantId,
         switchToEstablishment,
         restaurant,
+        hydrateAuthenticatedRestaurant,
         updateRestaurant,
         updateRestaurantGoogleUrl,
         createRestaurant,
@@ -1055,6 +1083,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLastScannedChipAlert,
         triggerNfcChipScan,
         waiters: currentWaiters,
+        hydrateWaiters,
         addWaiter,
         selectedWaiterId,
         setSelectedWaiterId,

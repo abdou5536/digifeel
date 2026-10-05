@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { RestaurantConfig, EquipmentChoice, HardwareStatus, EmailLog, EstablishmentType } from '../types';
 import { DEFAULT_STAR_TIERS } from '../data/mockData';
+import LiveAdminWorkspace from './LiveAdminWorkspace';
+import { PRODUCT_PRICING } from '../config/product';
 import {
   Crown,
   Building,
@@ -30,6 +32,7 @@ import {
 
 export const SuperAdminPortalView: React.FC = () => {
   const {
+    isDemoMode,
     restaurants,
     visibleRestaurants,
     currentRestaurantId,
@@ -39,7 +42,6 @@ export const SuperAdminPortalView: React.FC = () => {
     updateHardwareStatus,
     setMode,
     getRestaurantDashboardUrl,
-    payoutConfig,
     setIsPayoutModalOpen,
     showDemoAccount,
     setShowDemoAccount,
@@ -53,7 +55,6 @@ export const SuperAdminPortalView: React.FC = () => {
   const [establishmentFilter, setEstablishmentFilter] = useState<'all' | 'restaurant' | 'hotel'>('all');
   const [establishmentType, setEstablishmentType] = useState<EstablishmentType>('restaurant');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [copiedIban, setCopiedIban] = useState(false);
 
   // New restaurant state
   const [name, setName] = useState('');
@@ -67,17 +68,13 @@ export const SuperAdminPortalView: React.FC = () => {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
 
+  if (!isDemoMode) return <LiveAdminWorkspace />;
+
   const handleCopyLink = (restoId: string) => {
     const url = getRestaurantDashboardUrl(restoId);
     navigator.clipboard.writeText(url);
     setCopiedId(restoId);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleCopyIban = () => {
-    navigator.clipboard.writeText(payoutConfig.iban);
-    setCopiedIban(true);
-    setTimeout(() => setCopiedIban(false), 2000);
   };
 
   const handleSelectAndGoToDashboard = (restoId: string) => {
@@ -105,7 +102,11 @@ export const SuperAdminPortalView: React.FC = () => {
       city: city.trim() || 'France',
       address: address.trim() || 'Rue du Restaurant',
       googleReviewUrl: googleReviewUrl || `https://g.page/r/${slug}/review`,
-      setupKitCost: equipmentChoice === 'full_pack' ? 100 : equipmentChoice === 'nfc_servers_only' ? 60 : 50,
+      setupKitCost: equipmentChoice === 'full_pack'
+        ? PRODUCT_PRICING.installationPacks.complete.priceEuros
+        : equipmentChoice === 'nfc_servers_only'
+          ? PRODUCT_PRICING.installationPacks.nfc.priceEuros
+          : PRODUCT_PRICING.installationPacks.qr.priceEuros,
       tableCount,
       currency: '€',
       baselineRating: 2.0,
@@ -667,9 +668,9 @@ export const SuperAdminPortalView: React.FC = () => {
                   onChange={e => setEquipmentChoice(e.target.value as EquipmentChoice)}
                   className="w-full p-2.5 bg-white/5 border border-white/15 rounded-xl text-white focus:ring-1 focus:ring-amber-500"
                 >
-                  <option value="full_pack" className="bg-slate-900 text-white">Pack Complet : 5 Puces NFC Serveurs + QR Tables (100 €)</option>
-                  <option value="nfc_servers_only" className="bg-slate-900 text-white">Uniquement les Puces NFC Serveurs (60 €)</option>
-                  <option value="qr_tables_only" className="bg-slate-900 text-white">Uniquement les Chevalets QR Tables (50 €)</option>
+                  <option value="full_pack" className="bg-slate-900 text-white">Pack complet : 5 puces NFC + QR tables ({PRODUCT_PRICING.installationPacks.complete.priceEuros} €)</option>
+                  <option value="nfc_servers_only" className="bg-slate-900 text-white">Pack NFC uniquement ({PRODUCT_PRICING.installationPacks.nfc.priceEuros} €)</option>
+                  <option value="qr_tables_only" className="bg-slate-900 text-white">Pack QR tables uniquement ({PRODUCT_PRICING.installationPacks.qr.priceEuros} €)</option>
                 </select>
               </div>
 

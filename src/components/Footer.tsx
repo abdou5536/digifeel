@@ -7,7 +7,7 @@ import { TermsOfServiceModal } from './TermsOfServiceModal';
 import { CustomDomainModal } from './CustomDomainModal';
 
 export const Footer: React.FC = () => {
-  const { setMode, setIsOrderModalOpen } = useApp();
+  const { setMode } = useApp();
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isDomainOpen, setIsDomainOpen] = useState(false);
@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
                 <span>Configurer un domaine</span>
               </button>
               <button 
-                onClick={() => { setIsOrderModalOpen(true); soundFX.playHoverTick(); }} 
+                onClick={() => { setMode('pricing'); soundFX.playHoverTick(); }}
                 className="text-white font-bold hover:underline cursor-pointer flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-xl border border-white/15"
               >
                 <Lock className="w-3 h-3 text-cyan-400" />
@@ -96,7 +96,7 @@ export const Footer: React.FC = () => {
                 className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center gap-1 underline underline-offset-4"
               >
                 <Scale className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Conditions Générales d'Utilisation (CGU)</span>
+                <span>Conditions Générales d'Utilisation et de Vente (CGU/CGV)</span>
               </button>
 
               <span aria-hidden="true">·</span>

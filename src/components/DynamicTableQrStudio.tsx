@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { soundFX } from '../utils/soundEffects';
 import { generateRestaurantPdf, QrPdfOptions } from '../utils/pdfGenerator';
+import { ensureQrScanLink, ensureQrScanLinksForTables } from '../utils/scanTargetLinks';
 
 export interface DynamicTableQrStudioProps {
   embedded?: boolean;
@@ -71,7 +72,8 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
     setSelectedTableNumber,
     visibleRestaurants,
     currentRestaurantId,
-    setCurrentRestaurantId
+    setCurrentRestaurantId,
+    isDemoMode
   } = useApp();
 
   const isHotel = restaurant.establishmentType === 'hotel';
@@ -102,6 +104,8 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
   const [previewTab, setPreviewTab] = useState<'branded_card' | 'pure_qr' | 'tent_3d' | 'all_tables_grid'>('branded_card');
 
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [tableUrl, setTableUrl] = useState<string>('');
+  const [scanLinkError, setScanLinkError] = useState('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedImage, setCopiedImage] = useState<boolean>(false);
@@ -117,7 +121,25 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
     restaurantId: restaurant.id
   };
   const assignedWaiter = waiters.find(w => w.id === activeTableItem.assignedWaiterId) || waiters[0];
-  const tableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${selectedTable}&ref=qr_dynamic`;
+  const legacyTableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${selectedTable}&ref=qr_dynamic`;
+
+  useEffect(() => {
+    let cancelled = false;
+    setScanLinkError('');
+    if (isDemoMode) {
+      setTableUrl(legacyTableUrl);
+      return () => { cancelled = true; };
+    }
+    setTableUrl('');
+    void ensureQrScanLink(restaurant, 'table', String(selectedTable), `Table ${selectedTable}`)
+      .then(url => {
+        if (!cancelled) setTableUrl(url);
+      })
+      .catch(error => {
+        if (!cancelled) setScanLinkError(error instanceof Error ? error.message : 'Le lien QR n’a pas pu être enregistré.');
+      });
+    return () => { cancelled = true; };
+  }, [isDemoMode, legacyTableUrl, restaurant, selectedTable]);
 
   // Themes mapping
   const THEMES: Record<QrStyleTheme, { name: string; dark: string; light: string; accent: string; border: string; bg: string; badge: string }> = {
@@ -183,6 +205,11 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
   useEffect(() => {
     let isCancelled = false;
     const renderBrandedQr = async () => {
+      if (!tableUrl) {
+        setQrDataUrl('');
+        setIsGenerating(false);
+        return;
+      }
       setIsGenerating(true);
       try {
         const darkColor = qrTheme === 'custom' ? customDarkColor : currentTheme.dark;
@@ -373,12 +400,16 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
   const handleDownloadSingleTablePdf = async () => {
     setIsGeneratingPdf(true);
     try {
+      const tableUrls = isDemoMode
+        ? undefined
+        : await ensureQrScanLinksForTables(restaurant, tables, [selectedTable]);
       await generateRestaurantPdf(restaurant, tables, [selectedTable], {
         format: pdfFormat,
         theme: 'gold_luxury',
         customTitle: headerTagline,
         ctaText: ctaBottomText,
-        showNfcMention: showNfcInductionTag
+        showNfcMention: showNfcInductionTag,
+        tableUrls
       });
       soundFX.playNotificationAlert();
       setDownloadSuccess(`PDF Table ${selectedTable} généré au format ${formatLabels[pdfFormat].name} !`);
@@ -395,12 +426,16 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
     setIsGeneratingPdf(true);
     try {
       const tableNums = tables.map(t => t.number);
+      const tableUrls = isDemoMode
+        ? undefined
+        : await ensureQrScanLinksForTables(restaurant, tables, tableNums);
       await generateRestaurantPdf(restaurant, tables, tableNums, {
         format: pdfFormat,
         theme: 'gold_luxury',
         customTitle: headerTagline,
         ctaText: ctaBottomText,
-        showNfcMention: showNfcInductionTag
+        showNfcMention: showNfcInductionTag,
+        tableUrls
       });
       soundFX.playNotificationAlert();
       setDownloadSuccess(`Pack PDF (${tables.length} tables) généré au format ${formatLabels[pdfFormat].name} !`);
@@ -1037,8 +1072,9 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  disabled={!tableUrl}
                   onClick={handleCopyUrl}
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer disabled:opacity-50"
                   title="Copier l'URL directe de la table"
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1047,8 +1083,9 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
 
                 <button
                   type="button"
+                  disabled={!qrDataUrl}
                   onClick={handleCopyImageToClipboard}
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer disabled:opacity-50"
                   title="Copier l'image du QR code dans le presse-papiers"
                 >
                   {copiedImage ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <FileImage className="w-3.5 h-3.5" />}
@@ -1057,14 +1094,16 @@ export const DynamicTableQrStudio: React.FC<DynamicTableQrStudioProps> = ({ embe
 
                 <button
                   type="button"
+                  disabled={!qrDataUrl}
                   onClick={handleDownloadImage}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Télécharger PNG</span>
                 </button>
               </div>
             </div>
+            {scanLinkError && <p className="text-sm text-red-300" role="alert">{scanLinkError}</p>}
           </div>
         </div>
       </div>

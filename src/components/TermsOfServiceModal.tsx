@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, ShieldCheck, Scale, Check, X, CreditCard, Radio } from 'lucide-react';
 import { soundFX } from '../utils/soundEffects';
+import { INSTALLATION_PACKS, PRODUCT_PRICING } from '../config/product';
 
 interface TermsOfServiceModalProps {
   isOpen: boolean;
@@ -40,10 +41,10 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({ isOpen
                 <span>Conditions Générales d'Utilisation & de Vente</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Conditions Générales d'Utilisation (CGU)
+                Conditions Générales d'Utilisation et de Vente (CGU/CGV)
               </h2>
               <p className="text-xs text-slate-400">
-                Régissant l'utilisation de l'infrastructure NFC Resto & QR Tables.
+                Modèle indicatif à compléter et à faire relire avant toute mise en ligne.
               </p>
             </div>
 
@@ -63,7 +64,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({ isOpen
                 <span>1. Objet du Service</span>
               </h3>
               <p>
-                Le service DIGIFEEL / NFC Resto fournit aux établissements de restauration et d'hôtellerie une solution technologique combinant matériel physique (puces NFC 13.56 MHz, QR codes de table prêts à imprimer) et application logicielle de collecte d'évaluations et de gestion des pourboires.
+                Complétez l’identité du vendeur, ses coordonnées, les modalités de livraison, de rétractation et de réclamation avant publication. Digifeel fournit des liens NFC et QR, une page de retour client et, selon l’offre, un tableau de bord.
               </p>
             </section>
 
@@ -73,7 +74,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({ isOpen
                 <span>2. Pack d'Installation & Tarification</span>
               </h3>
               <p>
-                L'acquisition du Pack d'installation initial est facturée à hauteur de <strong>100 €</strong> comprenant la configuration complète du compte restaurant, la synchronisation des puces NFC physiques, la programmation des QR codes de table et l'accès au tableau de bord patron.
+                Les packs affichés sont : {INSTALLATION_PACKS.map(pack => `${pack.name} : ${pack.priceEuros} €`).join(' · ')}. L’abonnement facultatif « {PRODUCT_PRICING.subscriptionName} » coûte {PRODUCT_PRICING.monthlySubscriptionEuros} € par mois, avec un essai initial de {PRODUCT_PRICING.subscriptionTrialDays} jours selon les conditions de l’offre. Les caractéristiques et frais éventuels sont à confirmer avant commande.
               </p>
             </section>
 
@@ -83,7 +84,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({ isOpen
                 <span>3. Gestion des Puces NFC & Responsabilité</span>
               </h3>
               <p>
-                L'exploitant du restaurant ou de l'hôtel est responsable de l'affectation de ses puces physiques à ses collaborateurs (serveurs, maîtres d'hôtel) ou à ses tables. L'application permet la modification et la réaffectation instantanée des puces depuis le gestionnaire intégré.
+                Le restaurateur est responsable de la configuration de son lien d’avis, de l’usage des liens NFC/QR et des commentaires publiés par ses clients. Une puce active continue d’ouvrir le lien Google du restaurant même si l’abonnement au tableau de bord est arrêté.
               </p>
             </section>
 
@@ -93,14 +94,14 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({ isOpen
                 <span>4. Reversement des Pourboires & Devises</span>
               </h3>
               <p>
-                Les pourboires versés par les clients sont attribués selon la règle configurée par l'établissement (individuel, pool d'heures ou répartition équitable). Les montants en devises étrangères (EUR, DZD, USD) sont convertis aux taux en vigueur enregistrés sur le tableau de bord.
+                Les paiements par carte sont traités par Stripe ; Digifeel ne stocke pas les données de carte. Le paiement manuel est proposé uniquement lorsque les coordonnées et le taux EUR/DZD sont configurés. Les conditions de reversement des pourboires doivent être précisées avant leur activation.
               </p>
             </section>
           </div>
 
           {/* Footer Action */}
           <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
-            <span className="text-[11px] text-slate-400 font-mono">Contrat d'utilisation standard</span>
+            <span className="text-[11px] text-slate-400 font-mono">Modèle à compléter et à faire relire</span>
             <button
               type="button"
               onClick={() => {

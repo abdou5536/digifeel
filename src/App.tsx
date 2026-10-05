@@ -15,6 +15,9 @@ import { Footer } from './components/Footer';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { AuthenticatedUser, ManagementAccess } from './components/ManagementAccess';
 import { ScrollMoon } from './components/ScrollMoon';
+import { AdminDemoPage, ChipErrorPage, DashboardBlockedPage, PricingPage, RestaurantDashboardPreview } from './components/ProductShowcasePages';
+import { PublicScanRoute } from './components/PublicScanRoute';
+import { AccountSetupPage } from './components/AccountSetupPage';
 
 const CustomerRatingView = lazy(() => import('./components/CustomerRatingView').then(module => ({ default: module.CustomerRatingView })));
 const WaiterProfileView = lazy(() => import('./components/WaiterProfileView').then(module => ({ default: module.WaiterProfileView })));
@@ -28,6 +31,8 @@ const EmailViewerModal = lazy(() => import('./components/EmailViewerModal').then
 const MirrorThemeModal = lazy(() => import('./components/MirrorThemeModal').then(module => ({ default: module.MirrorThemeModal })));
 
 const AppContent: React.FC = () => {
+  const scanRouteMatch = /^\/r\/([^/]+)\/?$/.exec(window.location.pathname);
+  const publicScanId = scanRouteMatch?.[1] || null;
   const {
     mode,
     setMode,
@@ -37,6 +42,8 @@ const AppContent: React.FC = () => {
     restaurants,
     restaurant,
     setCurrentRestaurantId,
+    hydrateAuthenticatedRestaurant,
+    hydrateWaiters,
     setSelectedWaiterId,
     setSelectedTableNumber,
     isMirrorModalOpen,
@@ -46,7 +53,7 @@ const AppContent: React.FC = () => {
     activeEmailModal
   } = useApp();
   const shouldReduceMotion = useReducedMotion();
-  const isCustomerFlow = mode === 'client';
+  const isCustomerFlow = mode === 'client' || mode === 'chip_error';
   const [authUser, setAuthUser] = useState<AuthenticatedUser | null>(null);
   const [authStatus, setAuthStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const [authError, setAuthError] = useState<string | null>(null);
@@ -56,6 +63,60 @@ const AppContent: React.FC = () => {
   const [hasOpenedEmailModal, setHasOpenedEmailModal] = useState(false);
   const [hasOpenedMirrorModal, setHasOpenedMirrorModal] = useState(false);
   const [demoLinkStatus, setDemoLinkStatus] = useState('');
+  const [setupToken, setSetupToken] = useState(() => new URLSearchParams(window.location.search).get('setup'));
+
+  const hydrateSessionUser = useCallback(async (user: AuthenticatedUser) => {
+    setAuthUser(user);
+    if (user.role === 'owner' || user.role === 'manager') {
+      const response = await fetch('/api/manager/restaurant', {
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(result?.error || 'La configuration du restaurant n’a pas pu être chargée.');
+      }
+      const result = await response.json() as {
+        restaurant: {
+          id: string; slug: string; name: string; email: string; address: string; city: string;
+          google_review_url: string | null; table_count: number; tip_enabled: boolean; status: string;
+          subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+        };
+      };
+      const source = result.restaurant;
+      hydrateAuthenticatedRestaurant({
+        id: source.id,
+        slug: source.slug,
+        name: source.name,
+        email: source.email,
+        address: source.address,
+        city: source.city,
+        googleReviewUrl: source.google_review_url || '',
+        tableCount: source.table_count,
+        tipEnabled: source.tip_enabled,
+        subscriptionStatus: source.subscription_status,
+        tipSharingConfig: undefined,
+        setupKitCost: 0
+      });
+      const teamResponse = await fetch('/api/manager/team', { credentials: 'same-origin', cache: 'no-store' });
+      if (!teamResponse.ok) {
+        const teamError = await teamResponse.json().catch(() => null) as { error?: string } | null;
+        throw new Error(teamError?.error || 'Les membres de l’équipe n’ont pas pu être chargés.');
+      }
+      const team = await teamResponse.json() as {
+        staff: Array<{ id: string; name: string; role: string; assigned_tables: number[]; status: string }>;
+      };
+      hydrateWaiters(team.staff.filter(member => member.status === 'active').map(member => ({
+        id: member.id,
+        name: member.name,
+        role: member.role,
+        tablesAssigned: member.assigned_tables
+      })));
+    }
+    setAuthStatus('ready');
+    setAuthError(null);
+    setMode(user.role === 'super_admin' ? 'super_admin' : 'manager');
+  }, [hydrateAuthenticatedRestaurant, hydrateWaiters, setMode]);
 
   useEffect(() => {
     const pointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -136,8 +197,7 @@ const AppContent: React.FC = () => {
       if (!result.user) {
         throw new Error('La session n’a pas pu être vérifiée.');
       }
-      setAuthUser(result.user);
-      setAuthStatus('ready');
+      await hydrateSessionUser(result.user);
     } catch {
       setAuthUser(null);
       setAuthError('Connexion impossible. Vérifiez votre connexion puis réessayez.');
@@ -145,11 +205,13 @@ const AppContent: React.FC = () => {
     } finally {
       window.clearTimeout(timeoutId);
     }
-  }, []);
+  }, [hydrateSessionUser]);
 
   useEffect(() => {
+    const isManagementRoute = ['manager', 'server', 'studio', 'tutorial', 'super_admin'].includes(mode);
+    if (!isManagementRoute || isDemoMode || publicScanId || setupToken) return;
     void checkSession();
-  }, [checkSession]);
+  }, [checkSession, isDemoMode, mode, publicScanId, setupToken]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -171,8 +233,24 @@ const AppContent: React.FC = () => {
     const nfcParam = params.get('nfc');
     const viewParam = params.get('view');
     const demoParam = params.get('demo');
+    const showcaseParam = params.get('showcase');
 
     let matchedResto = restaurant;
+
+    if (showcaseParam === 'pricing' || showcaseParam === 'dashboard' || showcaseParam === 'dashboard-locked' || showcaseParam === 'admin' || showcaseParam === 'chip-error') {
+      const showcaseMode = showcaseParam === 'pricing'
+        ? 'pricing'
+        : showcaseParam === 'dashboard'
+          ? 'workspace_demo'
+          : showcaseParam === 'dashboard-locked'
+            ? 'workspace_locked'
+            : showcaseParam === 'admin'
+            ? 'admin_demo'
+            : 'chip_error';
+      setIsDemoMode(false);
+      setMode(showcaseMode);
+      return;
+    }
 
     if (demoParam === 'dashboard' || demoParam === 'server') {
       setShowDemoAccount(true);
@@ -190,6 +268,9 @@ const AppContent: React.FC = () => {
       if (match) {
         matchedResto = match;
         setCurrentRestaurantId(match.id);
+      } else if (nfcParam || tableParam) {
+        setMode('chip_error');
+        return;
       }
     }
 
@@ -210,12 +291,14 @@ const AppContent: React.FC = () => {
       const chip = (matchedResto.registeredNfcChips || []).find(
         c => c.uid.toLowerCase() === nfcParam.toLowerCase() || c.id.toLowerCase() === nfcParam.toLowerCase()
       );
-      if (chip) {
-        if (chip.targetType === 'server') {
-          setSelectedWaiterId(chip.targetId);
-        } else if (chip.targetType === 'table') {
-          setSelectedTableNumber(parseInt(chip.targetId, 10) || 1);
-        }
+      if (!chip || chip.status !== 'active') {
+        setMode('chip_error');
+        return;
+      }
+      if (chip.targetType === 'server') {
+        setSelectedWaiterId(chip.targetId);
+      } else if (chip.targetType === 'table') {
+        setSelectedTableNumber(parseInt(chip.targetId, 10) || 1);
       }
     }
 
@@ -304,6 +387,50 @@ const AppContent: React.FC = () => {
     }
   };
 
+  if (publicScanId) {
+    return <PublicScanRoute publicId={publicScanId} />;
+  }
+  if (setupToken) {
+    return (
+      <AccountSetupPage
+        token={setupToken}
+        onAuthenticated={user => {
+          window.history.replaceState(null, '', '/');
+          setSetupToken(null);
+          void hydrateSessionUser(user).catch(error => {
+            setAuthUser(null);
+            setAuthStatus('unavailable');
+            setAuthError(error instanceof Error ? error.message : 'La configuration du compte n’a pas pu être chargée.');
+            setMode('manager');
+          });
+        }}
+      />
+    );
+  }
+  if (new URLSearchParams(window.location.search).get('tip') === 'received') {
+    return (
+      <main className="product-shell chip-error-page">
+        <section className="chip-error-card" aria-labelledby="tip-thanks-title">
+          <h1 id="tip-thanks-title">Merci pour votre geste.</h1>
+          <p>Stripe nous transmet la confirmation du paiement. Votre contribution sera enregistrée après vérification.</p>
+          <a className="product-button" href="/">Retour à Digifeel</a>
+        </section>
+      </main>
+    );
+  }
+  if (window.location.pathname !== '/') {
+    return (
+      <main className="product-shell chip-error-page">
+        <section className="chip-error-card" aria-labelledby="not-found-title">
+          <p className="product-eyebrow">Page introuvable</p>
+          <h1 id="not-found-title">Cette adresse n’existe pas.</h1>
+          <p>Vérifiez le lien ou revenez à l’accueil de Digifeel.</p>
+          <a className="product-button" href="/">Retour à l’accueil</a>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <div className="app-shell min-h-screen flex flex-col text-slate-100 overflow-x-hidden">
       {!isCustomerFlow && !isDemoMode && <Navbar />}
@@ -346,7 +473,7 @@ const AppContent: React.FC = () => {
             <Radio aria-hidden="true" />
             DIGIFEEL
           </span>
-          <span className="customer-return-bar__label">Parcours client</span>
+          <span className="customer-return-bar__label">{mode === 'chip_error' ? 'Puce non reconnue' : 'Parcours client'}</span>
         </nav>
       )}
       {!isCustomerFlow && !isDemoMode && !requiresManagementAccess && <ConnectionStatus />}
@@ -376,11 +503,11 @@ const AppContent: React.FC = () => {
             <ManagementAccess
               demoView={mode === 'server' ? 'server' : 'dashboard'}
               onDemo={openDemo}
-              onAuthenticated={user => {
-                setAuthUser(user);
-                setAuthStatus('ready');
-                setAuthError(null);
-              }}
+              onAuthenticated={user => { void hydrateSessionUser(user).catch(error => {
+                setAuthUser(null);
+                setAuthStatus('unavailable');
+                setAuthError(error instanceof Error ? error.message : 'La configuration du compte n’a pas pu être chargée.');
+              }); }}
               error={authError}
               onRetry={() => void checkSession()}
               unavailable={authStatus === 'unavailable'}
@@ -408,6 +535,11 @@ const AppContent: React.FC = () => {
                 {mode === 'studio' && <QrNfcStudio />}
                 {mode === 'super_admin' && <SuperAdminPortalView />}
                 {mode === 'tutorial' && <TutorialGuideView />}
+                {mode === 'pricing' && <PricingPage />}
+                {mode === 'workspace_demo' && <RestaurantDashboardPreview />}
+                {mode === 'workspace_locked' && <DashboardBlockedPage />}
+                {mode === 'admin_demo' && <AdminDemoPage />}
+                {mode === 'chip_error' && <ChipErrorPage />}
               </motion.div>
             </AnimatePresence>
           </Suspense>

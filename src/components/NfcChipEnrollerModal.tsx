@@ -29,6 +29,7 @@ import {
   Store
 } from 'lucide-react';
 import { soundFX } from '../utils/soundEffects';
+import { createNfcScanLink, updateNfcScanTarget } from '../utils/scanTargetLinks';
 
 interface NfcChipEnrollerModalProps {
   isOpen: boolean;
@@ -55,7 +56,8 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
     triggerNfcChipScan,
     setMode,
     setSelectedWaiterId,
-    setSelectedTableNumber
+    setSelectedTableNumber,
+    isDemoMode
   } = useApp();
 
   const isHotel = restaurant.establishmentType === 'hotel';
@@ -76,6 +78,7 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
   // Scanning & Feedback State
   const [isScanningNfc, setIsScanningNfc] = useState<boolean>(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState('');
   const [scanSuccess, setScanSuccess] = useState<boolean>(false);
   const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
   const [hasWebNfcSupport, setHasWebNfcSupport] = useState<boolean>(false);
@@ -125,6 +128,7 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
   };
 
   const startCreating = () => {
+    setSaveError('');
     setEditingChip(null);
     setChipCustomName(`Puce Porte-Clé #${registeredNfcChips.length + 1}`);
     setSelectedRestoId(restaurant.id);
@@ -136,16 +140,36 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
     soundFX.playHoverTick();
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingChip) return;
+    setSaveError('');
 
     const srv = waiters.find(w => w.id === selectedServerId);
     const targetName = targetType === 'server'
       ? `${srv?.name || 'Serveur'} (${srv?.role || 'Service'})`
       : `Table(s) ${selectedTableNums.join(', ')}`;
 
-    const finalUrl = getPayloadUrl(editingChip.uid, targetResto.slug, srv?.id, selectedTableNums[0]);
+    const publicId = editingChip.payloadUrl.match(/\/r\/([A-Za-z0-9_-]+)(?:[?#]|$)/)?.[1];
+    const finalUrl = publicId
+      ? editingChip.payloadUrl
+      : getPayloadUrl(editingChip.uid, targetResto.slug, srv?.id, selectedTableNums[0]);
+    if (publicId) {
+      if (targetResto.id !== editingChip.restaurantId) {
+        setSaveError('Un lien permanent ne peut pas être déplacé vers un autre restaurant. Créez un nouveau lien pour cet établissement.');
+        return;
+      }
+      try {
+        await updateNfcScanTarget(publicId, {
+          label: chipCustomName.trim() || targetName,
+          targetType,
+          targetId: targetType === 'server' ? (srv?.id || 'waiter-1') : (selectedTableNums[0]?.toString() || '1')
+        });
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'La puce n’a pas pu être modifiée en base.');
+        return;
+      }
+    }
 
     updateNfcChip(editingChip.id, {
       customName: chipCustomName.trim() || targetName,
@@ -164,15 +188,30 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
     setScanMessage(`Puce "${chipCustomName}" modifiée et synchronisée avec succès !`);
   };
 
-  const handleSaveNew = (e: React.FormEvent) => {
+  const handleSaveNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError('');
     const uid = customUid.trim() || generateSimulatedUid();
     const srv = waiters.find(w => w.id === selectedServerId);
     const targetName = targetType === 'server'
       ? `${srv?.name || 'Serveur'} (${srv?.role || 'Service'})`
       : `Table(s) ${selectedTableNums.join(', ')}`;
 
-    const finalUrl = getPayloadUrl(uid, targetResto.slug, srv?.id, selectedTableNums[0]);
+    let finalUrl = getPayloadUrl(uid, targetResto.slug, srv?.id, selectedTableNums[0]);
+    if (!isDemoMode) {
+      try {
+        finalUrl = await createNfcScanLink(
+          targetResto,
+          uid,
+          chipCustomName.trim() || targetName,
+          targetType,
+          targetType === 'server' ? (srv?.id || 'waiter-1') : (selectedTableNums[0]?.toString() || '1')
+        );
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'Le lien NFC n’a pas pu être enregistré.');
+        return;
+      }
+    }
 
     registerNfcChip({
       uid,
@@ -204,6 +243,8 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
       soundFX.playSuccessChime();
       if (detected) {
         setScanMessage(`Puce NFC physique détectée ! UID: ${detected.uid} (${detected.customName || detected.targetName})`);
+      } else {
+        setScanMessage(`Puce ${randomUid} inconnue. Enregistrez-la avant de l’activer.`);
       }
     }, 600);
   };
@@ -338,6 +379,8 @@ export const NfcChipEnrollerModal: React.FC<NfcChipEnrollerModalProps> = ({
               </button>
             </div>
           )}
+
+          {saveError && <p className="rounded-xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-200" role="alert">{saveError}</p>}
 
           {/* VIEW 1 : LIST OF REGISTERED NFC CHIPS */}
           {viewMode === 'list' && (

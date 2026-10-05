@@ -22,7 +22,7 @@ export const WORLD_CURRENCIES: Record<string, CurrencyInfo> = {
   },
   DZD: {
     code: 'DZD',
-    name: 'Dinar Algérien (Square Port-Saïd / Parallel)',
+    name: 'Dinar algérien',
     symbol: 'DA',
     flag: '🇩🇿',
     rateVsEur: 277.0,
@@ -317,8 +317,6 @@ export async function fetchLiveExchangeRates(): Promise<boolean> {
           WORLD_CURRENCIES[code].rateVsEur = Number(data.rates[code]);
         }
       });
-      // Override DZD with parallel market rate (Square Port-Saïd: 277 DA / 1 EUR)
-      WORLD_CURRENCIES.DZD.rateVsEur = 277.0;
       lastApiFetchTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       isApiRatesActive = true;
       try {
@@ -343,7 +341,6 @@ export async function fetchLiveExchangeRates(): Promise<boolean> {
               WORLD_CURRENCIES[code].rateVsEur = Number(fallbackData.rates[code]);
             }
           });
-          WORLD_CURRENCIES.DZD.rateVsEur = 277.0;
           lastApiFetchTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           isApiRatesActive = true;
           return true;
@@ -362,4 +359,3 @@ export function getLiveRatesStatus() {
     lastUpdated: lastApiFetchTime || 'Direct (Base)'
   };
 }
-

@@ -43,7 +43,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
                 Politique de Confidentialité
               </h2>
               <p className="text-xs text-slate-400">
-                Dernière mise à jour : 28 Septembre 2026 · Conforme au Règlement Général sur la Protection des Données (UE 2016/679).
+                Modèle indicatif à compléter et à faire relire avant toute mise en ligne.
               </p>
             </div>
 
@@ -63,12 +63,12 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
                 <span>1. Collecte et Traitement des Données</span>
               </h3>
               <p>
-                L'application DIGIFEEL / NFC Solutions traite uniquement les données strictement nécessaires au fonctionnement du service de notation et de pourboires :
+                Ce modèle doit être complété par l’identité et les coordonnées du responsable du traitement avant publication. Le service peut traiter les données suivantes :
               </p>
               <ul className="list-disc list-inside space-y-1 text-slate-300 pl-2">
-                <li><strong>Données relatives au scan :</strong> Identifiant UID matériel de la puce NFC ou identifiant de table scannée, horodatage du scan.</li>
-                <li><strong>Évaluations clients :</strong> Note attribuée (1 à 5 étoiles), commentaire textuel libre éventuel, sélection avec ou sans pourboire.</li>
-                <li><strong>Données restaurateur :</strong> Nom de l'établissement, lien direct Google Maps / Google Avis, identifiants des collaborateurs en salle.</li>
+                <li><strong>Scans :</strong> identifiant du lien NFC ou QR, restaurant associé et date du scan. L’adresse IP peut être utilisée temporairement pour limiter les abus.</li>
+                <li><strong>Retours clients :</strong> note, commentaire facultatif, membre d’équipe associé au lien et état d’ouverture du lien Google.</li>
+                <li><strong>Comptes et paiements :</strong> e-mail et données de configuration du restaurateur, références de paiement et, pour les paiements manuels, preuve image. Digifeel ne reçoit pas les numéros de carte bancaire.</li>
               </ul>
             </section>
 
@@ -78,7 +78,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
                 <span>2. Utilisation des Puces NFC & Respect de l'Anonymat</span>
               </h3>
               <p>
-                Le scan d'une puce NFC ou d'un QR code par un client s'effectue sans aucune obligation de création de compte ou de téléchargement d'application. L'expérience client est immédiate et garantit l'anonymat des déposants, sauf si le client choisit de s'identifier sur la fiche Google Maps publique de l'établissement.
+                Un scan ne demande pas la création d’un compte client. Un commentaire peut toutefois contenir des informations personnelles si son auteur en saisit. Le bouton Google est proposé quelle que soit la note ; Google applique ensuite ses propres règles et sa propre politique de confidentialité.
               </p>
             </section>
 
@@ -88,7 +88,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
                 <span>3. Sécurité et Conservation des Données</span>
               </h3>
               <p>
-                Toutes les transmissions de données sont chiffrées de bout en bout via protocole HTTPS / TLS. Les données de comptabilité et de pourboires sont conservées de manière sécurisée et ne sont jamais vendues, louées ou partagées avec des tiers à des fins publicitaires.
+                En production, le site doit être servi en HTTPS. Les comptes et données métier sont stockés dans une base serveur. Les paiements par carte sont traités par Stripe ; les preuves CCP/Baridimob sont conservées hors du répertoire public. La durée de conservation, les sous-traitants et les modalités de suppression doivent être définis par l’exploitant avant publication.
               </p>
             </section>
 
@@ -98,14 +98,14 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
                 <span>4. Vos Droits d'Accès, de Rectification et d'Effacement</span>
               </h3>
               <p>
-                Conformément aux réglementations RGPD, tout utilisateur ou restaurateur dispose d'un droit d'accès, de rectification, de portabilité et de suppression des données le concernant sur simple demande par email à l'administrateur de l'application : <span className="font-mono text-cyan-300 font-bold">rahouabdallah27@gmail.com</span>.
+                Les coordonnées de contact et la procédure d’exercice des droits doivent être renseignées ici par l’exploitant : <strong>[adresse e-mail de contact à renseigner]</strong>. Le responsable doit également préciser la base légale, les délais de conservation et, le cas échéant, les coordonnées du délégué à la protection des données.
               </p>
             </section>
           </div>
 
           {/* Footer Action */}
           <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
-            <span className="text-[11px] text-slate-400 font-mono">DIGIFEEL · Respect de la vie privée garanti</span>
+            <span className="text-[11px] text-slate-400 font-mono">DIGIFEEL · Modèle à faire relire</span>
             <button
               type="button"
               onClick={() => {

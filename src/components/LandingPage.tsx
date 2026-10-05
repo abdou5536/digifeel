@@ -1,326 +1,273 @@
-import React, { useRef } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
+import Lenis from 'lenis';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
-  Activity,
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-  Check,
-  CreditCard,
-  Globe,
-  Lock,
-  QrCode,
-  Radio,
-  ScanLine,
-  Smartphone,
-  Sparkles,
-  Star,
-  Users,
-  Zap
+  ArrowDown, ArrowRight, Check, FileSpreadsheet, FileText, QrCode,
+  Radio, Share2, Star, TrendingUp, Users
 } from 'lucide-react';
+import { INSTALLATION_PACKS, PRODUCT_PRICING } from '../config/product';
 import { useApp } from '../context/AppContext';
-import { soundFX } from '../utils/soundEffects';
-import { CustomDomainModal } from './CustomDomainModal';
 
-const particles = Array.from({ length: 22 }, (_, index) => index);
+const NfcHeroScene = lazy(() => import('./NfcHeroScene').then(module => ({ default: module.NfcHeroScene })));
+
+const useImmersiveScroll = () => {
+  useEffect(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) return;
+
+    gsap.registerPlugin(ScrollTrigger);
+    const lenis = new Lenis({ duration: 1.1, smoothWheel: true, syncTouch: false, anchors: true });
+    const tick = (time: number) => lenis.raf(time * 1000);
+    const onScroll = () => ScrollTrigger.update();
+    gsap.ticker.add(tick);
+    lenis.on('scroll', onScroll);
+
+    const context = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((element) => {
+        gsap.fromTo(element, { autoAlpha: 0, y: 28 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.75,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: element, start: 'top 86%', once: true }
+        });
+      });
+
+      gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach((element) => {
+        gsap.to(element, {
+          yPercent: -8,
+          ease: 'none',
+          scrollTrigger: { trigger: element, start: 'top bottom', end: 'bottom top', scrub: 0.6 }
+        });
+      });
+    });
+
+    return () => {
+      context.revert();
+      lenis.off('scroll', onScroll);
+      lenis.destroy();
+      gsap.ticker.remove(tick);
+    };
+  }, []);
+};
+
+const magneticProps = {
+  onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left - bounds.width / 2) * 0.08;
+    const y = (event.clientY - bounds.top - bounds.height / 2) * 0.08;
+    event.currentTarget.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  },
+  onPointerLeave: (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.currentTarget.style.transform = '';
+  }
+};
 
 export const LandingPage: React.FC = () => {
-  const {
-    setMode,
-    setIsOrderModalOpen,
-    setCurrentRestaurantId,
-    setShowDemoAccount,
-    setIsDemoMode,
-    restaurant,
-    registeredNfcChips
-  } = useApp();
-  const prefersReducedMotion = useReducedMotion();
-  const heroRef = useRef<HTMLElement>(null);
-  const [isDomainOpen, setIsDomainOpen] = React.useState(false);
+  const { setMode } = useApp();
+  const [contactSent, setContactSent] = useState(false);
+  const [shareStatus, setShareStatus] = useState('');
+  useImmersiveScroll();
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (prefersReducedMotion || event.pointerType !== 'mouse') return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - bounds.left}px`);
-    event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - bounds.top}px`);
-    event.currentTarget.style.setProperty('--pointer-tilt-x', `${(event.clientY / window.innerHeight - 0.5) * -7}deg`);
-    event.currentTarget.style.setProperty('--pointer-tilt-y', `${(event.clientX / window.innerWidth - 0.5) * 9}deg`);
-  };
-
-  const resetPointer = () => {
-    heroRef.current?.style.removeProperty('--pointer-tilt-x');
-    heroRef.current?.style.removeProperty('--pointer-tilt-y');
-  };
-
-  const openDemo = (view: 'dashboard' | 'server' = 'dashboard') => {
-    setShowDemoAccount(true);
-    setCurrentRestaurantId('resto-demo');
-    setIsDemoMode(true);
+  const shareSite = async () => {
     const url = new URL(window.location.href);
-    url.searchParams.set('demo', view);
-    window.history.replaceState(null, '', url);
-    setMode(view === 'server' ? 'server' : 'demo');
-    soundFX.playHoverTick();
+    url.search = '';
+    url.hash = '';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: document.title, text: 'Découvre Digifeel pour les restaurants.', url: url.toString() });
+        setShareStatus('Lien partagé.');
+      } else {
+        await navigator.clipboard.writeText(url.toString());
+        setShareStatus('Lien copié.');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.error('Le lien du site n’a pas pu être partagé.', error);
+      setShareStatus('Partage indisponible. Copiez le lien depuis la barre d’adresse.');
+    }
+  };
+
+  const submitContact = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setContactSent(true);
   };
 
   return (
-    <div className="landing-page">
-      <section
-        ref={heroRef}
-        className="landing-hero"
-        onPointerMove={handlePointerMove}
-        onPointerLeave={resetPointer}
-      >
-        <div className="landing-hero__grid" aria-hidden="true" />
-        <div className="landing-hero__glow landing-hero__glow--one" aria-hidden="true" />
-        <div className="landing-hero__glow landing-hero__glow--two" aria-hidden="true" />
-        <div className="landing-particles" aria-hidden="true">
-          {particles.map(particle => (
-            <span
-              className="landing-particle"
-              key={particle}
-              style={{
-                '--particle-x': `${(particle * 47 + 13) % 100}%`,
-                '--particle-y': `${(particle * 67 + 9) % 100}%`,
-                '--particle-delay': `${(particle % 9) * -0.7}s`,
-                '--particle-duration': `${5 + (particle % 6)}s`
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
+    <div className="product-shell marketing-page immersive-site">
+      <header className="product-topbar immersive-nav">
+        <a className="product-brand" href="#accueil" aria-label="Digifeel, accueil">
+          <img src="/icons/icon.svg" alt="" />
+          DIGIFEEL
+        </a>
+        <nav className="product-topbar__links" aria-label="Navigation du site">
+          <a href="#fonctionnement">Le parcours</a>
+          <a href="#avis">Avis</a>
+          <a href="#serveurs">Équipe</a>
+          <a href="#gestion">Gestion</a>
+          <a href="#tarifs">Tarifs</a>
+        </nav>
+        <button className="product-button product-button--small magnetic-button" onClick={() => setMode('workspace_demo')} {...magneticProps}>
+          Voir la démo <ArrowRight aria-hidden="true" />
+        </button>
+      </header>
 
-        <div className="landing-hero__inner">
-          <motion.div
-            className="landing-copy"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.8, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="landing-eyebrow">
-              <span className="landing-eyebrow__pulse" />
-              <span>LA NOUVELLE EXPÉRIENCE RESTAURANT</span>
-              <Sparkles aria-hidden="true" />
+      <main id="accueil">
+        <section className="immersive-hero">
+          <div className="immersive-hero__copy" data-reveal>
+            <span className="product-eyebrow"><Radio aria-hidden="true" /> NFC · QR · avis clients</span>
+            <h1>Un geste.<br /><span>Un avis qui compte.</span></h1>
+            <p>Après le repas, un scan ouvre un parcours simple : noter, laisser un mot, puis publier sur Google.</p>
+            <div className="marketing-hero__actions">
+              <a className="product-button magnetic-button" href="#fonctionnement">Voir le parcours <ArrowDown aria-hidden="true" /></a>
+              <button className="product-button product-button--secondary magnetic-button" onClick={() => void shareSite()} {...magneticProps}>
+                <Share2 aria-hidden="true" /> {shareStatus || 'Partager le site'}
+              </button>
             </div>
+            <p className="marketing-hero__reassurance"><Check aria-hidden="true" /> Les puces continuent de rediriger sans abonnement.</p>
+          </div>
+          <div className="immersive-hero__scene" data-parallax>
+            <div className="immersive-hero__halo" aria-hidden="true" />
+            <Suspense fallback={<div className="nfc-scene-fallback" aria-label="Puce Digifeel"><Radio /> DIGIFEEL</div>}>
+              <NfcHeroScene />
+            </Suspense>
+            <span className="immersive-hero__caption">APPROCHEZ · SCANNEZ · PARTAGEZ</span>
+          </div>
+          <a className="immersive-scroll-hint" href="#fonctionnement"><span /> Défiler pour découvrir</a>
+        </section>
 
-            <h1 className="landing-title">
-              Chaque instant
-              <br />
-              <span>compte.</span>
-            </h1>
-            <p className="landing-description">
-              Le service laisse une impression. Digifeel vous aide à la comprendre,
-              à la mesurer et à la rendre inoubliable.
-            </p>
+        <section className="product-section immersive-steps" id="fonctionnement">
+          <div className="product-section__heading" data-reveal>
+            <span className="product-eyebrow">Le parcours client</span>
+            <h2>Du repas à Google.<br />Sans détour.</h2>
+          </div>
+          <div className="immersive-step-grid">
+            {[
+              { number: '01', title: 'Scanner', text: 'Une puce sur la table ou un QR code. Pas d’application à installer.', icon: Radio },
+              { number: '02', title: 'Noter', text: 'Le client choisit ses étoiles et peut ajouter un commentaire.', icon: Star },
+              { number: '03', title: 'Publier', text: 'Il copie son message et ouvre la fiche Google de votre restaurant.', icon: QrCode }
+            ].map(step => (
+              <article className="immersive-step glass-interactive" key={step.number} data-reveal>
+                <span className="immersive-step__number">{step.number}</span>
+                <step.icon aria-hidden="true" className="immersive-step__icon" />
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
 
-            <div className="landing-actions">
-              <motion.button
-                type="button"
-                className="landing-button landing-button--primary"
-                onClick={() => openDemo()}
-                whileTap={{ scale: 0.97 }}
-              >
-                <span>Explorer le tableau de bord</span>
-                <ArrowRight aria-hidden="true" />
-              </motion.button>
-              <motion.button
-                type="button"
-                className="landing-button landing-button--quiet"
-                onClick={() => setMode('client')}
-                whileTap={{ scale: 0.97 }}
-              >
-                <span className="landing-play"><Smartphone aria-hidden="true" /></span>
-                <span>Voir l’expérience client</span>
-              </motion.button>
-            </div>
-
-            <div className="landing-proof">
-              <div className="landing-proof__avatars" aria-hidden="true">
-                <span>J</span><span>M</span><span>A</span><span><Users /></span>
+        <section className="immersive-editorial" id="avis">
+          <div className="immersive-editorial__index" data-reveal>01 / AVIS CLIENTS</div>
+          <div className="immersive-editorial__content glass-interactive" data-reveal>
+            <span className="product-eyebrow">Après chaque service</span>
+            <h2>Une expérience<br />qui ne s’arrête pas à table.</h2>
+            <p>Le client partage son ressenti dans Digifeel. Google est proposé à tous, quelle que soit la note.</p>
+            <div className="immersive-review-card">
+              <div className="immersive-review-card__stars" aria-label="Exemple : quatre étoiles">
+                {[1, 2, 3, 4, 5].map(star => <Star key={star} fill={star <= 4 ? 'currentColor' : 'none'} aria-hidden="true" />)}
               </div>
+              <p>« Service attentionné, plats généreux. Nous reviendrons. »</p>
+              <span>EXEMPLE DE RETOUR CLIENT</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="immersive-team" id="serveurs">
+          <div className="immersive-team__visual" data-reveal>
+            <div className="immersive-team__orbit immersive-team__orbit--outer" />
+            <div className="immersive-team__orbit immersive-team__orbit--inner" />
+            <div className="immersive-team__center"><Users aria-hidden="true" /></div>
+            <span className="immersive-team__tag immersive-team__tag--one">Équipe</span>
+            <span className="immersive-team__tag immersive-team__tag--two">Service</span>
+          </div>
+          <div className="immersive-team__copy" data-reveal>
+            <span className="immersive-editorial__index">02 / SERVEURS</span>
+            <h2>Chaque bon service<br />a un visage.</h2>
+            <p>Associez les retours aux membres de votre équipe et valorisez les attentions qui font revenir vos clients.</p>
+            <button className="product-text-link" onClick={() => setMode('workspace_demo')}>Explorer l’espace restaurateur <ArrowRight aria-hidden="true" /></button>
+          </div>
+        </section>
+
+        <section className="immersive-management" id="gestion">
+          <div className="immersive-management__intro" data-reveal>
+            <span className="immersive-editorial__index">03 / GESTION</span>
+            <h2>Vos services,<br />en un regard.</h2>
+            <p>Une démonstration avec données fictives. Les exports sont testables dans l’espace restaurateur.</p>
+            <button className="product-button magnetic-button" onClick={() => setMode('workspace_demo')} {...magneticProps}>Ouvrir le tableau de bord <ArrowRight aria-hidden="true" /></button>
+          </div>
+          <div className="immersive-dashboard glass-interactive" data-reveal>
+            <div className="immersive-dashboard__top">
+              <span>VOTRE RESTAURANT</span>
+              <span className="immersive-dashboard__live"><i /> DONNÉES D’EXEMPLE</span>
+            </div>
+            <div className="immersive-dashboard__metrics">
+              <div><span>Scans cette semaine</span><strong>261</strong><small><TrendingUp aria-hidden="true" /> +18 %</small></div>
+              <div><span>Note moyenne</span><strong>4,7<small>/5</small></strong><span className="immersive-dashboard__stars" aria-hidden="true">★★★★★</span></div>
+            </div>
+            <div className="immersive-dashboard__chart" role="img" aria-label="Exemple de progression des scans sur sept jours">
+              {[28, 42, 35, 54, 47, 77, 61].map((height, index) => <span key={index} style={{ height: `${height}%` }} />)}
+            </div>
+            <div className="immersive-dashboard__footer">
+              <span>SCANS · 7 JOURS</span>
               <div>
-                <div className="landing-proof__stars" aria-label="5 étoiles">
-                  {[0, 1, 2, 3, 4].map(star => <Star key={star} fill="currentColor" />)}
-                </div>
-                <span>Le service qui fait la différence</span>
-              </div>
-              <span className="landing-proof__divider" />
-              <span className="landing-proof__live"><i /> En temps réel</span>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="landing-visual"
-            initial={{ opacity: 0, scale: 0.92, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 1, delay: prefersReducedMotion ? 0 : 0.12, ease: [0.22, 1, 0.36, 1] }}
-            aria-label="Aperçu de l’expérience Digifeel"
-          >
-            <div className="landing-orbit landing-orbit--outer" aria-hidden="true" />
-            <div className="landing-orbit landing-orbit--inner" aria-hidden="true" />
-            <div className="landing-orb-halo" aria-hidden="true" />
-            <div className="landing-token-scene" aria-hidden="true">
-              <div className="landing-token">
-                <div className="landing-token__edge" />
-                <div className="landing-token__face">
-                  <div className="landing-token__shine" />
-                  <span className="landing-token__mark"><Radio /></span>
-                  <span className="landing-token__brand">DIGIFEEL</span>
-                  <span className="landing-token__caption">TAP TO CONNECT</span>
-                </div>
+                <button type="button" aria-label="Voir l’export PDF" onClick={() => setMode('workspace_demo')}><FileText aria-hidden="true" /></button>
+                <button type="button" aria-label="Voir l’export Excel" onClick={() => setMode('workspace_demo')}><FileSpreadsheet aria-hidden="true" /></button>
               </div>
             </div>
-            <div className="landing-float-card landing-float-card--review glass-interactive">
-              <div className="landing-float-card__icon"><Star fill="currentColor" /></div>
-              <div>
-                <span className="landing-float-card__label">Nouvel avis</span>
-                <strong>Une équipe au top !</strong>
-                <span className="landing-float-card__rating">★★★★★ <small>5.0</small></span>
-              </div>
-              <span className="landing-float-card__check"><Check /></span>
-            </div>
-            <div className="landing-float-card landing-float-card--score glass-interactive">
-              <span className="landing-float-card__label">Satisfaction client</span>
-              <div className="landing-score">
-                <strong>4.9</strong><span>/ 5</span>
-                <span className="landing-score__trend"><ArrowUpRight /> +12%</span>
-              </div>
-              <div className="landing-score__bars" aria-hidden="true">
-                {[34, 48, 42, 63, 55, 78, 68, 91, 73, 100, 83, 96].map((height, index) => (
-                  <i key={index} style={{ height: `${height}%` }} />
-                ))}
-              </div>
-            </div>
-            <div className="landing-float-card landing-float-card--nfc">
-              <span className="landing-nfc-icon"><ScanLine /></span>
-              <span><strong>Un simple geste.</strong><small>Un retour précieux.</small></span>
-              <Zap aria-hidden="true" />
-            </div>
-            <span className="landing-visual-caption"><i /> TECHNOLOGIE NFC · SIMPLE & INSTANTANÉE</span>
-          </motion.div>
-        </div>
+          </div>
+        </section>
 
-        <div className="landing-hero__bottom">
-          <span>LA SUITE DE VOTRE SERVICE, EN MIEUX.</span>
-          <a href="#landing-features" aria-label="Découvrir les fonctionnalités">
-            <ArrowDown aria-hidden="true" />
-          </a>
-          <span>01 — 02</span>
-        </div>
-      </section>
+        <section className="product-section marketing-pricing immersive-pricing" id="tarifs">
+          <div className="product-section__heading" data-reveal>
+            <span className="product-eyebrow">Simple et sans surprise</span>
+            <h2>À vous de choisir.</h2>
+            <p>Installation en paiement unique. Le tableau de bord reste facultatif.</p>
+          </div>
+          <div className="marketing-pricing__summary">
+            {INSTALLATION_PACKS.map((pack, index) => (
+              <article className={`pricing-card glass-interactive${pack.id === 'complete' ? ' pricing-card--featured' : ''}`} key={pack.id} data-reveal>
+                <span className="immersive-pack-index">0{index + 1} / INSTALLATION</span>
+                {pack.id === 'complete' && <span className="pricing-card__badge">NFC + QR</span>}
+                <h3>{pack.name}</h3>
+                <p>{pack.summary}</p>
+                <strong className="pricing-card__price">{pack.priceEuros} <small>€</small></strong>
+                <span className="pricing-card__once">Paiement unique · simulation</span>
+                <button className="product-button product-button--full" onClick={() => setMode('pricing')} {...magneticProps}>
+                  Choisir ce pack <ArrowRight aria-hidden="true" />
+                </button>
+              </article>
+            ))}
+          </div>
+          <div className="marketing-subscription glass-interactive" data-reveal>
+            <span className="marketing-subscription__icon"><Check aria-hidden="true" /></span>
+            <p><strong>Tableau de bord et exports : {PRODUCT_PRICING.monthlySubscriptionEuros} € / mois</strong><br />Facultatif. Les puces restent actives si vous arrêtez.</p>
+            <button className="product-button product-button--secondary" onClick={() => setMode('pricing')}>Détails des tarifs</button>
+          </div>
+        </section>
 
-      <section className="landing-metrics" aria-label="Les avantages de Digifeel">
-        <div className="landing-metric">
-          <span className="landing-metric__icon"><Radio /></span>
-          <span><strong>NFC & QR</strong><small>Sans application à installer</small></span>
-        </div>
-        <div className="landing-metric">
-          <span className="landing-metric__icon landing-metric__icon--violet"><Activity /></span>
-          <span><strong>Instantané</strong><small>Les retours, en direct</small></span>
-        </div>
-        <div className="landing-metric">
-          <span className="landing-metric__icon landing-metric__icon--green"><Lock /></span>
-          <span><strong>À votre image</strong><small>Votre établissement, vos règles</small></span>
-        </div>
-        <div className="landing-metric">
-          <span className="landing-metric__value">{registeredNfcChips.length}</span>
-          <span><strong>{restaurant.name || 'Votre restaurant'}</strong><small>Puces prêtes à l’emploi</small></span>
-        </div>
-      </section>
+        <section className="marketing-contact glass-interactive" id="contact" data-reveal>
+          <div>
+            <span className="product-eyebrow">Parlons de votre restaurant</span>
+            <h2>Prêt à tester<br />un scan ?</h2>
+            <p>Découvrez le parcours du restaurateur avec des données d’exemple.</p>
+          </div>
+          <div className="immersive-contact-actions">
+            <button className="product-button magnetic-button" onClick={() => setMode('workspace_demo')} {...magneticProps}>Voir la démo restaurateur <ArrowRight aria-hidden="true" /></button>
+            <button className="product-button product-button--secondary" onClick={() => setMode('admin_demo')}>Voir la démo admin</button>
+            <button className="product-text-link" onClick={() => void shareSite()}><Share2 aria-hidden="true" /> {shareStatus || 'Partager Digifeel'}</button>
+          </div>
+        </section>
+      </main>
 
-      <section className="landing-features" id="landing-features">
-        <motion.div
-          className="landing-section-heading"
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: prefersReducedMotion ? 0.15 : 0.55 }}
-        >
-          <span className="landing-section-kicker">UNE EXPÉRIENCE QUI FAIT SENS</span>
-          <h2>Le détail qui change <span>tout.</span></h2>
-          <p>La technologie s’efface. Le lien humain reste au premier plan.</p>
-        </motion.div>
-        <div className="landing-feature-grid">
-          <motion.article
-            className="landing-feature-card landing-feature-card--cyan glass-interactive"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.55 }}
-          >
-            <div className="landing-feature-card__icon"><Radio /></div>
-            <span className="landing-feature-card__index">01 / CONNECTER</span>
-            <h3>Un geste suffit.</h3>
-            <p>Une puce NFC ou un QR code à table. Vos clients accèdent instantanément à votre expérience.</p>
-            <button type="button" onClick={() => setIsOrderModalOpen(true)}>
-              Découvrir les packs <ArrowRight />
-            </button>
-            <div className="landing-feature-card__glow" />
-          </motion.article>
-          <motion.article
-            className="landing-feature-card landing-feature-card--violet glass-interactive"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.55, delay: 0.08 }}
-          >
-            <div className="landing-feature-card__icon"><Star /></div>
-            <span className="landing-feature-card__index">02 / ÉCOUTER</span>
-            <h3>Chaque avis compte.</h3>
-            <p>Recueillez des retours sincères sur le service et invitez vos clients satisfaits à partager leur expérience.</p>
-            <button type="button" onClick={() => setMode('client')}>
-              Tester le parcours <ArrowRight />
-            </button>
-            <div className="landing-feature-card__glow" />
-          </motion.article>
-          <motion.article
-            className="landing-feature-card landing-feature-card--green glass-interactive"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: prefersReducedMotion ? 0.15 : 0.55, delay: 0.16 }}
-          >
-            <div className="landing-feature-card__icon"><CreditCard /></div>
-            <span className="landing-feature-card__index">03 / PROGRESSER</span>
-            <h3>Voyez plus clair.</h3>
-            <p>Un tableau de bord simple pour suivre les retours, les pourboires et l’expérience de votre équipe.</p>
-            <button type="button" onClick={() => openDemo()}>
-            Explorer la démo interactive <ArrowRight />
-            </button>
-            <div className="landing-feature-card__glow" />
-          </motion.article>
-        </div>
-      </section>
-
-      <section className="landing-bottom-cta">
-        <div className="landing-bottom-cta__orb" aria-hidden="true" />
-        <div>
-          <span className="landing-section-kicker">VOTRE PROCHAINE BELLE HISTOIRE COMMENCE ICI</span>
-          <h2>Prêt à écouter autrement ?</h2>
-          <p>Un petit geste pour vos clients. Une grande différence pour votre équipe.</p>
-        </div>
-        <div className="landing-bottom-cta__actions">
-          <button type="button" className="landing-button landing-button--primary" onClick={() => setIsOrderModalOpen(true)}>
-            <span>Voir les packs</span><ArrowRight />
-          </button>
-          <button
-            type="button"
-            className="landing-domain-link"
-            onClick={() => {
-              setIsDomainOpen(true);
-              soundFX.playHoverTick();
-            }}
-          >
-            <Globe /> Configurer un domaine
-          </button>
-          <button type="button" className="landing-domain-link" onClick={() => setMode('studio')}>
-            <QrCode /> Gérer mes QR codes
-          </button>
-          <button type="button" className="landing-domain-link" onClick={() => openDemo('server')}>
-            <Smartphone /> Voir l’espace serveur en démo
-          </button>
-        </div>
-      </section>
-      <CustomDomainModal isOpen={isDomainOpen} onClose={() => setIsDomainOpen(false)} />
+      <footer className="product-footer immersive-footer">
+        <a className="product-brand" href="#accueil"><img src="/icons/icon.svg" alt="" />DIGIFEEL</a>
+        <span>Des avis clients, en un scan.</span>
+        <a href="#contact">Nous contacter</a>
+      </footer>
     </div>
   );
 };

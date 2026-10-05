@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Radio, Star, Euro, Award, QrCode, Copy, Check, Sparkles, Smartphone, ArrowRight, Zap, ShieldCheck, Cpu, Waves, Camera } from 'lucide-react';
+import type { Waiter } from '../types';
 
 export const WaiterProfileView: React.FC = () => {
   const {
@@ -18,13 +19,15 @@ export const WaiterProfileView: React.FC = () => {
 
   const isHotel = restaurant.establishmentType === 'hotel';
 
-  const currentWaiter = waiters.find(w => w.id === selectedWaiterId) || waiters[0] || {
+  const currentWaiter: Waiter = waiters.find(w => w.id === selectedWaiterId) || waiters[0] || {
     id: 'waiter-default',
+    restaurantId: restaurant.id,
     name: 'Serveur Principal',
     role: 'Chef de rang',
     ratingAverage: 5.0,
     totalReviews: 12,
     totalTips: 40,
+    joinedDate: '2025-01-01',
     nfcUid: 'NFC-SRV-001',
     tablesAssigned: [1, 2, 3]
   };

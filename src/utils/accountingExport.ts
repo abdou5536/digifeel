@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { RestaurantConfig, Review, Waiter } from '../types';
+import { convertCurrency } from './currencyUtils';
 
 export interface ExportFilterOptions {
   period: 'all' | 'today' | 'week' | 'month';
@@ -74,7 +75,7 @@ export function exportTransactionsToCsv(
     'Puce NFC UID',
     'Note Satisfaction (/5)',
     'Pourboire Reçu (€)',
-    'Pourboire Dinar Algérien (277 DA Marché Noir)',
+    'Pourboire Dinar Algérien (DA)',
     'Pourboire Dollar US ($)',
     'Compliments Reçus',
     'Redirection Google Reviews',
@@ -86,7 +87,7 @@ export function exportTransactionsToCsv(
     const dateObj = new Date(r.createdAt);
     const dateFormatted = dateObj.toLocaleDateString('fr-FR');
     const timeFormatted = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const tipDzd = Math.round(r.tipAmount * 277);
+    const tipDzd = convertCurrency(r.tipAmount, 'EUR', 'DZD');
     const tipUsd = (r.tipAmount * 1.08).toFixed(2);
 
     return [

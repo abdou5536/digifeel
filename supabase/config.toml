@@ -1,0 +1,4 @@
+project_id = "digifeel"
+
+[functions.stripe-webhook]
+verify_jwt = false

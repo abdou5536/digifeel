@@ -160,7 +160,7 @@ export const TipCalculation: React.FC<TipCalculationProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Devise & Taux de change Black Market Header */}
+      {/* Devise et taux de change indicatif */}
       <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
           <Globe className="w-4 h-4 text-cyan-400" />
@@ -192,8 +192,7 @@ export const TipCalculation: React.FC<TipCalculationProps> = ({
 
         {displayCurrency === 'DZD' && (
           <div className="flex items-center gap-1.5 text-[11px] font-mono text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/30">
-            <span>Square Port-Saïd :</span>
-            <span className="font-bold text-white">1 € = 277 DA</span>
+            <span>Taux indicatif</span>
           </div>
         )}
       </div>
@@ -308,7 +307,7 @@ export const TipCalculation: React.FC<TipCalculationProps> = ({
           </div>
           {displayCurrency === 'DZD' && (
             <div className="text-[10px] text-slate-400">
-              ≈ {(totalAmountLocal / 277).toFixed(2)} € (Marché Noir)
+              ≈ {(totalAmountLocal / currInfo.rateVsEur).toFixed(2)} € (taux indicatif)
             </div>
           )}
         </div>

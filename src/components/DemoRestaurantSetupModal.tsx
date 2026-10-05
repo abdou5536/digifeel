@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { soundFX } from '../utils/soundEffects';
 import { generateRestaurantPdf } from '../utils/pdfGenerator';
+import { ensureQrScanLink, ensureQrScanLinksForTables } from '../utils/scanTargetLinks';
 
 interface DemoRestaurantSetupModalProps {
   isOpen: boolean;
@@ -36,7 +37,8 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
     updateRestaurant,
     tables,
     registeredNfcChips,
-    displayCurrency
+    displayCurrency,
+    isDemoMode
   } = useApp();
 
   // Form State - start with current values or empty if user wishes
@@ -49,9 +51,11 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
 
   // QR Code Preview State
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
-  const [selectedTableForQr, setSelectedTableForQr] = useState<number | 'direct_google'>('direct_google');
+  const [qrScanUrl, setQrScanUrl] = useState('');
+  const [selectedTableForQr, setSelectedTableForQr] = useState<number>(1);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [qrError, setQrError] = useState('');
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -67,19 +71,35 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
 
   // Generate dynamic QR Code for preview
   useEffect(() => {
-    const targetUrl = selectedTableForQr === 'direct_google'
-      ? (googleReviewUrl || `https://maps.google.com/?q=${encodeURIComponent(appName || 'Restaurant')}`)
-      : `${baseUrl}/?resto=${restaurant.slug}&table=${selectedTableForQr}`;
+    let cancelled = false;
+    const targetUrl = isDemoMode
+      ? `${baseUrl}/?resto=${restaurant.slug}&table=${selectedTableForQr}`
+      : ensureQrScanLink(restaurant, 'table', String(selectedTableForQr), `Table ${selectedTableForQr}`);
 
-    QRCode.toDataURL(targetUrl, {
+    setQrError('');
+    setQrCodeDataUrl('');
+    void Promise.resolve(targetUrl).then(url => QRCode.toDataURL(url, {
       width: 320,
       margin: 1,
       color: {
         dark: '#030712',
         light: '#ffffff'
       }
-    }).then(url => setQrCodeDataUrl(url)).catch(console.error);
-  }, [selectedTableForQr, googleReviewUrl, appName, restaurant.slug, baseUrl]);
+    })).then(url => {
+      if (!cancelled) setQrCodeDataUrl(url);
+    }).catch(error => {
+      if (!cancelled) {
+        console.error('Le QR code du restaurant n’a pas pu être généré.', error);
+        setQrError(error instanceof Error ? error.message : 'Le QR code n’a pas pu être généré.');
+      }
+    });
+    void Promise.resolve(targetUrl).then(url => {
+      if (!cancelled) setQrScanUrl(url);
+    }).catch(() => {
+      if (!cancelled) setQrScanUrl('');
+    });
+    return () => { cancelled = true; };
+  }, [isDemoMode, selectedTableForQr, restaurant, baseUrl]);
 
   if (!isOpen) return null;
 
@@ -102,6 +122,9 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
     setIsGeneratingPdf(true);
     soundFX.playHoverTick();
     try {
+      const tableUrls = isDemoMode
+        ? undefined
+        : await ensureQrScanLinksForTables(restaurant, tables, tables.map(table => table.number));
       await generateRestaurantPdf(
         restaurant,
         tables,
@@ -112,7 +135,8 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
           customTitle: 'VOTRE AVIS COMPTE POUR NOTRE ÉQUIPE',
           ctaText: 'Scannez le QR Code pour évaluer & laisser votre avis Google',
           showNfcMention: true,
-          showGoogleLogo: true
+          showGoogleLogo: true,
+          tableUrls
         }
       );
       soundFX.playSuccessChime();
@@ -125,11 +149,18 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
   };
 
   const handleCopyReviewLink = () => {
-    const link = googleReviewUrl || `https://maps.google.com/?q=${encodeURIComponent(appName || 'Restaurant')}`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    soundFX.playSuccessChime();
-    setTimeout(() => setCopiedLink(false), 2500);
+    if (!qrScanUrl) {
+      setQrError('Le lien NFC/QR est encore en préparation.');
+      return;
+    }
+    void navigator.clipboard.writeText(qrScanUrl).then(() => {
+      setCopiedLink(true);
+      soundFX.playSuccessChime();
+      setTimeout(() => setCopiedLink(false), 2500);
+    }).catch(error => {
+      console.error('La copie du lien QR a échoué.', error);
+      setQrError('Copie impossible dans ce navigateur.');
+    });
   };
 
   return (
@@ -307,32 +338,18 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
                   <span className="text-slate-400">Prêt à Imprimer</span>
                 </div>
 
-                {/* Target Selector: Direct Google vs Table Specific */}
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTableForQr('direct_google')}
-                    className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer ${
-                      selectedTableForQr === 'direct_google'
-                        ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md'
-                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
-                    }`}
+                <label className="flex items-center justify-between gap-3 text-sm text-slate-200">
+                  QR d’avis par table
+                  <select
+                    value={selectedTableForQr}
+                    onChange={event => setSelectedTableForQr(Number(event.target.value))}
+                    className="min-h-11 rounded-xl bg-slate-900 border border-white/15 px-3"
                   >
-                    ⭐ Avis Google Direct
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTableForQr(1)}
-                    className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer ${
-                      selectedTableForQr !== 'direct_google'
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-md'
-                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
-                    }`}
-                  >
-                    🪑 Par Table (T1..T{tableCount})
-                  </button>
-                </div>
+                    {Array.from({ length: tableCount }, (_, index) => index + 1).map(tableNumber => (
+                      <option key={tableNumber} value={tableNumber}>Table {tableNumber}</option>
+                    ))}
+                  </select>
+                </label>
 
                 {/* QR Code Graphic Frame */}
                 <div className="p-4 bg-white rounded-2xl shadow-2xl inline-block mx-auto border-4 border-slate-950">
@@ -349,9 +366,10 @@ export const DemoRestaurantSetupModal: React.FC<DemoRestaurantSetupModalProps> =
                   )}
 
                   <div className="pt-2 text-[10px] font-black text-slate-950 font-mono uppercase tracking-tight">
-                    {selectedTableForQr === 'direct_google' ? '⭐ AVIS GOOGLE DIRECT' : `TABLE N°${selectedTableForQr}`}
+                    {`TABLE N°${selectedTableForQr}`}
                   </div>
                 </div>
+                {qrError && <p className="text-sm text-red-300" role="alert">{qrError}</p>}
 
                 {/* Quick copy & test actions */}
                 <div className="space-y-2">

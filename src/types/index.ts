@@ -98,6 +98,8 @@ export interface RestaurantConfig {
   phone?: string;
   googleMapsUrl?: string;
   googleReviewUrl: string;
+  tipEnabled?: boolean;
+  subscriptionStatus?: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
   googlePlaceId?: string;
   appCustomName?: string;
   setupKitCost: number; // 100
@@ -155,18 +157,19 @@ export interface TipPoolCalculationResult {
 
 export type PaymentMethodChoice = 'card_stripe' | 'ccp_algerie' | 'bank_transfer' | 'instant_phone' | 'on_delivery';
 
+// Demo-only payment data. Live payment details are read from server environment variables.
 export interface ProviderPayoutConfig {
-  accountHolder: string; // Nom du titulaire (Rahou Abdallah)
+  accountHolder: string;
   iban: string;          // Votre IBAN pour recevoir les virements
   bic: string;           // Code BIC/SWIFT
   bankName: string;      // Nom de votre banque
   visaCardNumber?: string; // N° Carte Visa pour réception directe
-  ccpAccountNumber?: string; // N° Compte CCP Algérie (ex: 0012345678)
-  ccpKey?: string;           // Clé CCP Algérie (ex: 99)
-  baridiMobRip?: string;     // RIP BaridiMob 20 chiffres (ex: 00799999001234567899)
+  ccpAccountNumber?: string;
+  ccpKey?: string;
+  baridiMobRip?: string;
   phonePayment: string;  // Numéro pour Wero / Paylib / BaridiMob
   stripePaymentLink?: string; // Lien de paiement par carte (optionnel)
-  contactEmail: string;  // Votre email de notification (rahouabdallah27@gmail.com)
+  contactEmail: string;
   whatsappNumber: string; // Votre WhatsApp pour recevoir le message
 }
 

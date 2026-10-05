@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  type LucideIcon,
   Users,
   Clock,
   TrendingUp,
@@ -69,7 +70,7 @@ export const ManagerTipSharingConfig: React.FC = () => {
     id: TipSharingMethod;
     name: string;
     badge: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     description: string;
     details: string;
   }> = [

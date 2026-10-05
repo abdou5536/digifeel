@@ -51,6 +51,8 @@ import { DemoRestaurantSetupModal } from './DemoRestaurantSetupModal';
 import { formatCurrency, getCurrencyInfo } from '../utils/currencyUtils';
 import { MIRROR_THEMES } from '../utils/mirrorThemeUtils';
 import { soundFX } from '../utils/soundEffects';
+import { ensureQrScanLinksForTables } from '../utils/scanTargetLinks';
+import LiveManagerWorkspace from './LiveManagerWorkspace';
 
 const BrandedQrModule = lazy(() => import('./BrandedQrModule').then(module => ({ default: module.BrandedQrModule })));
 const DynamicTableQrStudio = lazy(() => import('./DynamicTableQrStudio').then(module => ({ default: module.DynamicTableQrStudio })));
@@ -59,6 +61,7 @@ const ManagerAnalyticsD3 = lazy(() => import('./ManagerAnalyticsD3').then(module
 const ManagerLiveStatsRecharts = lazy(() => import('./ManagerLiveStatsRecharts').then(module => ({ default: module.ManagerLiveStatsRecharts })));
 const ManagerTipSharingConfig = lazy(() => import('./ManagerTipSharingConfig').then(module => ({ default: module.ManagerTipSharingConfig })));
 const ManagerTransactionHistory = lazy(() => import('./ManagerTransactionHistory').then(module => ({ default: module.ManagerTransactionHistory })));
+const ScanTargetManager = lazy(() => import('./ScanTargetManager').then(module => ({ default: module.ScanTargetManager })));
 
 export const ManagerDashboard: React.FC = () => {
   const {
@@ -267,10 +270,14 @@ export const ManagerDashboard: React.FC = () => {
     setIsGeneratingQuickPdf(true);
     try {
       const { generateRestaurantPdf } = await import('../utils/pdfGenerator');
+      const tableUrls = isDemoMode
+        ? undefined
+        : await ensureQrScanLinksForTables(restaurant, tables, tables.map(table => table.number));
       await generateRestaurantPdf(restaurant, tables, tables.map(t => t.number), {
         format: 'a4_tent',
         theme: 'gold_luxury',
-        showNfcMention: true
+        showNfcMention: true,
+        tableUrls
       });
     } catch (e) {
       console.error(e);
@@ -278,6 +285,8 @@ export const ManagerDashboard: React.FC = () => {
       setIsGeneratingQuickPdf(false);
     }
   };
+
+  if (!isDemoMode) return <LiveManagerWorkspace />;
 
   return (
     <div className="manager-dashboard min-h-[calc(100vh-4rem)] bg-mesh-dark text-white py-8 px-4 sm:px-6 max-w-7xl mx-auto space-y-8">
@@ -1401,6 +1410,9 @@ export const ManagerDashboard: React.FC = () => {
         <div data-scroll-scene className="space-y-6">
           <Suspense fallback={<div className="min-h-80" role="status">Chargement des codes QR…</div>}>
             <DynamicTableQrStudio embedded={true} />
+          </Suspense>
+          <Suspense fallback={<div className="min-h-40" role="status">Chargement des liens de scan…</div>}>
+            <ScanTargetManager />
           </Suspense>
         </div>
       )}

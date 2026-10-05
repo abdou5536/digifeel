@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { EquipmentChoice, ShippingPreference, PaymentMethodChoice, EstablishmentType } from '../types';
 import { soundFX } from '../utils/soundEffects';
+import { PRODUCT_PRICING } from '../config/product';
 import {
   CheckCircle2,
   ShieldCheck,
@@ -37,7 +38,6 @@ export const OrderPackModal: React.FC = () => {
     createRestaurant,
     setCurrentRestaurantId,
     setMode,
-    payoutConfig,
     setActiveEmailModal,
     emailLogs
   } = useApp();
@@ -81,7 +81,6 @@ export const OrderPackModal: React.FC = () => {
   const [createdPin, setCreatedPin] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedIban, setCopiedIban] = useState(false);
 
   const [orderCurrency, setOrderCurrency] = useState<'DZD' | 'EUR' | 'USD'>('DZD');
   const dialogRef = React.useRef<HTMLDivElement>(null);
@@ -137,12 +136,6 @@ export const OrderPackModal: React.FC = () => {
   }, [isOrderModalOpen, setIsOrderModalOpen]);
 
   const getPriceInOrderCurrency = (euroPrice: number) => {
-    if (orderCurrency === 'DZD') {
-      return `${(euroPrice * 277).toLocaleString('fr-FR')} DA`;
-    }
-    if (orderCurrency === 'USD') {
-      return `${Math.round(euroPrice * 1.1)}`;
-    }
     return `${euroPrice} €`;
   };
   useEffect(() => {
@@ -156,20 +149,20 @@ export const OrderPackModal: React.FC = () => {
   // Equipment pricing
   const equipmentPricing: Record<EquipmentChoice, { price: number; title: string; subtitle: string; icon: string }> = {
     full_pack: {
-      price: 100,
+      price: PRODUCT_PRICING.installationPacks.complete.priceEuros,
       title: 'Pack Complet 100 € (Recommandé)',
       subtitle: '5 puces NFC serveurs encodées + Chevalets QR étanches pour toutes vos tables',
       icon: '🏆'
     },
     nfc_servers_only: {
-      price: 60,
+      price: PRODUCT_PRICING.installationPacks.nfc.priceEuros,
       title: 'Puces NFC Serveurs Uniquement (60 €)',
       subtitle: '5 badges électroniques sans contact encodés pour le personnel',
       icon: '📳'
     },
     qr_tables_only: {
-      price: 50,
-      title: 'Chevalets QR Codes Tables Uniquement (50 €)',
+      price: PRODUCT_PRICING.installationPacks.qr.priceEuros,
+      title: `Chevalets QR Codes Tables Uniquement (${PRODUCT_PRICING.installationPacks.qr.priceEuros} €)`,
       subtitle: 'Chevalets rigides lavables haute définition avec QR unique par table',
       icon: '📱'
     }
@@ -313,12 +306,6 @@ export const OrderPackModal: React.FC = () => {
     navigator.clipboard.writeText(dashboardUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  const handleCopyIban = () => {
-    navigator.clipboard.writeText(payoutConfig.iban);
-    setCopiedIban(true);
-    setTimeout(() => setCopiedIban(false), 2000);
   };
 
   const handleClose = () => {
@@ -562,7 +549,7 @@ export const OrderPackModal: React.FC = () => {
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
                 <label className="text-xs font-bold text-slate-200 font-mono flex items-center justify-between">
                   <span>Choisissez votre pays & devise de règlement :</span>
-                  <span className="text-[10px] text-cyan-300 font-bold">1 € = 277 DA (Marché officiel)</span>
+                  <span className="text-[10px] text-cyan-300 font-bold">Conversion indicative</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2 text-xs font-mono">
                   <button
@@ -786,7 +773,7 @@ export const OrderPackModal: React.FC = () => {
                     <input
                       type="tel"
                       required
-                      placeholder="06 12 34 56 78"
+                      placeholder="Téléphone de contact"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       className="w-full p-2.5 bg-white/5 border border-white/15 rounded-xl text-white focus:ring-1 focus:ring-amber-400 text-xs"
@@ -892,10 +879,10 @@ export const OrderPackModal: React.FC = () => {
                         : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
                     }`}
                   >
-                    <span className="text-base shrink-0">🇩🇿</span>
+                    <span className="text-base shrink-0" aria-hidden="true">CCP</span>
                     <div>
                       <div className="font-bold text-xs text-white">CCP & BaridiMob</div>
-                      <div className="text-[10px] text-amber-300 font-mono">27 700 DA (Algérie)</div>
+                      <div className="text-[10px] text-amber-300 font-mono">Coordonnées serveur requises</div>
                     </div>
                   </button>
 
@@ -918,71 +905,8 @@ export const OrderPackModal: React.FC = () => {
 
                 {/* CCP & BARIDIMOB ALGERIE FORM */}
                 {paymentMethod === 'ccp_algerie' && (
-                  <div className="glass-card-noir rounded-2xl p-4 border border-amber-500/40 space-y-3 text-xs bg-gradient-to-br from-amber-500/10 via-slate-900/90 to-black">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                      <span className="font-bold text-amber-300 flex items-center gap-1.5">
-                        <span>🇩🇿</span>
-                        <span>Virement CCP Algérie / BaridiMob (27 700 DA)</span>
-                      </span>
-                      <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded font-bold border border-emerald-500/30">
-                        Virement CCP à CCP
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <div>
-                        <span className="text-slate-400 block">Bénéficiaire :</span>
-                        <strong className="text-white font-bold">{payoutConfig.accountHolder || 'Rahou Abdallah'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block">Montant en Dinars :</span>
-                        <strong className="text-amber-300 font-mono font-bold">27 700 DA (1 € = 277 DA)</strong>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 pt-1">
-                      <div className="p-2.5 rounded-xl bg-slate-950 border border-white/15 flex items-center justify-between gap-2">
-                        <div>
-                          <div className="text-[10px] text-slate-400">N° Compte CCP & Clé :</div>
-                          <div className="font-mono font-black text-white text-xs">
-                            {payoutConfig.ccpAccountNumber || '0012345678'} Clé {payoutConfig.ccpKey || '99'}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${payoutConfig.ccpAccountNumber || '0012345678'} ${payoutConfig.ccpKey || '99'}`);
-                            setCopiedIban(true);
-                            setTimeout(() => setCopiedIban(false), 2000);
-                          }}
-                          className="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-[10px] font-bold flex items-center gap-1"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>Copier CCP</span>
-                        </button>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950 border border-white/15 flex items-center justify-between gap-2">
-                        <div>
-                          <div className="text-[10px] text-slate-400">RIP BaridiMob (20 chiffres) :</div>
-                          <div className="font-mono font-bold text-cyan-300 text-xs truncate max-w-[200px]">
-                            {payoutConfig.baridiMobRip || '00799999001234567899'}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(payoutConfig.baridiMobRip || '00799999001234567899');
-                            setCopiedIban(true);
-                            setTimeout(() => setCopiedIban(false), 2000);
-                          }}
-                          className="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 rounded-lg text-[10px] font-bold flex items-center gap-1"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>Copier RIP</span>
-                        </button>
-                      </div>
-                    </div>
+                  <div className="glass-card-noir rounded-2xl border border-amber-500/40 p-4 text-sm text-slate-200">
+                    Le paiement manuel n’est pas traité dans cette démonstration. Dans l’espace restaurateur connecté, les coordonnées CCP/Baridimob et le taux de conversion sont chargés depuis la configuration serveur.
                   </div>
                 )}
 
@@ -1100,30 +1024,7 @@ export const OrderPackModal: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <div>
-                        <span className="text-slate-400 block">Titulaire :</span>
-                        <strong className="text-white">{payoutConfig.accountHolder}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block">Banque :</span>
-                        <strong className="text-white">{payoutConfig.bankName}</strong>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 p-2 rounded-xl border border-white/10 flex items-center justify-between gap-2">
-                      <span className="font-mono font-bold text-white text-xs select-all">
-                        {payoutConfig.iban}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleCopyIban}
-                        className="px-2 py-1 bg-white/15 hover:bg-white/25 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 shrink-0"
-                      >
-                        {copiedIban ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedIban ? 'Copié' : 'Copier'}</span>
-                      </button>
-                    </div>
+                    <p className="text-sm text-slate-200">Les coordonnées bancaires ne sont pas disponibles dans la démonstration. Aucun virement n’est initié ici.</p>
                   </div>
                 )}
               </div>

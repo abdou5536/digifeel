@@ -21,13 +21,14 @@ import {
   Copy
 } from 'lucide-react';
 import { generateHighResQr, generateRestaurantPdf, QrPdfOptions } from '../utils/pdfGenerator';
+import { ensureQrScanLink, ensureQrScanLinksForTables } from '../utils/scanTargetLinks';
 
 interface BrandedQrModuleProps {
   embedded?: boolean;
 }
 
 export const BrandedQrModule: React.FC<BrandedQrModuleProps> = ({ embedded = false }) => {
-  const { restaurant, tables, waiters } = useApp();
+  const { restaurant, tables, waiters, isDemoMode } = useApp();
 
   const [selectedTable, setSelectedTable] = useState<number>(1);
   const [selectedFormat, setSelectedFormat] = useState<QrPdfOptions['format']>('a4_tent');
@@ -38,13 +39,15 @@ export const BrandedQrModule: React.FC<BrandedQrModuleProps> = ({ embedded = fal
   const [includeAllTables, setIncludeAllTables] = useState(true);
   
   const [singleQrDataUrl, setSingleQrDataUrl] = useState<string>('');
+  const [currentTableUrl, setCurrentTableUrl] = useState('');
+  const [scanLinkError, setScanLinkError] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfSuccess, setPdfSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [previewMode, setPreviewMode] = useState<'tent' | 'card' | 'qr_only'>('tent');
 
   const baseUrl = window.location.origin;
-  const currentTableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${selectedTable}`;
+  const legacyTableUrl = `${baseUrl}/?resto=${restaurant.slug}&table=${selectedTable}`;
 
   // Theme styling helpers
   const themeStyles = {
@@ -88,15 +91,40 @@ export const BrandedQrModule: React.FC<BrandedQrModuleProps> = ({ embedded = fal
 
   const activeStyle = themeStyles[selectedTheme];
 
+  useEffect(() => {
+    let cancelled = false;
+    setScanLinkError('');
+    if (isDemoMode) {
+      setCurrentTableUrl(legacyTableUrl);
+      return () => { cancelled = true; };
+    }
+    setCurrentTableUrl('');
+    void ensureQrScanLink(restaurant, 'table', String(selectedTable), `Table ${selectedTable}`)
+      .then(url => {
+        if (!cancelled) setCurrentTableUrl(url);
+      })
+      .catch(error => {
+        if (!cancelled) setScanLinkError(error instanceof Error ? error.message : 'Le lien QR n’a pas pu être enregistré.');
+      });
+    return () => { cancelled = true; };
+  }, [isDemoMode, legacyTableUrl, restaurant, selectedTable]);
+
   // Generate High-Res QR code
   useEffect(() => {
+    if (!currentTableUrl) {
+      setSingleQrDataUrl('');
+      return;
+    }
     generateHighResQr(currentTableUrl, {
       colorDark: activeStyle.qrDark,
       colorLight: '#ffffff',
       size: 900
     })
       .then(url => setSingleQrDataUrl(url))
-      .catch(console.error);
+      .catch(error => {
+        console.error('Le QR code de présentation n’a pas pu être généré.', error);
+        setScanLinkError('Le QR code n’a pas pu être généré. Réessayez.');
+      });
   }, [currentTableUrl, selectedTheme, activeStyle.qrDark]);
 
   // Handle PDF Export
@@ -106,29 +134,40 @@ export const BrandedQrModule: React.FC<BrandedQrModuleProps> = ({ embedded = fal
       const targetTableNumbers = all
         ? tables.map(t => t.number)
         : [selectedTable];
+      const tableUrls = isDemoMode
+        ? undefined
+        : await ensureQrScanLinksForTables(restaurant, tables, targetTableNumbers);
 
       await generateRestaurantPdf(restaurant, tables, targetTableNumbers, {
         format: selectedFormat,
         theme: selectedTheme,
         customSubtitle,
         ctaText,
-        showNfcMention: showNfcBadge
+        showNfcMention: showNfcBadge,
+        tableUrls
       });
 
       setPdfSuccess(true);
       setTimeout(() => setPdfSuccess(false), 3500);
     } catch (err) {
       console.error('Error generating PDF:', err);
+      setScanLinkError(err instanceof Error ? err.message : 'Le PDF n’a pas pu être généré.');
     } finally {
       setIsGeneratingPdf(false);
     }
   };
 
   // Copy direct table review link
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(currentTableUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+  const handleCopyLink = async () => {
+    if (!currentTableUrl) return;
+    try {
+      await navigator.clipboard.writeText(currentTableUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (error) {
+      console.error('La copie du lien QR a échoué.', error);
+      setScanLinkError('Copie impossible dans ce navigateur. Sélectionnez le lien affiché et copiez-le.');
+    }
   };
 
   return (
@@ -625,12 +664,15 @@ export const BrandedQrModule: React.FC<BrandedQrModuleProps> = ({ embedded = fal
                 href={currentTableUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors flex items-center gap-1 shrink-0 self-start sm:self-auto"
+                aria-disabled={!currentTableUrl}
+                onClick={event => { if (!currentTableUrl) event.preventDefault(); }}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors flex items-center gap-1 shrink-0 self-start sm:self-auto aria-disabled:opacity-50"
               >
                 <span>Tester le scan</span>
                 <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
               </a>
             </div>
+            {scanLinkError && <p className="text-sm text-red-300" role="alert">{scanLinkError}</p>}
           </div>
         </div>
       </div>
