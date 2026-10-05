@@ -1,6 +1,6 @@
 'use client';
 
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, CircleHelp, QrCode, Radio, Star, Users } from 'lucide-react';
 import Lenis from 'lenis';
@@ -9,8 +9,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { INSTALLATION_PACKS, PRODUCT_PRICING } from '@/src/config/product';
 import { useLanguage } from './LanguageProvider';
 import { SiteHeader } from './SiteHeader';
-
-const NfcHeroScene = lazy(() => import('../NfcHeroScene').then(module => ({ default: module.NfcHeroScene })));
+import { ImmersiveBackground } from './ImmersiveBackground';
 
 const steps = [
   { number: '01', key: 'scan' as const, textKey: 'scanText' as const, Icon: Radio },
@@ -50,6 +49,7 @@ export function PublicExperience() {
 
   return (
     <div className="product-shell immersive-site next-app">
+      <ImmersiveBackground />
       <SiteHeader />
       <main>
         <section className="next-home-hero" id="accueil">
@@ -71,9 +71,6 @@ export function PublicExperience() {
           </div>
           <div className="next-home-hero__scene" data-next-reveal>
             <div className="immersive-hero__halo" aria-hidden="true" />
-            <Suspense fallback={<div className="nfc-scene-fallback" aria-label="Puce Digifeel"><Radio aria-hidden="true" /> DIGIFEEL</div>}>
-              <NfcHeroScene />
-            </Suspense>
             <span className="next-scene-caption">APPROCHEZ · SCANNEZ · PARTAGEZ</span>
           </div>
         </section>
