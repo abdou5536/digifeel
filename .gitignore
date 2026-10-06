@@ -18,3 +18,5 @@ test-results/
 playwright-report/
 .next-e2e/
 .env
+.vercel
+.env*

@@ -468,6 +468,7 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
           {pendingCount > 0 && <button className="pos-sync-button" type="button" onClick={() => void synchronize()}><RefreshCw size={16} />{pendingCount} {isArabic ? 'للمزامنة' : 'à synchroniser'}</button>}
           <ThemePicker locale={locale} compact />
           <button className="pos-language" type="button" onClick={toggleLocale}>{locale === 'fr' ? 'العربية' : locale === 'ar' ? 'EN' : 'FR'}</button>
+          {!demo && <Link className="pos-logout" href="/dashboard">{isArabic ? 'الإدارة' : 'Gestion'}</Link>}
           {demo ? <Link className="pos-logout" href="/login?next=/caisse">{isArabic ? 'تسجيل الدخول' : 'Connexion'}</Link> : <button className="pos-logout" onClick={() => { window.location.assign('/'); }} type="button">{isArabic ? 'الرئيسية' : 'Accueil'}</button>}
         </div>
       </header>

@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { ArrowLeft, Download, LogOut, Star, Users } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
+import type { SalesReport } from '@/src/lib/pos/salesReport';
+
+const EMPTY_SALES: SalesReport = { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [] };
+const dzd = (value: number) => `${new Intl.NumberFormat('fr-FR').format(value).replace(/[\u202f\u00a0]/g, ' ')} DZD`;
+const monthLabel = (month: string) => new Date(`${month}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+const PAYMENT_LABELS: Record<string, string> = { cash: 'Espèces', card: 'Carte', baridimob: 'BaridiMob' };
 
 interface DashboardReview {
   id: string;
@@ -48,6 +54,7 @@ interface ExportData {
   reviewCount: number;
   averageRating: number;
   reviews: DashboardReview[];
+  sales: SalesReport;
 }
 
 const PERIODS = [7, 30, 90, 365] as const;
@@ -71,7 +78,17 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [settingsNotice, setSettingsNotice] = useState('');
   const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [sales, setSales] = useState<SalesReport>(EMPTY_SALES);
 
+  useEffect(() => {
+    if (demo || !isSupabaseConfigured) return;
+    let alive = true;
+    void fetch(`/api/dashboard/sales?days=${periodDays}`, { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then(result => { if (alive && result) setSales(result as SalesReport); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [demo, periodDays]);
   useEffect(() => {
     if (!data) return;
     setRestaurantName(data.restaurant.name);
@@ -179,7 +196,8 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       scansByDay: data.scansByDay,
       reviewCount: data.reviewCount,
       averageRating: data.averageRating,
-      reviews: data.reviews
+      reviews: data.reviews,
+      sales: EMPTY_SALES
     };
     const response = await fetch(`/api/dashboard/export?days=${periodDays}`, { cache: 'no-store' });
     const result = await response.json();
@@ -193,15 +211,22 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
     try {
       const report = await loadExportData();
       const rows = [
-        ['Type', 'Date', 'Nombre de scans', 'Étoiles', 'Commentaire', 'Serveur'],
-        ...report.scansByDay.map(day => ['Scans', day.date, String(day.count), '', '', '']),
+        ['Type', 'Date', 'Nombre de scans', 'Étoiles', 'Commentaire', 'Serveur', 'Montant (DZD)', 'Paiement'],
+        ...report.scansByDay.map(day => ['Scans', day.date, String(day.count), '', '', '', '', '']),
         ...report.reviews.map(review => [
           'Avis',
           new Date(review.created_at).toLocaleString('fr-FR'),
           '',
           String(review.stars),
           review.comment,
-          review.server_name ?? ''
+          review.server_name ?? '',
+          '',
+          ''
+        ]),
+        ...report.sales.sales.map(sale => ['Vente', new Date(sale.sold_at).toLocaleString('fr-FR'), '', '', '', sale.cashier_name, String(sale.total_dzd), PAYMENT_LABELS[sale.payment_method] ?? sale.payment_method]),
+        ...report.sales.byMonth.flatMap(month => [
+          ['Total mensuel', monthLabel(month.month), '', '', `${month.count} ventes`, 'Tous', String(month.total_dzd), ''],
+          ...month.servers.map(server => ['Total mensuel serveur', monthLabel(month.month), '', '', `${server.count} ventes`, server.name, String(server.total_dzd), ''])
         ])
       ];
       const csv = `\uFEFF${rows.map(row => row.map(csvCell).join(';')).join('\r\n')}`;
@@ -227,6 +252,38 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       pdf.text(`Période : ${report.periodDays} jours`, 14, 26);
       pdf.text(`Scans : ${report.scansCount}   |   Avis : ${report.reviewCount}   |   Note moyenne : ${report.averageRating.toFixed(1)}/5`, 14, 33);
       let y = 44;
+      const ensure = (lines: number) => {
+        if (y + lines * 5 > 280) {
+          pdf.addPage();
+          y = 18;
+        }
+      };
+      if (report.sales.salesCount > 0) {
+        pdf.setFontSize(13);
+        pdf.text('Ventes de la caisse', 14, y);
+        pdf.setFontSize(10);
+        y += 7;
+        pdf.text(`Chiffre d’affaires : ${dzd(report.sales.totalDzd)}   |   Tickets : ${report.sales.salesCount}`, 14, y);
+        y += 8;
+        report.sales.byMonth.forEach(month => {
+          ensure(month.servers.length + 2);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${monthLabel(month.month)} : ${dzd(month.total_dzd)} (${month.count} tickets)`, 14, y);
+          pdf.setFont('helvetica', 'normal');
+          y += 5;
+          month.servers.forEach(server => {
+            pdf.text(`   ${server.name} : ${dzd(server.total_dzd)} (${server.count} tickets)`, 14, y);
+            y += 5;
+          });
+          y += 3;
+        });
+        y += 4;
+        pdf.setFontSize(13);
+        ensure(3);
+        pdf.text('Avis', 14, y);
+        pdf.setFontSize(10);
+        y += 7;
+      }
       report.reviews.forEach(review => {
         const line = `${new Date(review.created_at).toLocaleDateString('fr-FR')} · ${review.stars}/5 · ${review.server_name ? `${review.server_name} · ` : ''}${review.comment || 'Sans commentaire'}`;
         const wrapped = pdf.splitTextToSize(line, 180) as string[];
@@ -264,7 +321,10 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
           <h1 className="next-page-heading next-dashboard-title">{data.restaurant.name}</h1>
           <p className="next-muted">{demo ? 'Mode démo : chiffres fictifs.' : `Bonjour${data.displayName ? ` ${data.displayName}` : ''}. Voici l’activité de votre restaurant.`}</p>
         </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Link className="product-button" href="/caisse">Caisse</Link>
         <button className="product-button product-button--secondary" type="button" onClick={logout}><LogOut aria-hidden="true" /> Déconnexion</button>
+        </div>
       </div>
       {!data.hasAccess ? (
         <section className="next-glass-card next-surface-card">
@@ -296,8 +356,33 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
             </div>)}
           </div>
         </section>}
+        <section className="next-glass-card next-surface-card">
+          <h2>Ventes de la caisse</h2>
+          <p className="next-muted">Chaque ticket enregistré à la caisse est compté ici et dans les exports PDF et Excel.</p>
+          <div className="next-dashboard-grid next-dashboard-grid--server">
+            <article className="next-glass-card next-metric"><span>Chiffre d’affaires</span><strong>{dzd(sales.totalDzd)}</strong></article>
+            <article className="next-glass-card next-metric"><span>Tickets</span><strong>{sales.salesCount}</strong></article>
+            <article className="next-glass-card next-metric"><span>Ticket moyen</span><strong>{dzd(sales.salesCount ? Math.round(sales.totalDzd / sales.salesCount) : 0)}</strong></article>
+          </div>
+          {sales.salesCount === 0 ? <p className="next-muted">Aucune vente sur cette période.</p> : <>
+            <h3>{data.role === 'server' ? 'Mon addition par mois' : 'Addition par serveur et par mois'}</h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="next-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr><th align="left">Mois</th><th align="left">Serveur</th><th align="right">Tickets</th><th align="right">Montant généré</th></tr></thead>
+                <tbody>
+                  {sales.byMonth.flatMap(month => [
+                    ...month.servers.map((server, index) => <tr key={`${month.month}-${server.name}`}>
+                      <td>{index === 0 ? monthLabel(month.month) : ''}</td><td>{server.name}</td><td align="right">{server.count}</td><td align="right">{dzd(server.total_dzd)}</td>
+                    </tr>),
+                    <tr key={`${month.month}-total`}><td colSpan={2}><strong>Total {monthLabel(month.month)}</strong></td><td align="right"><strong>{month.count}</strong></td><td align="right"><strong>{dzd(month.total_dzd)}</strong></td></tr>
+                  ])}
+                </tbody>
+              </table>
+            </div>
+          </>}
+        </section>
         <div className="next-dashboard-toolbar">
-          <span className="next-muted">Export complet de la période, scans quotidiens et avis détaillés.</span>
+          <span className="next-muted">Export complet de la période : ventes, scans quotidiens et avis détaillés.</span>
           <div className="next-nav__actions">
             <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportPdf()}><Download aria-hidden="true" /> {exporting ? 'Préparation…' : 'Exporter en PDF'}</button>
             <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportExcel()}><Download aria-hidden="true" /> Exporter pour Excel (.csv)</button>

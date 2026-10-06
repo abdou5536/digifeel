@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedAppUser } from '@/src/lib/supabase/auth';
 import { getRestaurantDashboardContext, hasActiveDashboardAccess } from '@/src/lib/supabase/dashboard';
-import { createSupabaseServerClient } from '@/src/lib/supabase/server';
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/src/lib/supabase/server';
+import { buildSalesReport } from '@/src/lib/pos/salesReport';
 
 const ALLOWED_PERIODS = new Set([7, 30, 90, 365]);
 const PAGE_SIZE = 500;
@@ -57,10 +58,12 @@ export async function GET(request: NextRequest) {
     }
 
     const allScansByDay = current.profile.role === 'restaurant_admin' ? summary?.scans_by_day ?? [] : [];
+    const sales = await buildSalesReport(supabase, createSupabaseServiceClient(), current.profile.restaurant_id, from, to);
     return NextResponse.json({
       restaurantName: restaurant.name,
       periodDays: days,
       generatedAt: to.toISOString(),
+      sales,
       scansCount: current.profile.role === 'restaurant_admin' ? summary?.scans_count ?? 0 : 0,
       scansByDay: allScansByDay,
       reviewCount: summary?.review_count ?? reviews.length,
