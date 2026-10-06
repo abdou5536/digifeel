@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -81,6 +81,7 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [menuCategory, setMenuCategory] = useState('Tout');
   const [printingSaleId, setPrintingSaleId] = useState<string | null>(null);
+  const [receiptFormat, setReceiptFormat] = useState<'80' | '58' | 'a4'>('80');
   const [restaurantName, setRestaurantName] = useState('');
   const [restaurantAddress, setRestaurantAddress] = useState('');
 
@@ -537,7 +538,7 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
       </section>}
 
       {activeTab === 'history' && <section className="pos-history-page">
-        <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'العمليات المسجلة' : 'JOURNÉE EN COURS'}</span><h1>{isArabic ? 'المبيعات' : 'Ventes du jour'}</h1></div><span>{visibleSales.length} {isArabic ? 'عملية' : 'ticket(s)'}</span></div>
+        <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'العمليات المسجلة' : 'JOURNÉE EN COURS'}</span><h1>{isArabic ? 'المبيعات' : 'Ventes du jour'}</h1></div><span className="pos-heading-tools"><label className="pos-receipt-format">{isArabic ? 'ورق التذكرة' : 'Format du ticket'}<select value={receiptFormat} onChange={event => setReceiptFormat(event.target.value as '80' | '58' | 'a4')}><option value="80">80 mm</option><option value="58">58 mm</option><option value="a4">A4</option></select></label><span>{visibleSales.length} {isArabic ? 'عملية' : 'ticket(s)'}</span></span></div>
         <div className="pos-sales-list">
           {visibleSales.length === 0 && <p className="pos-empty-hint">{isArabic ? 'لا توجد مبيعات بعد.' : 'Aucune vente enregistrée pour le moment.'}</p>}
           {visibleSales.map(sale => <article className={`pos-sale-card${printingSaleId === sale.id ? ' is-printing' : ''}`} key={sale.id}>
@@ -548,6 +549,27 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
         </div>
         <button className="pos-sync-button pos-sync-button--large" type="button" disabled={pendingCount === 0 || !online} onClick={() => void synchronize()}><RefreshCw size={16} />{isArabic ? 'مزامنة المبيعات المحفوظة' : 'Synchroniser les ventes en attente'}</button>
       </section>}
+      {printingSaleId && (() => {
+        const sale = visibleSales.find(item => item.id === printingSaleId);
+        if (!sale) return null;
+        const paymentLabel = sale.paymentMethod === 'cash' ? (isArabic ? 'نقداً' : 'Espèces') : sale.paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Carte') : 'BaridiMob';
+        const date = new Date(sale.createdAt);
+        const units = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+        return <div className={`pos-receipt pos-receipt--${receiptFormat}`} aria-hidden="true">
+          <header>
+            <strong className="pos-receipt__name">{catalog?.restaurant.name ?? 'Digifeel'}</strong>
+            <span>{date.toLocaleDateString('fr-DZ')} · {date.toLocaleTimeString('fr-DZ', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{isArabic ? 'تذكرة' : 'Ticket'} n° {sale.id.slice(0, 8).toUpperCase()}</span>
+          </header>
+          <table>
+            <thead><tr><th>{isArabic ? 'المنتج' : 'Article'}</th><th>{isArabic ? 'الكمية' : 'Qté'}</th><th>{isArabic ? 'المبلغ' : 'Montant'}</th></tr></thead>
+            <tbody>{sale.items.map((item, index) => <tr key={`${sale.id}-r-${index}`}><td>{item.productName}<small>{money(item.priceDzd, locale)} {isArabic ? '/ وحدة' : 'l’unité'}</small></td><td>{item.quantity}</td><td>{money(item.priceDzd * item.quantity, locale)}</td></tr>)}</tbody>
+          </table>
+          <div className="pos-receipt__total"><span>{isArabic ? 'المجموع' : 'TOTAL'} ({units})</span><strong>{money(totalSaleDzd(sale.items), locale)}</strong></div>
+          <div className="pos-receipt__meta"><span>{isArabic ? 'الدفع' : 'Paiement'} : {paymentLabel}</span>{sale.paymentReference && <span>Réf. {sale.paymentReference}</span>}</div>
+          <footer>{isArabic ? 'شكراً لزيارتكم' : 'Merci de votre visite'}</footer>
+        </div>;
+      })()}
       {printingSaleId && <PrintReset onDone={() => setPrintingSaleId(null)} />}
       <footer className="pos-footer"><span>{isArabic ? 'يتم تخزين التذاكر غير المتصلة على هذا الجهاز حتى المزامنة.' : 'Les tickets hors ligne restent sur cet appareil jusqu’à leur synchronisation.'}</span><span>{isArabic ? 'العملة: الدينار الجزائري' : 'Devise : dinar algérien (DZD)'}</span></footer>
     </main>

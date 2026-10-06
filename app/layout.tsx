@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/src/components/next/ThemeProvider';
 import { AppChrome } from '@/src/components/next/AppChrome';
 import { ServiceWorkerRegistration } from '@/src/components/next/ServiceWorkerRegistration';
 import './globals.css';
+import './polish.css';
 
 export const metadata: Metadata = {
   title: {

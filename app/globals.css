@@ -1477,10 +1477,7 @@ html[dir="rtl"] .pos-hero-device { direction:ltr; text-align:left; }
 }
 @media print {
   body * { visibility:hidden; }
-  .pos-sale-card.is-printing,.pos-sale-card.is-printing * { visibility:visible; }
-  .pos-sale-card:not(.is-printing) { display:none; }
-  .pos-sale-card.is-printing { position:absolute; inset:0 auto auto 0; width:100%; border:0; color:#111; background:#fff; }
-  .pos-sale-card.is-printing .pos-sale-card__footer button,.pos-sale-card.is-printing .pos-sale-state { display:none; }
+  .pos-sale-card { display:none !important; }
 }
 
 .digifeel-theme-picker { display:inline-flex; min-height:42px; align-items:center; gap:.5rem; color:var(--df-text-muted); }
