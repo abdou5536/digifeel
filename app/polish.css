@@ -280,3 +280,88 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .pos-receipt__meta { display: grid; gap: .5mm; padding: 2mm 0; font-size: .9em; }
   .pos-receipt footer { padding-top: 3mm; text-align: center; border-top: 1px dashed #000; }
 }
+/* Thème clair : lisibilité des textes hérités du thème sombre */
+:root[data-theme="light"] .pos-topbar > div > span,
+:root[data-theme="light"] .pos-topbar .pos-restaurant-name { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-language,
+:root[data-theme="light"] .pos-logout { color: var(--df-text) !important; background: var(--df-surface-raised) !important; border-color: var(--df-border) !important; }
+:root[data-theme="light"] .pos-tabs button { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-tabs button.is-active { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-eyebrow { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-category-tabs button,
+:root[data-theme="light"] .pos-categories button { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-category-tabs button.is-active,
+:root[data-theme="light"] .pos-categories button.is-active { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-product-category,
+:root[data-theme="light"] .pos-payment legend,
+:root[data-theme="light"] .restaurant-workspace legend,
+:root[data-theme="light"] .pos-menu-form label,
+:root[data-theme="light"] .pos-menu-form small,
+:root[data-theme="light"] .pos-product-row small { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-payment button { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-payment button.is-active { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-sale-card__main strong { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-sale-card li,
+:root[data-theme="light"] .pos-sale-card__footer { color: var(--df-text) !important; }
+:root[data-theme="light"] .pos-sync-button { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .next-muted,
+:root[data-theme="light"] .next-period-picker,
+:root[data-theme="light"] .next-review-list small,
+:root[data-theme="light"] .next-activity-panel small { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .next-link { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .next-shell h2,
+:root[data-theme="light"] .next-panel h2,
+:root[data-theme="light"] .next-activity-panel h2,
+:root[data-theme="light"] .next-shell label { color: var(--df-text) !important; }
+:root[data-theme="light"] .next-shell .product-button { color: #fff !important; }:root[data-theme="light"] .pos-section-heading > span,
+:root[data-theme="light"] .pos-section-heading span.pos-heading-tools,
+:root[data-theme="light"] .pos-payment-note,
+:root[data-theme="light"] .pos-product-form label,
+:root[data-theme="light"] .pos-menu-form label,
+:root[data-theme="light"] .pos-product-editor label,
+:root[data-theme="light"] .pos-menu-layout label,
+:root[data-theme="light"] fieldset legend { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-category-list button { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-category-list button.is-active { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-topbar small { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] main h2 { color: var(--df-text) !important; }
+:root[data-theme="light"] main .next-checkbox-label,
+:root[data-theme="light"] main form label { color: var(--df-text) !important; }
+:root[data-theme="light"] main .next-server-row > span,
+:root[data-theme="light"] main svg + small, :root[data-theme="light"] main [class*="chart"] small { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] main .product-button { color: #fff !important; }:root[data-theme="light"] .pos-payment button, :root[data-theme="light"] .pos-payment-methods button, :root[data-theme="light"] fieldset button { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] .pos-payment button.is-active, :root[data-theme="light"] fieldset button.is-active { color: var(--df-accent-strong) !important; }
+:root[data-theme="light"] .pos-sale-card small, :root[data-theme="light"] .pos-sale-card li span, :root[data-theme="light"] .pos-product-list small, :root[data-theme="light"] main li small { color: var(--df-text-muted) !important; }
+:root[data-theme="light"] main .product-button--secondary { color: var(--df-text) !important; }
+/* Thème clair : pages à habillage sombre codé en dur (dashboard, formulaires, avis) */
+:root[data-theme="light"] .next-page-wrap input:not([type="checkbox"]),
+:root[data-theme="light"] .next-page-wrap textarea,
+:root[data-theme="light"] .next-page-wrap select,
+:root[data-theme="light"] .next-account-card input:not([type="checkbox"]),
+:root[data-theme="light"] .next-account-card textarea,
+:root[data-theme="light"] .next-account-card select,
+:root[data-theme="light"] .next-form input:not([type="checkbox"]),
+:root[data-theme="light"] .next-form textarea,
+:root[data-theme="light"] .next-form select { background: var(--df-surface-raised) !important; color: var(--df-text) !important; border-color: var(--df-border) !important; }
+:root[data-theme="light"] .next-page-wrap select option,
+:root[data-theme="light"] .next-form select option { background: var(--df-surface-raised) !important; color: var(--df-text) !important; }
+:root[data-theme="light"] .next-page-wrap ::placeholder,
+:root[data-theme="light"] .next-account-card ::placeholder { color: var(--df-text-subtle) !important; opacity: 1; }
+:root[data-theme="light"] .next-page-wrap .product-button,
+:root[data-theme="light"] .next-account-card .product-button { background: var(--df-accent-strong) !important; color: #fff !important; border-color: transparent !important; }
+:root[data-theme="light"] .next-page-wrap .product-button--secondary,
+:root[data-theme="light"] .next-account-card .product-button--secondary { background: var(--df-surface-raised) !important; color: var(--df-text) !important; border: 1px solid var(--df-border) !important; }
+:root[data-theme="light"] .next-page-wrap .product-button svg,
+:root[data-theme="light"] .next-account-card .product-button svg { color: currentColor !important; }
+:root[data-theme="light"] .next-page-heading h1,
+:root[data-theme="light"] .next-account-card h1,
+:root[data-theme="light"] .next-page-wrap h1,
+:root[data-theme="light"] .next-page-wrap h2,
+:root[data-theme="light"] .next-page-wrap h3,
+:root[data-theme="light"] .next-page-wrap label,
+:root[data-theme="light"] .next-account-card label,
+:root[data-theme="light"] .next-account-card legend { color: var(--df-text) !important; }
+:root[data-theme="light"] .next-page-heading p,
+:root[data-theme="light"] .next-account-card p,
+:root[data-theme="light"] .next-page-wrap p,
+:root[data-theme="light"] .next-page-wrap small { color: var(--df-text-muted) !important; }
