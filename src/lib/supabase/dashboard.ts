@@ -8,6 +8,9 @@ export interface RestaurantDashboardContext {
     address: string | null;
     google_review_url: string | null;
     tip_enabled: boolean;
+    slug: string;
+    logo_url: string | null;
+    active: boolean;
   } | null;
   subscription: {
     status: string;
@@ -26,7 +29,7 @@ export async function getRestaurantDashboardContext(
   const dataClient = current.profile.role === 'server' ? createSupabaseServiceClient() : supabase;
   const [restaurantResult, subscriptionResult] = await Promise.all([
     dataClient.from('restaurants')
-      .select('id,name,address,google_review_url,tip_enabled')
+      .select('id,name,address,google_review_url,tip_enabled,slug,logo_url,active')
       .eq('id', restaurantId)
       .maybeSingle(),
     dataClient.from('subscriptions')

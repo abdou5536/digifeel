@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const { restaurant, subscription } = await getRestaurantDashboardContext(current);
     if (!restaurant) return NextResponse.json({ error: 'Le restaurant associé à ce compte est introuvable.' }, { status: 404 });
 
-    const hasAccess = hasActiveDashboardAccess(subscription);
+    const hasAccess = restaurant.active && hasActiveDashboardAccess(subscription);
     if (!hasAccess) {
       return NextResponse.json({
         restaurant,
@@ -43,9 +43,12 @@ export async function GET(request: NextRequest) {
     });
     if (error) throw error;
 
+    const { data: chips } = await supabase.from('chips').select('table_number').eq('restaurant_id', restaurant.id).eq('status', 'active').not('table_number', 'is', null).order('table_number');
+
     return NextResponse.json({
       restaurant,
       subscription,
+      tableNumbers: (chips ?? []).map(chip => chip.table_number as number),
       hasAccess: true,
       role: current.profile.role,
       displayName: current.profile.display_name,

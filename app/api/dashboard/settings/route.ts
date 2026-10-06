@@ -9,8 +9,10 @@ export async function PATCH(request: NextRequest) {
   const address = typeof body?.address === 'string' ? body.address.trim() : '';
   const googleReviewUrl = body?.googleReviewUrl;
   const tipEnabled = body?.tipEnabled;
+  const logoUrl = typeof body?.logoUrl === 'string' ? body.logoUrl.trim() : '';
   if (name.length < 2 || name.length > 120 || address.length > 200 ||
-      !isValidGoogleReviewUrl(googleReviewUrl) || typeof tipEnabled !== 'boolean') {
+      !isValidGoogleReviewUrl(googleReviewUrl) || typeof tipEnabled !== 'boolean' ||
+      logoUrl.length > 2048 || (logoUrl !== '' && !/^(https:\/\/|data:image\/svg\+xml;base64,)/i.test(logoUrl))) {
     return NextResponse.json({ error: 'Vérifiez le nom, l’adresse et le lien Google.' }, { status: 400 });
   }
 
@@ -26,6 +28,7 @@ export async function PATCH(request: NextRequest) {
       address: address || null,
       google_review_url: googleReviewUrl,
       tip_enabled: tipEnabled,
+      logo_url: logoUrl || null,
       updated_at: new Date().toISOString()
     }).eq('id', current.profile.restaurant_id);
     if (error) throw error;

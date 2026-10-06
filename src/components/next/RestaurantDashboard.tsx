@@ -24,7 +24,8 @@ interface DashboardServer {
 }
 
 interface DashboardData {
-  restaurant: { id: string; name: string; address: string | null; google_review_url: string | null; tip_enabled: boolean };
+  restaurant: { id: string; name: string; address: string | null; google_review_url: string | null; tip_enabled: boolean; slug?: string; logo_url?: string | null };
+  tableNumbers?: number[];
   scansCount: number;
   scansByDay: Array<{ date: string; count: number }>;
   reviewCount: number;
@@ -66,6 +67,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [address, setAddress] = useState('');
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
   const [tipEnabled, setTipEnabled] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
   const [settingsNotice, setSettingsNotice] = useState('');
   const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -76,6 +78,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
     setAddress(data.restaurant.address ?? '');
     setGoogleReviewUrl(data.restaurant.google_review_url ?? '');
     setTipEnabled(data.restaurant.tip_enabled);
+    setLogoUrl(data.restaurant.logo_url ?? '');
   }, [data?.restaurant]);
 
   useEffect(() => {
@@ -150,13 +153,13 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       const response = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled })
+        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Les réglages n’ont pas pu être enregistrés.');
       setData(current => current ? {
         ...current,
-        restaurant: { ...current.restaurant, name: restaurantName.trim(), address: address.trim() || null, google_review_url: googleReviewUrl.trim(), tip_enabled: tipEnabled }
+        restaurant: { ...current.restaurant, name: restaurantName.trim(), address: address.trim() || null, google_review_url: googleReviewUrl.trim(), tip_enabled: tipEnabled, logo_url: logoUrl.trim() || null }
       } : current);
       setSettingsNotice('Réglages enregistrés.');
     } catch (saveError) {
@@ -351,6 +354,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                 <label>Nom du restaurant<input required minLength={2} maxLength={120} value={restaurantName} onChange={event => setRestaurantName(event.target.value)} /></label>
                 <label>Adresse<input maxLength={200} value={address} onChange={event => setAddress(event.target.value)} /></label>
                 <label>Lien Google<input required type="url" value={googleReviewUrl} onChange={event => setGoogleReviewUrl(event.target.value)} /></label>
+                <label>Logo (adresse https://, facultatif)<input type="url" maxLength={2048} value={logoUrl} onChange={event => setLogoUrl(event.target.value)} /></label>
                 <label className="next-checkbox-label"><input type="checkbox" checked={tipEnabled} onChange={event => setTipEnabled(event.target.checked)} /> Proposer un choix de pourboire (sans encaissement)</label>
                 <button className="product-button product-button--secondary" type="submit" disabled={settingsBusy}>{settingsBusy ? 'Enregistrement…' : 'Enregistrer les réglages'}</button>
                 {settingsNotice && <p className="next-muted" role="status">{settingsNotice}</p>}
@@ -364,6 +368,12 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                   : <p className="next-muted">Aucun lien Google configuré.</p>}
               </>}
               <p className="next-muted">Abonnement : {data.subscription?.status ?? 'non configuré'}.</p>
+            </section>}
+            {data.role === 'restaurant_admin' && data.restaurant.slug && <section className="next-glass-card next-surface-card">
+              <h2>Liens de vos tables</h2>
+              {!data.tableNumbers?.length ? <p className="next-muted">Aucune table n’est encore configurée. Contactez Digifeel pour générer vos puces et QR codes.</p> : <ul className="next-table-links">
+                {data.tableNumbers.map(number => <li key={number}><span>Table {number}</span><Link className="next-link" href={`/r/${data.restaurant.slug}/t/${number}`}>/r/{data.restaurant.slug}/t/{number}</Link></li>)}
+              </ul>}
             </section>}
           </div>
         </div>

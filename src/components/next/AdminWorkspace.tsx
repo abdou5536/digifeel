@@ -9,6 +9,7 @@ import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 
 interface AdminChip {
   id: string;
+  table_number: number | null;
   status: 'active' | 'inactive' | 'disabled';
   created_at: string;
 }
@@ -16,6 +17,8 @@ interface AdminChip {
 interface AdminRestaurant {
   id: string;
   name: string;
+  slug: string;
+  active: boolean;
   created_at: string;
   chips: AdminChip[];
   subscriptions: Array<{ status: string; trial_ends_at: string }> | null;
@@ -36,6 +39,10 @@ export function AdminWorkspace() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [busyChipId, setBusyChipId] = useState('');
+  const [busyRestaurantId, setBusyRestaurantId] = useState('');
+  const [newResto, setNewResto] = useState({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10 });
+  const [creating, setCreating] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +71,48 @@ export function AdminWorkspace() {
     };
     void loadAdmin();
     return () => { alive = false; };
-  }, []);
+  }, [reloadKey]);
+
+  const createRestaurant = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreating(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/admin/restaurants', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(newResto)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Le restaurant n’a pas pu être créé.');
+      setNewResto({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10 });
+      setMessage('Restaurant créé. Transmettez-lui son e-mail et son mot de passe de connexion.');
+      setReloadKey(key => key + 1);
+    } catch (createError) {
+      setMessage(createError instanceof Error ? createError.message : 'Le restaurant n’a pas pu être créé.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const patchRestaurant = async (restaurantId: string, payload: { active: boolean } | { addTables: number }) => {
+    setBusyRestaurantId(restaurantId);
+    setMessage('');
+    try {
+      const response = await fetch(`/api/admin/restaurants/${encodeURIComponent(restaurantId)}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'La modification a échoué.');
+      setReloadKey(key => key + 1);
+    } catch (patchError) {
+      setMessage(patchError instanceof Error ? patchError.message : 'La modification a échoué.');
+    } finally {
+      setBusyRestaurantId('');
+    }
+  };
 
   const createBatch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -149,13 +197,27 @@ export function AdminWorkspace() {
           {batches.length ? batches.map(batch => <p className="next-server-row" key={batch.id}>{batch.name}<span>{new Date(batch.created_at).toLocaleDateString('fr-FR')}</span></p>) : <p className="next-muted">Aucun lot de puces.</p>}
         </section>
       </div>
+      <section className="next-glass-card next-surface-card">
+        <h2>Créer un restaurant</h2>
+        <p className="next-muted">Crée la fiche, le compte du restaurateur et une puce/QR par table. Lien de scan : /r/identifiant/t/numéro.</p>
+        <form className="next-form next-form-grid" onSubmit={createRestaurant}>
+          <label>Nom du restaurant<input required minLength={2} maxLength={120} value={newResto.name} onChange={event => setNewResto({ ...newResto, name: event.target.value })} placeholder="Chez Marcel" /></label>
+          <label>Identifiant d’URL (facultatif)<input maxLength={60} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={newResto.slug} onChange={event => setNewResto({ ...newResto, slug: event.target.value.toLowerCase() })} placeholder="chez-marcel" /></label>
+          <label>Lien d’avis Google<input type="url" value={newResto.googleReviewUrl} onChange={event => setNewResto({ ...newResto, googleReviewUrl: event.target.value })} placeholder="https://g.page/r/…/review" /></label>
+          <label>Logo (adresse https://)<input type="url" value={newResto.logoUrl} onChange={event => setNewResto({ ...newResto, logoUrl: event.target.value })} /></label>
+          <label>E-mail du restaurateur<input required type="email" autoComplete="off" value={newResto.ownerEmail} onChange={event => setNewResto({ ...newResto, ownerEmail: event.target.value })} /></label>
+          <label>Mot de passe initial (10 caractères min.)<input required type="password" minLength={10} maxLength={72} autoComplete="new-password" value={newResto.ownerPassword} onChange={event => setNewResto({ ...newResto, ownerPassword: event.target.value })} /></label>
+          <label>Nombre de tables<input type="number" min={0} max={200} value={newResto.tables} onChange={event => setNewResto({ ...newResto, tables: Number(event.target.value) })} /></label>
+          <button className="product-button" type="submit" disabled={creating}>{creating ? 'Création…' : 'Créer le restaurant'}</button>
+        </form>
+      </section>
       <section className="next-glass-card next-surface-card next-admin-restaurants">
         <h2>Restaurants et puces</h2>
         {restaurants.length === 0 ? <p className="next-muted">Aucun restaurant activé.</p> : <div className="next-restaurant-list">
           {restaurants.map(restaurant => {
             const subscription = restaurant.subscriptions?.[0];
             return <article className="next-restaurant-row" key={restaurant.id}>
-              <div><h3>{restaurant.name}</h3><p className="next-muted">Créé le {new Date(restaurant.created_at).toLocaleDateString('fr-FR')}</p></div>
+              <div><h3>{restaurant.name}{!restaurant.active && <span className="next-chip-status next-chip-status--disabled">désactivé</span>}</h3><p className="next-muted">/{restaurant.slug} · créé le {new Date(restaurant.created_at).toLocaleDateString('fr-FR')}</p></div>
               <span>Abonnement : {subscription?.status ?? 'non défini'}</span>
               <span>{restaurant.chips?.length ?? 0} puce(s)</span>
               <div className="next-chip-list">{restaurant.chips?.map(chip => <span key={chip.id} className={`next-chip-status next-chip-status--${chip.status}`}>{chip.id.slice(0, 8)} · {chip.status}{chip.status === 'active' && <Link href={`/r/${chip.id}`}>Ouvrir</Link>}<button type="button" disabled={busyChipId === chip.id} onClick={() => void toggleChip(chip)}>{busyChipId === chip.id ? '…' : chip.status === 'disabled' ? 'Réactiver' : 'Désactiver'}</button></span>)}</div>

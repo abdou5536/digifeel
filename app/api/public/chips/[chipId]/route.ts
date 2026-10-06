@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ chi
     const supabase = createSupabaseServiceClient();
     const { data: chip, error } = await supabase
       .from('chips')
-      .select('status, restaurants(name, google_review_url, tip_enabled), restaurant_id')
+      .select('status, restaurants(name, google_review_url, logo_url, tip_enabled, active), restaurant_id')
       .eq('id', chipId)
       .maybeSingle();
     if (error) throw error;
@@ -29,6 +29,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ chi
     }
 
     const restaurant = chip.restaurants && !Array.isArray(chip.restaurants) ? chip.restaurants : null;
+    if (restaurant && !restaurant.active) {
+      return NextResponse.json({ state: 'disabled', error: 'Ce restaurant n’accepte plus d’avis pour le moment.' });
+    }
     if (!chip.restaurant_id || !restaurant?.google_review_url) {
       return NextResponse.json({ state: 'unconfigured', error: 'Cette puce n’est pas encore activée pour un restaurant.' });
     }
@@ -46,6 +49,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ chi
       restaurant: {
         name: restaurant.name,
         googleReviewUrl: restaurant.google_review_url,
+        logoUrl: restaurant.logo_url,
         tipEnabled: restaurant.tip_enabled
       },
       servers: servers ?? []

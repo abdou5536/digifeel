@@ -6,7 +6,7 @@ import { Check, Copy, Radio, Star } from 'lucide-react';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 
 interface PublicChip {
-  restaurant: { name: string; googleReviewUrl: string; tipEnabled: boolean };
+  restaurant: { name: string; googleReviewUrl: string | null; logoUrl?: string | null; tipEnabled: boolean };
   servers: Array<{ id: string; name: string }>;
 }
 
@@ -100,6 +100,14 @@ export function PublicReviewExperience({ chipId }: PublicReviewExperienceProps) 
     }
   };
 
+  // Après l'enregistrement de l'avis, le client est envoyé vers Google au bout de quelques secondes.
+  const googleUrl = chip?.restaurant.googleReviewUrl ?? null;
+  useEffect(() => {
+    if (!submitted || !googleUrl) return;
+    const timer = window.setTimeout(() => { window.location.href = googleUrl; }, 3500);
+    return () => window.clearTimeout(timer);
+  }, [submitted, googleUrl]);
+
   const copyComment = async () => {
     try {
       await navigator.clipboard.writeText(comment);
@@ -131,12 +139,17 @@ export function PublicReviewExperience({ chipId }: PublicReviewExperienceProps) 
             <h1>Merci pour votre retour.</h1>
             <p className="next-muted">Votre avis est enregistré pour {chip.restaurant.name}.</p>
             {comment && <button className="product-button product-button--secondary" type="button" onClick={copyComment}><Copy aria-hidden="true" />{copied ? 'Commentaire copié' : 'Copier mon commentaire'}</button>}
-            <a className="product-button" href={chip.restaurant.googleReviewUrl} target="_blank" rel="noreferrer">Publier sur Google</a>
-            <p className="next-muted">Vous pouvez aussi fermer cette page.</p>
+            {googleUrl
+              ? <>
+                <a className="product-button" href={googleUrl}>Publier sur Google maintenant</a>
+                <p className="next-muted">Redirection vers Google dans quelques secondes…</p>
+              </>
+              : <p className="next-muted">Vous pouvez fermer cette page.</p>}
           </div>
         ) : chip ? (
           <>
             <span className="next-kicker">VOTRE RETOUR COMPTE</span>
+            {chip.restaurant.logoUrl && <img className="next-restaurant-logo" src={chip.restaurant.logoUrl} alt="" width={64} height={64} />}
             <h1>{chip.restaurant.name}</h1>
             <p className="next-muted">Comment s’est passé votre repas ? Votre avis sera partagé avec le restaurant.</p>
             <form className="next-form" onSubmit={submitReview}>

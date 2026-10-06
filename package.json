@@ -16,6 +16,7 @@
     "preview:legacy": "vite preview --config vite.legacy.config.ts --host=0.0.0.0",
     "clean:legacy": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "seed": "node scripts/seed.mjs",
     "dev:vinext": "vite dev --port 3001",
     "build:vinext": "vite build",
     "start:vinext": "wrangler dev --config dist/server/wrangler.json",

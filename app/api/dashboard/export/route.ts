@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const { restaurant, subscription } = await getRestaurantDashboardContext(current);
     if (!restaurant) return NextResponse.json({ error: 'Le restaurant associé à ce compte est introuvable.' }, { status: 404 });
-    if (!hasActiveDashboardAccess(subscription)) {
+    if (!restaurant.active || !hasActiveDashboardAccess(subscription)) {
       return NextResponse.json({ error: 'Les exports nécessitent un abonnement actif. Les puces continuent de fonctionner.' }, { status: 403 });
     }
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import QRCode from 'qrcode';
 
-export function QRCodeDownloads({ chipId }: { chipId: string }) {
+export function QRCodeDownloads({ chipId, path, fileName }: { chipId: string; path?: string; fileName?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -12,14 +12,15 @@ export function QRCodeDownloads({ chipId }: { chipId: string }) {
     setBusy(true);
     setError('');
     try {
-      const url = `${window.location.origin}/r/${encodeURIComponent(chipId)}`;
+      const url = `${window.location.origin}${path ?? `/r/${encodeURIComponent(chipId)}`}`;
+      const base = fileName ?? chipId;
       if (format === 'svg') {
         const svg = await QRCode.toString(url, { type: 'svg', width: 640, margin: 2 });
-        saveFile(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${chipId}.svg`);
+        saveFile(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${base}.svg`);
       } else {
         const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, errorCorrectionLevel: 'H' });
         const response = await fetch(dataUrl);
-        saveFile(await response.blob(), `${chipId}.png`);
+        saveFile(await response.blob(), `${base}.png`);
       }
     } catch (downloadError) {
       console.error('QR code could not be generated.', downloadError);
