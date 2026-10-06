@@ -41,12 +41,13 @@ export async function GET(request: NextRequest) {
       comment: string;
       created_at: string;
       server_id: string | null;
+      handled_at: string | null;
       servers: { name: string } | Array<{ name: string }> | null;
     }> = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await supabase
         .from('reviews')
-        .select('id,stars,comment,created_at,server_id,servers(name)')
+        .select('id,stars,comment,created_at,server_id,handled_at,servers(name)')
         .eq('restaurant_id', current.profile.restaurant_id)
         .gte('created_at', from.toISOString())
         .lt('created_at', to.toISOString())
@@ -58,11 +59,13 @@ export async function GET(request: NextRequest) {
     }
 
     const allScansByDay = current.profile.role === 'restaurant_admin' ? summary?.scans_by_day ?? [] : [];
-    const sales = await buildSalesReport(supabase, createSupabaseServiceClient(), current.profile.restaurant_id, from, to);
+    const sales = await buildSalesReport(supabase, createSupabaseServiceClient(), current.profile.restaurant_id, from, to, { includeLines: true });
     return NextResponse.json({
       restaurantName: restaurant.name,
       periodDays: days,
       generatedAt: to.toISOString(),
+      periodFrom: from.toISOString(),
+      role: current.profile.role,
       sales,
       scansCount: current.profile.role === 'restaurant_admin' ? summary?.scans_count ?? 0 : 0,
       scansByDay: allScansByDay,
@@ -74,6 +77,7 @@ export async function GET(request: NextRequest) {
         comment: review.comment,
         created_at: review.created_at,
         server_id: review.server_id,
+        handled: Boolean(review.handled_at),
         server_name: Array.isArray(review.servers) ? review.servers[0]?.name ?? null : review.servers?.name ?? null
       }))
     }, { headers: { 'Cache-Control': 'private, no-store' } });

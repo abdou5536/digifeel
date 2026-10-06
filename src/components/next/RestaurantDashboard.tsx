@@ -6,6 +6,8 @@ import { ArrowLeft, Download, LogOut, Star, Users } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 import type { SalesReport } from '@/src/lib/pos/salesReport';
+import { buildReportModel, type ExportData } from '@/src/lib/reports/model';
+import { fileSlug } from '@/src/lib/reports/format';
 
 const EMPTY_SALES: SalesReport = { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [] };
 const dzd = (value: number) => `${new Intl.NumberFormat('fr-FR').format(value).replace(/[\u202f\u00a0]/g, ' ')} DZD`;
@@ -43,18 +45,6 @@ interface DashboardData {
   role: string;
   displayName: string;
   periodDays: number;
-}
-
-interface ExportData {
-  restaurantName: string;
-  periodDays: number;
-  generatedAt: string;
-  scansCount: number;
-  scansByDay: Array<{ date: string; count: number }>;
-  reviewCount: number;
-  averageRating: number;
-  reviews: DashboardReview[];
-  sales: SalesReport;
 }
 
 const PERIODS = [7, 30, 90, 365] as const;
@@ -192,6 +182,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       restaurantName: data.restaurant.name,
       periodDays,
       generatedAt: new Date().toISOString(),
+      demo: true,
       scansCount: data.scansCount,
       scansByDay: data.scansByDay,
       reviewCount: data.reviewCount,
@@ -205,103 +196,23 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
     return result as ExportData;
   };
 
-  const exportExcel = async () => {
+  const saveReport = async (kind: 'xlsx' | 'pdf') => {
     setExportError('');
     setExporting(true);
     try {
       const report = await loadExportData();
-      const rows = [
-        ['Type', 'Date', 'Nombre de scans', 'Étoiles', 'Commentaire', 'Serveur', 'Montant (DZD)', 'Paiement'],
-        ...report.scansByDay.map(day => ['Scans', day.date, String(day.count), '', '', '', '', '']),
-        ...report.reviews.map(review => [
-          'Avis',
-          new Date(review.created_at).toLocaleString('fr-FR'),
-          '',
-          String(review.stars),
-          review.comment,
-          review.server_name ?? '',
-          '',
-          ''
-        ]),
-        ...report.sales.sales.map(sale => ['Vente', new Date(sale.sold_at).toLocaleString('fr-FR'), '', '', '', sale.cashier_name, String(sale.total_dzd), PAYMENT_LABELS[sale.payment_method] ?? sale.payment_method]),
-        ...report.sales.byMonth.flatMap(month => [
-          ['Total mensuel', monthLabel(month.month), '', '', `${month.count} ventes`, 'Tous', String(month.total_dzd), ''],
-          ...month.servers.map(server => ['Total mensuel serveur', monthLabel(month.month), '', '', `${server.count} ventes`, server.name, String(server.total_dzd), ''])
-        ])
-      ];
-      const csv = `\uFEFF${rows.map(row => row.map(csvCell).join(';')).join('\r\n')}`;
-      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-      downloadFile(url, `${slug(report.restaurantName)}-${report.periodDays}j.csv`);
+      const model = buildReportModel(report);
+      const blob = kind === 'xlsx' ? await (await import('@/src/lib/reports/excel')).buildExcelReport(model) : await (await import('@/src/lib/reports/pdf')).buildPdfReport(model);
+      downloadFile(URL.createObjectURL(blob), `${fileSlug(report.restaurantName)}-${report.periodDays}j.${kind}`);
     } catch (error) {
-      setExportError(error instanceof Error ? error.message : 'L’export Excel n’a pas pu être généré.');
+      console.error('Report export failed.', error);
+      setExportError(error instanceof Error ? error.message : kind === 'xlsx' ? 'L’export Excel n’a pas pu être généré.' : 'Le rapport PDF n’a pas pu être généré.');
     } finally {
       setExporting(false);
     }
   };
-
-  const exportPdf = async () => {
-    setExportError('');
-    setExporting(true);
-    try {
-      const report = await loadExportData();
-      const { default: JsPDF } = await import('jspdf');
-      const pdf = new JsPDF();
-      pdf.setFontSize(18);
-      pdf.text(`Rapport Digifeel — ${report.restaurantName}`, 14, 18);
-      pdf.setFontSize(10);
-      pdf.text(`Période : ${report.periodDays} jours`, 14, 26);
-      pdf.text(`Scans : ${report.scansCount}   |   Avis : ${report.reviewCount}   |   Note moyenne : ${report.averageRating.toFixed(1)}/5`, 14, 33);
-      let y = 44;
-      const ensure = (lines: number) => {
-        if (y + lines * 5 > 280) {
-          pdf.addPage();
-          y = 18;
-        }
-      };
-      if (report.sales.salesCount > 0) {
-        pdf.setFontSize(13);
-        pdf.text('Ventes de la caisse', 14, y);
-        pdf.setFontSize(10);
-        y += 7;
-        pdf.text(`Chiffre d’affaires : ${dzd(report.sales.totalDzd)}   |   Tickets : ${report.sales.salesCount}`, 14, y);
-        y += 8;
-        report.sales.byMonth.forEach(month => {
-          ensure(month.servers.length + 2);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`${monthLabel(month.month)} : ${dzd(month.total_dzd)} (${month.count} tickets)`, 14, y);
-          pdf.setFont('helvetica', 'normal');
-          y += 5;
-          month.servers.forEach(server => {
-            pdf.text(`   ${server.name} : ${dzd(server.total_dzd)} (${server.count} tickets)`, 14, y);
-            y += 5;
-          });
-          y += 3;
-        });
-        y += 4;
-        pdf.setFontSize(13);
-        ensure(3);
-        pdf.text('Avis', 14, y);
-        pdf.setFontSize(10);
-        y += 7;
-      }
-      report.reviews.forEach(review => {
-        const line = `${new Date(review.created_at).toLocaleDateString('fr-FR')} · ${review.stars}/5 · ${review.server_name ? `${review.server_name} · ` : ''}${review.comment || 'Sans commentaire'}`;
-        const wrapped = pdf.splitTextToSize(line, 180) as string[];
-        if (y + wrapped.length * 5 > 280) {
-          pdf.addPage();
-          y = 18;
-        }
-        pdf.text(wrapped, 14, y);
-        y += wrapped.length * 5 + 3;
-      });
-      pdf.save(`${slug(report.restaurantName)}-${report.periodDays}j.pdf`);
-    } catch (error) {
-      console.error('PDF export failed.', error);
-      setExportError(error instanceof Error ? error.message : 'Le rapport PDF n’a pas pu être généré.');
-    } finally {
-      setExporting(false);
-    }
-  };
+  const exportExcel = () => saveReport('xlsx');
+  const exportPdf = () => saveReport('pdf');
 
   if (error) return <div className="next-page-wrap"><Link className="next-link" href="/">Retour au site</Link><p className="next-banner" role="alert">{error} {error.includes('Connectez-vous') && <Link className="next-link" href="/login?next=/dashboard">Se connecter</Link>}</p></div>;
   if (!data) return <div className="next-page-wrap"><p className="next-muted" role="status">Chargement de votre espace…</p></div>;
@@ -385,7 +296,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
           <span className="next-muted">Export complet de la période : ventes, scans quotidiens et avis détaillés.</span>
           <div className="next-nav__actions">
             <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportPdf()}><Download aria-hidden="true" /> {exporting ? 'Préparation…' : 'Exporter en PDF'}</button>
-            <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportExcel()}><Download aria-hidden="true" /> Exporter pour Excel (.csv)</button>
+            <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportExcel()}><Download aria-hidden="true" /> Exporter en Excel (.xlsx)</button>
           </div>
           {exportError && <p className="next-error" role="alert">{exportError}</p>}
         </div>
@@ -465,15 +376,6 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       </>}
     </main>
   );
-}
-
-function slug(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'restaurant';
-}
-
-function csvCell(value: string) {
-  const safeValue = /^[\u0000-\u0020]*[=+\-@]/.test(value) ? `'${value}` : value;
-  return `"${safeValue.replaceAll('"', '""')}"`;
 }
 
 function createDemoData(periodDays: number): DashboardData {

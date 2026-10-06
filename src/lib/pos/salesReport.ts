@@ -1,7 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+export interface SalesReportLine {
+  product_name: string;
+  category: string | null;
+  quantity: number;
+  unit_price_dzd: number;
+  line_total_dzd: number;
+}
+
 export interface SalesReportSale {
   id: string;
+  ticket_no: number;
+  lines?: SalesReportLine[];
   sold_at: string;
   total_dzd: number;
   payment_method: string;
@@ -24,7 +34,8 @@ export async function buildSalesReport(
   serviceClient: SupabaseClient,
   restaurantId: string,
   from: Date,
-  to: Date
+  to: Date,
+  options: { includeLines?: boolean } = {}
 ): Promise<SalesReport> {
   const rows: Array<{ id: string; sold_at: string; total_dzd: number | string; payment_method: string; cashier_user_id: string }> = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
@@ -56,8 +67,43 @@ export async function buildSalesReport(
     }
   }
 
+  const linesBySale = new Map<string, SalesReportLine[]>();
+  if (options.includeLines && rows.length) {
+    const items: Array<{ sale_id: string; product_id: string; product_name: string; quantity: number; unit_price_dzd: number; line_total_dzd: number | string }> = [];
+    for (let i = 0; i < rows.length; i += 100) {
+      const { data, error } = await rlsClient
+        .from('pos_sale_items')
+        .select('sale_id,product_id,product_name,quantity,unit_price_dzd,line_total_dzd')
+        .in('sale_id', rows.slice(i, i + 100).map(row => row.id));
+      if (error) throw error;
+      items.push(...(data ?? []));
+    }
+    const categories = new Map<string, string>();
+    const productIds = [...new Set(items.map(item => item.product_id))];
+    for (let i = 0; i < productIds.length; i += 100) {
+      const { data, error } = await rlsClient.from('pos_products').select('id,category').in('id', productIds.slice(i, i + 100));
+      if (error) throw error;
+      for (const product of data ?? []) categories.set(product.id, product.category);
+    }
+    for (const item of items) {
+      const list = linesBySale.get(item.sale_id) ?? [];
+      list.push({
+        product_name: item.product_name,
+        category: categories.get(item.product_id) ?? null,
+        quantity: item.quantity,
+        unit_price_dzd: item.unit_price_dzd,
+        line_total_dzd: Number(item.line_total_dzd)
+      });
+      linesBySale.set(item.sale_id, list);
+    }
+  }
+
+  const chronological = [...rows].sort((a, b) => a.sold_at.localeCompare(b.sold_at));
+  const ticketNumbers = new Map(chronological.map((row, index) => [row.id, index + 1]));
   const sales = rows.map(row => ({
     id: row.id,
+    ticket_no: ticketNumbers.get(row.id) ?? 0,
+    ...(options.includeLines ? { lines: linesBySale.get(row.id) ?? [] } : {}),
     sold_at: row.sold_at,
     total_dzd: Number(row.total_dzd),
     payment_method: row.payment_method,
