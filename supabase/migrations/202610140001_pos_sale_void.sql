@@ -26,6 +26,7 @@ declare
   v_restaurant_id uuid;
   v_sale_restaurant uuid;
   v_already_voided timestamptz;
+  v_sold_at timestamptz;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '28000';
@@ -42,7 +43,7 @@ begin
     raise exception 'Only a restaurant manager can void a sale' using errcode = '42501';
   end if;
 
-  select restaurant_id, voided_at into v_sale_restaurant, v_already_voided
+  select restaurant_id, voided_at, sold_at into v_sale_restaurant, v_already_voided, v_sold_at
   from public.pos_sales
   where id = p_sale_id
   for update;
@@ -52,6 +53,9 @@ begin
   end if;
   if v_already_voided is not null then
     raise exception 'Sale is already voided' using errcode = '23505';
+  end if;
+  if (v_sold_at at time zone 'Africa/Algiers')::date <> (now() at time zone 'Africa/Algiers')::date then
+    raise exception 'Sale can only be voided on the day it was recorded' using errcode = '23514';
   end if;
 
   update public.pos_sales

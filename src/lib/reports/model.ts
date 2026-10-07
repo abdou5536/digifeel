@@ -74,6 +74,8 @@ export interface ReportModel {
   itemsSold: number;
   orders: ReportOrder[];
   hasLineDetail: boolean;
+  voidedCount: number;
+  voidedDzd: number;
 
   daily: Array<{ day: string; revenue: number; orders: number }>;
   monthly: Array<{ month: string; revenue: number; orders: number; averageBasket: number | null }>;
@@ -129,7 +131,7 @@ export function buildReportModel(data: ExportData): ReportModel {
   const generatedAt = new Date(data.generatedAt);
   const to = generatedAt;
   const from = data.periodFrom ? new Date(data.periodFrom) : new Date(to.getTime() - (data.periodDays - 1) * 86400000);
-  const sales = data.sales ?? { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [] };
+  const sales = data.sales ?? { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [], voidedCount: 0, voidedDzd: 0 };
 
   const orders: ReportOrder[] = [...sales.sales]
     .sort((a, b) => a.sold_at.localeCompare(b.sold_at))
@@ -309,6 +311,8 @@ export function buildReportModel(data: ExportData): ReportModel {
     itemsSold,
     orders,
     hasLineDetail,
+    voidedCount: sales.voidedCount ?? 0,
+    voidedDzd: sales.voidedDzd ?? 0,
     daily,
     monthly,
     trend,

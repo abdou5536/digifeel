@@ -22,7 +22,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { error } = await supabase.rpc('void_pos_sale', { p_sale_id: id.data, p_reason: parsed.data.reason || null });
   if (error) {
     console.error('POS sale could not be voided.', error);
-    return rpcErrorResponse(error);
+    return rpcErrorResponse(error, {
+      409: 'Cette vente est introuvable ou déjà annulée.',
+      400: 'Une vente ne peut être annulée que le jour même de son enregistrement.'
+    });
   }
   return NextResponse.json({ ok: true });
 }

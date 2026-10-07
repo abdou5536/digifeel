@@ -218,7 +218,8 @@ export async function buildPdfReport(model: ReportModel): Promise<Blob> {
     { label: 'Produits vendus', value: model.hasLineDetail ? formatInt(model.itemsSold) : NOT_AVAILABLE, hint: 'quantités' },
     { label: 'Avis clients', value: formatInt(model.reviewCount), hint: model.reviewCount ? `${formatInt(model.positive)} positifs · ${formatInt(model.negative)} négatifs` : undefined },
     { label: 'Note moyenne', value: model.averageRating != null ? `${formatRating(model.averageRating)} / 5` : NOT_AVAILABLE },
-    ...(model.scansAvailable ? [{ label: 'Scans NFC / QR', value: formatInt(model.scansCount), hint: model.conversion != null ? `${formatPercent(model.conversion)} laissent un avis` : undefined }] : [])
+    ...(model.scansAvailable ? [{ label: 'Scans NFC / QR', value: formatInt(model.scansCount), hint: model.conversion != null ? `${formatPercent(model.conversion)} laissent un avis` : undefined }] : []),
+    ...(model.voidedCount > 0 ? [{ label: 'Ventes annulées', value: formatInt(model.voidedCount), hint: `${formatDzd(model.voidedDzd)} non comptés` }] : [])
   ]);
 
   w.section('Performance commerciale');
@@ -229,6 +230,7 @@ export async function buildPdfReport(model: ReportModel): Promise<Blob> {
     if (monthlyView) w.bars('Chiffre d’affaires par mois', model.monthly.map(m => capitalize(formatMonth(m.month)).slice(0, 8)), model.monthly.map(m => m.revenue), formatDzd);
     else w.bars('Chiffre d’affaires par jour', model.daily.map(d => formatShortDay(d.day)), model.daily.map(d => d.revenue), formatDzd);
     if (model.bestDay) w.note(`Meilleure journée : ${formatDay(model.bestDay.day)} avec ${formatDzd(model.bestDay.revenue)}.`);
+    if (model.voidedCount > 0) w.note(`${formatInt(model.voidedCount)} vente(s) annulée(s) sur la période pour ${formatDzd(model.voidedDzd)}, exclues du chiffre d’affaires ci-dessus.`);
     w.table(
       [{ label: 'Mois', width: 38 }, { label: 'Commandes', width: 22, align: 'right' }, { label: 'Panier moyen', width: 30, align: 'right' }, { label: 'Chiffre d’affaires', width: 36, align: 'right' }],
       model.monthly.map(m => [capitalize(formatMonth(m.month)), formatInt(m.orders), m.averageBasket != null ? formatDzd(m.averageBasket) : NOT_AVAILABLE, formatDzd(m.revenue)]),

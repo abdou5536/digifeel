@@ -40,11 +40,18 @@ describe('rapports PDF / Excel', () => {
   });
 
   it('ne fabrique aucune donnée quand il n’y a pas de ventes', () => {
-    const m = buildReportModel({ ...data, scansByDay: [], reviews: [], reviewCount: 0, sales: { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [] } });
+    const m = buildReportModel({ ...data, scansByDay: [], reviews: [], reviewCount: 0, sales: { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [], voidedCount: 0, voidedDzd: 0 } });
     expect(m.averageBasket).toBeNull();
     expect(m.averageRating).toBeNull();
     expect(m.conversion).toBeNull();
     expect(m.scansAvailable).toBe(false);
+  });
+
+  it('expose les ventes annulées sans les compter dans le chiffre d’affaires', () => {
+    const m = buildReportModel({ ...data, sales: { ...data.sales, voidedCount: 2, voidedDzd: 800 } });
+    expect(m.revenue).toBe(1500);
+    expect(m.voidedCount).toBe(2);
+    expect(m.voidedDzd).toBe(800);
   });
 
   it('génère un Excel et un PDF valides sans valeur technique', async () => {

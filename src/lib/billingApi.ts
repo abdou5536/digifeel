@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedAppUser } from '@/src/lib/supabase/auth';
 import { createSupabaseServerClient } from '@/src/lib/supabase/server';
 
-export function rpcErrorResponse(error: { code?: string }) {
+export function rpcErrorResponse(error: { code?: string }, overrides?: Partial<Record<number, string>>) {
   const status = error.code === '42501' ? 403
     : error.code === '22023' || error.code === '23505' ? 409
     : error.code === '23514' ? 400
@@ -12,7 +12,7 @@ export function rpcErrorResponse(error: { code?: string }) {
     403: 'Action non autorisée.', 409: 'Opération refusée (addition fermée, doublon ou montant incorrect).',
     400: 'Données invalides.', 404: 'Introuvable.', 503: 'Service indisponible.'
   };
-  return NextResponse.json({ error: messages[status] }, { status });
+  return NextResponse.json({ error: overrides?.[status] ?? messages[status] }, { status });
 }
 
 // Les droits sont appliqués par la base (RLS + RPC) ; ici on vérifie seulement la session.

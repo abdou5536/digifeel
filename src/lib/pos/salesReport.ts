@@ -24,6 +24,8 @@ export interface SalesReport {
   sales: SalesReportSale[];
   byServer: Array<{ name: string; total_dzd: number; count: number }>;
   byMonth: Array<{ month: string; total_dzd: number; count: number; servers: Array<{ name: string; total_dzd: number; count: number }> }>;
+  voidedCount: number;
+  voidedDzd: number;
 }
 
 const PAGE_SIZE = 1000;
@@ -133,6 +135,24 @@ export async function buildSalesReport(
   const toList = (map: Map<string, { total_dzd: number; count: number }>) =>
     [...map.entries()].map(([name, value]) => ({ name, ...value })).sort((a, b) => b.total_dzd - a.total_dzd);
 
+  // Ventes annulées de la période : exclues du chiffre d'affaires mais comptées à part pour la transparence des rapports.
+  let voidedCount = 0;
+  let voidedDzd = 0;
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data, error } = await rlsClient
+      .from('pos_sales')
+      .select('total_dzd')
+      .eq('restaurant_id', restaurantId)
+      .not('voided_at', 'is', null)
+      .gte('sold_at', from.toISOString())
+      .lt('sold_at', to.toISOString())
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    for (const row of data ?? []) voidedDzd += Number(row.total_dzd);
+    voidedCount += data?.length ?? 0;
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+
   return {
     totalDzd: sales.reduce((sum, sale) => sum + sale.total_dzd, 0),
     salesCount: sales.length,
@@ -140,6 +160,8 @@ export async function buildSalesReport(
     byServer: toList(serverTotals),
     byMonth: [...monthTotals.entries()]
       .map(([month, value]) => ({ month, total_dzd: value.total_dzd, count: value.count, servers: toList(value.servers) }))
-      .sort((a, b) => b.month.localeCompare(a.month))
+      .sort((a, b) => b.month.localeCompare(a.month)),
+    voidedCount,
+    voidedDzd
   };
 }

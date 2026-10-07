@@ -9,7 +9,7 @@ import type { SalesReport } from '@/src/lib/pos/salesReport';
 import { buildReportModel, type ExportData } from '@/src/lib/reports/model';
 import { fileSlug } from '@/src/lib/reports/format';
 
-const EMPTY_SALES: SalesReport = { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [] };
+const EMPTY_SALES: SalesReport = { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [], voidedCount: 0, voidedDzd: 0 };
 const dzd = (value: number) => `${new Intl.NumberFormat('fr-FR').format(value).replace(/[\u202f\u00a0]/g, ' ')} DZD`;
 const monthLabel = (month: string) => new Date(`${month}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 const PAYMENT_LABELS: Record<string, string> = { cash: 'Espèces', card: 'Carte', baridimob: 'BaridiMob' };
@@ -275,6 +275,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
             <article className="next-glass-card next-metric"><span>Tickets</span><strong>{sales.salesCount}</strong></article>
             <article className="next-glass-card next-metric"><span>Ticket moyen</span><strong>{dzd(sales.salesCount ? Math.round(sales.totalDzd / sales.salesCount) : 0)}</strong></article>
           </div>
+          {sales.voidedCount > 0 && <p className="next-muted">⚠ {sales.voidedCount} vente(s) annulée(s) sur la période ({dzd(sales.voidedDzd)}), déjà exclue(s) du chiffre d’affaires ci-dessus.</p>}
           {sales.salesCount === 0 ? <p className="next-muted">Aucune vente sur cette période.</p> : <>
             <h3>{data.role === 'server' ? 'Mon addition par mois' : 'Addition par serveur et par mois'}</h3>
             <div style={{ overflowX: 'auto' }}>

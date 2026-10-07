@@ -109,7 +109,13 @@ function summarySheet(workbook: Workbook, model: ReportModel) {
     ['Évolution du CA (2ᵉ moitié vs 1ʳᵉ)', model.trend?.change ?? NOT_AVAILABLE, '+0.0%;-0.0%;0.0%'],
     ['Nombre d’avis clients', model.reviewCount, '#,##0'],
     ['Note moyenne', model.averageRating ?? NOT_AVAILABLE, '0.0" / 5"'],
-    ['Scans NFC / QR', model.scansAvailable ? model.scansCount : NOT_AVAILABLE, '#,##0']
+    ['Scans NFC / QR', model.scansAvailable ? model.scansCount : NOT_AVAILABLE, '#,##0'],
+    ...(model.voidedCount > 0
+      ? [
+          ['Ventes annulées (exclues du CA)', model.voidedCount, '#,##0'] as [string, number, string],
+          ['Montant des ventes annulées', model.voidedDzd, FMT_DZD] as [string, number, string]
+        ]
+      : [])
   ];
   kpis.forEach(([label, value, fmt], index) => {
     const row = 7 + index;
