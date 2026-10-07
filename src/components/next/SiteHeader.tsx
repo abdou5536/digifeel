@@ -14,6 +14,7 @@ export function SiteHeader() {
         DIGIFEEL
       </Link>
       <nav className="product-topbar__links" aria-label="Navigation principale">
+        <Link href="/#logiciel">{text('navModules')}</Link>
         <Link href="/#fonctionnement">{text('navFlow')}</Link>
         <Link href="/#avis">{text('navReviews')}</Link>
         <Link href="/#serveurs">{text('navTeam')}</Link>

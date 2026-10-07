@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowDown, ArrowRight, Check, CircleHelp, QrCode, Radio, Star, Users } from 'lucide-react';
+import { ArrowDown, ArrowRight, Building2, Check, CircleHelp, Coins, FileSpreadsheet, LayoutDashboard, QrCode, Radio, ShoppingCart, Star, Users } from 'lucide-react';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -15,6 +15,15 @@ const steps = [
   { number: '01', key: 'scan' as const, textKey: 'scanText' as const, Icon: Radio },
   { number: '02', key: 'rate' as const, textKey: 'rateText' as const, Icon: Star },
   { number: '03', key: 'publish' as const, textKey: 'publishText' as const, Icon: QrCode }
+];
+
+const modules = [
+  { titleKey: 'featureCaisseTitle' as const, textKey: 'featureCaisseText' as const, Icon: ShoppingCart },
+  { titleKey: 'featureReportsTitle' as const, textKey: 'featureReportsText' as const, Icon: FileSpreadsheet },
+  { titleKey: 'featureReviewsTitle' as const, textKey: 'featureReviewsText' as const, Icon: Star },
+  { titleKey: 'featureTipsTitle' as const, textKey: 'featureTipsText' as const, Icon: Coins },
+  { titleKey: 'featureDashboardTitle' as const, textKey: 'featureDashboardText' as const, Icon: LayoutDashboard },
+  { titleKey: 'featureMultiTitle' as const, textKey: 'featureMultiText' as const, Icon: Building2 }
 ];
 
 export function PublicExperience() {
@@ -72,6 +81,25 @@ export function PublicExperience() {
           <div className="next-home-hero__scene" data-next-reveal>
             <div className="immersive-hero__halo" aria-hidden="true" />
             <span className="next-scene-caption">APPROCHEZ · SCANNEZ · PARTAGEZ</span>
+          </div>
+        </section>
+
+        <section className="next-section" id="logiciel">
+          <div className="next-section-heading" data-next-reveal>
+            <span>{text('modulesEyebrow')}</span>
+            <h2>{text('modulesTitle').split('\n').map((line, index) => (
+              <React.Fragment key={line}>{index > 0 && <br />}<span className={index === 1 ? 'next-accent' : ''}>{line}</span></React.Fragment>
+            ))}</h2>
+            <p>{text('modulesText')}</p>
+          </div>
+          <div className="next-feature-grid">
+            {modules.map(({ titleKey, textKey, Icon }) => (
+              <article className="next-glass-card next-feature-card" data-next-reveal key={titleKey}>
+                <Icon aria-hidden="true" />
+                <h3>{text(titleKey)}</h3>
+                <p>{text(textKey)}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -191,6 +219,8 @@ export function PublicExperience() {
           <details><summary>{text('faqOne')}</summary><p>{text('faqOneAnswer')}</p></details>
           <details><summary>{text('faqTwo')}</summary><p>{text('faqTwoAnswer')}</p></details>
           <details><summary>{text('faqThree')}</summary><p>{text('faqThreeAnswer')}</p></details>
+          <details><summary>{text('faqFour')}</summary><p>{text('faqFourAnswer')}</p></details>
+          <details><summary>{text('faqFive')}</summary><p>{text('faqFiveAnswer')}</p></details>
         </section>
 
         <section className="next-contact next-glass-card next-section" id="contact">
