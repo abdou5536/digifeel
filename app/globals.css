@@ -1271,7 +1271,8 @@ body, .restaurant-workspace, .restaurant-tools, .guest-shell, .guest-page, .work
 .next-admin-layout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(16rem,.9fr); gap:1rem; margin-bottom:1rem; }
 .next-admin-restaurants { margin-top:1rem; }
 .next-restaurant-list { display:grid; gap:.8rem; }
-.next-restaurant-row { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:.5rem 1.2rem; padding:1rem 0; border-bottom:1px solid rgba(255,255,255,.1); }
+.next-restaurant-row { display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:.5rem 1.2rem; padding:1rem 0; border-bottom:1px solid rgba(255,255,255,.1); }
+@media (max-width:640px) { .next-restaurant-row { grid-template-columns:1fr; } }
 .next-restaurant-row h3,.next-restaurant-row p { margin:.2rem 0; }
 .next-chip-list { display:flex; flex-wrap:wrap; grid-column:1/-1; gap:.5rem; }
 .next-chip-status { display:flex; align-items:center; gap:.5rem; padding:.45rem .65rem; border:1px solid rgba(255,255,255,.12); border-radius:999px; color:#a7aaa3; font-size:.85rem; }
@@ -1281,6 +1282,9 @@ body, .restaurant-workspace, .restaurant-tools, .guest-shell, .guest-page, .work
 .next-chip-status button { min-height:44px; padding:.35rem .6rem; border:1px solid rgba(255,255,255,.15); border-radius:999px; background:rgba(255,255,255,.05); color:#e6e4de; cursor:pointer; }
 .next-chip-status button:disabled { opacity:.6; }
 .next-switch-button { padding:0; border:0; background:none; color:#c99445; font-size:inherit; cursor:pointer; }
+.next-impersonation-banner { position:fixed; z-index:60; left:50%; bottom:1rem; transform:translateX(-50%); display:flex; align-items:center; gap:.9rem; padding:.6rem 1rem; border:1px solid rgba(201,148,69,.45); border-radius:999px; background:rgba(20,16,10,.92); color:#f1f0eb; font-size:.85rem; box-shadow:0 10px 30px rgba(0,0,0,.35); backdrop-filter:blur(10px); }
+.next-impersonation-banner button { min-height:36px; padding:.3rem .8rem; border:1px solid rgba(201,148,69,.6); border-radius:999px; background:#c99445; color:#161208; font-weight:600; cursor:pointer; }
+.next-impersonation-banner button:disabled { opacity:.6; cursor:wait; }
 .next-demo-back { display:flex; min-height:44px; align-items:center; justify-self:start; gap:.4rem; padding:.4rem 0; border:0; background:none; color:#c5c7c1; cursor:pointer; }
 .next-stars .next-tip-choice { width:auto; min-width:48px; padding-inline:.65rem; color:#f1f0eb; font-size:.9rem; }
 .next-form fieldset { min-width:0; padding:0; border:0; }

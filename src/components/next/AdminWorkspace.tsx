@@ -40,6 +40,7 @@ export function AdminWorkspace() {
   const [busy, setBusy] = useState(false);
   const [busyChipId, setBusyChipId] = useState('');
   const [busyRestaurantId, setBusyRestaurantId] = useState('');
+  const [impersonatingId, setImpersonatingId] = useState('');
   const [newResto, setNewResto] = useState({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10 });
   const [creating, setCreating] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -111,6 +112,30 @@ export function AdminWorkspace() {
       setMessage(patchError instanceof Error ? patchError.message : 'La modification a échoué.');
     } finally {
       setBusyRestaurantId('');
+    }
+  };
+
+  const impersonate = async (restaurant: AdminRestaurant) => {
+    if (!window.confirm(`Entrer dans « ${restaurant.name} » va remplacer votre session actuelle par celle du restaurateur, dans ce navigateur. Continuer ?`)) return;
+    setImpersonatingId(restaurant.id);
+    setMessage('');
+    try {
+      const { data: sessionData } = await createSupabaseBrowserClient().auth.getSession();
+      if (sessionData.session) {
+        sessionStorage.setItem('digifeel_admin_return', JSON.stringify({
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
+          restaurantName: restaurant.name
+        }));
+      }
+      const response = await fetch(`/api/admin/restaurants/${encodeURIComponent(restaurant.id)}/impersonate`, { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'La connexion au restaurant a échoué.');
+      window.location.href = result.url;
+    } catch (impersonateError) {
+      sessionStorage.removeItem('digifeel_admin_return');
+      setMessage(impersonateError instanceof Error ? impersonateError.message : 'La connexion au restaurant a échoué.');
+      setImpersonatingId('');
     }
   };
 
@@ -220,6 +245,7 @@ export function AdminWorkspace() {
               <div><h3>{restaurant.name}{!restaurant.active && <span className="next-chip-status next-chip-status--disabled">désactivé</span>}</h3><p className="next-muted">/{restaurant.slug} · créé le {new Date(restaurant.created_at).toLocaleDateString('fr-FR')}</p></div>
               <span>Abonnement : {subscription?.status ?? 'non défini'}</span>
               <span>{restaurant.chips?.length ?? 0} puce(s)</span>
+              <button className="product-button product-button--secondary" type="button" disabled={impersonatingId === restaurant.id} onClick={() => void impersonate(restaurant)}>{impersonatingId === restaurant.id ? 'Connexion…' : 'Entrer dans ce restaurant'}</button>
               <div className="next-chip-list">{restaurant.chips?.map(chip => <span key={chip.id} className={`next-chip-status next-chip-status--${chip.status}`}>{chip.id.slice(0, 8)} · {chip.status}{chip.status === 'active' && <Link href={`/r/${chip.id}`}>Ouvrir</Link>}<button type="button" disabled={busyChipId === chip.id} onClick={() => void toggleChip(chip)}>{busyChipId === chip.id ? '…' : chip.status === 'disabled' ? 'Réactiver' : 'Désactiver'}</button></span>)}</div>
             </article>;
           })}
