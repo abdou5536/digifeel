@@ -1,4 +1,4 @@
-import { NOT_AVAILABLE, capitalize, formatDay, formatDayTime, formatDzd, formatInt, formatMonth, formatPercent, formatRating, formatShortDay } from './format';
+import { NOT_AVAILABLE, capitalize, dayKey, formatDay, formatDayTime, formatDzd, formatInt, formatMonth, formatPercent, formatRating, formatShortDay } from './format';
 import { periodLabel, type ReportModel } from './model';
 
 type RGB = [number, number, number];
@@ -270,12 +270,17 @@ export async function buildPdfReport(model: ReportModel): Promise<Blob> {
   } else {
     w.hbars('Répartition des notes', model.distribution.map(d => `${d.stars} étoile${d.stars > 1 ? 's' : ''}`), model.distribution.map(d => d.count), v => formatInt(v));
     w.note(`${formatInt(model.reviewCount)} avis, note moyenne ${formatRating(model.averageRating ?? 0)} / 5 · ${formatInt(model.positive)} positifs, ${formatInt(model.neutral)} neutres, ${formatInt(model.negative)} négatifs.`);
-    const commented = model.reviews.filter(r => r.comment.trim()).slice(0, 4);
+    const allCommented = model.reviews.filter(r => r.comment.trim());
+    const commentedShown = 15;
+    const commented = allCommented.slice(0, commentedShown);
     if (commented.length > 0) {
       w.table(
         [{ label: 'Date', width: 20 }, { label: 'Note', width: 12, align: 'center' }, { label: 'Commentaire', width: 110 }, { label: 'Serveur', width: 30 }],
-        commented.map(r => [formatDay(r.created_at.slice(0, 10)), `${r.stars}/5`, r.comment, r.server_name ?? NOT_AVAILABLE])
+        commented.map(r => [formatDay(dayKey(r.created_at)), `${r.stars}/5`, r.comment, r.server_name ?? NOT_AVAILABLE])
       );
+      if (allCommented.length > commentedShown) {
+        w.note(`${formatInt(allCommented.length - commentedShown)} commentaire(s) supplémentaire(s) disponible(s) dans l'export Excel (feuille "Avis clients").`);
+      }
     }
   }
 

@@ -179,8 +179,8 @@ function summarySheet(workbook: Workbook, model: ReportModel) {
 function ordersSheet(workbook: Workbook, model: ReportModel) {
   if (!model.hasSales) return;
   const ws = workbook.addWorksheet('Ventes', { properties: { tabColor: { argb: 'FF3B82F6' } } });
-  const labels = ['Date', 'Heure', 'N° ticket', 'Serveur', 'Produit', 'Catégorie', 'Qté', 'Prix unitaire', 'Total ligne', 'Paiement', 'Total ticket', 'Statut'];
-  widths(ws, [12, 8, 10, 22, 30, 18, 7, 15, 15, 13, 15, 14]);
+  const labels = ['Date', 'Heure', 'N° ticket', 'Serveur', 'Produit', 'Catégorie', 'Qté', 'Prix unitaire', 'Total ligne', 'Paiement', 'Total ticket'];
+  widths(ws, [12, 8, 10, 22, 30, 18, 7, 15, 15, 13, 15]);
   titleBlock(ws, model, 'Ventes et commandes', labels.length);
   headerRow(ws, 4, labels);
   let r = 5;
@@ -201,8 +201,6 @@ function ordersSheet(workbook: Workbook, model: ReportModel) {
       }
       row.getCell(10).value = order.payment;
       if (index === 0) row.getCell(11).value = order.total;
-      row.getCell(12).value = NOT_AVAILABLE;
-      row.getCell(12).font = { color: { argb: 'FF9AA1AA' }, italic: true };
       [8, 9, 11].forEach(c => { row.getCell(c).numFmt = FMT_DZD; });
       [1, 2, 3, 7, 10].forEach(c => { row.getCell(c).alignment = { horizontal: 'center' }; });
       r += 1;
