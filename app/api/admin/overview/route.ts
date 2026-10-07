@@ -11,13 +11,20 @@ export async function GET() {
     }
 
     const supabase = await createSupabaseServerClient();
-    const [restaurantsResult, batchesResult] = await Promise.all([
+    const [restaurantsResult, batchesResult, ownersResult] = await Promise.all([
       supabase.from('restaurants').select('id,name,slug,active,created_at,chips(id,status,table_number,created_at),subscriptions(status,trial_ends_at)').order('created_at', { ascending: false }),
-      supabase.from('chip_batches').select('id,name,created_at').order('created_at', { ascending: false }).limit(50)
+      supabase.from('chip_batches').select('id,name,created_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('app_users').select('restaurant_id').eq('role', 'restaurant_admin')
     ]);
     if (restaurantsResult.error) throw restaurantsResult.error;
     if (batchesResult.error) throw batchesResult.error;
-    return NextResponse.json({ restaurants: restaurantsResult.data ?? [], batches: batchesResult.data ?? [] });
+    if (ownersResult.error) throw ownersResult.error;
+    const restaurantsWithOwners = (ownersResult.data ?? []).reduce((set, row) => {
+      if (row.restaurant_id) set.add(row.restaurant_id);
+      return set;
+    }, new Set<string>());
+    const restaurants = (restaurantsResult.data ?? []).map(restaurant => ({ ...restaurant, hasOwner: restaurantsWithOwners.has(restaurant.id) }));
+    return NextResponse.json({ restaurants, batches: batchesResult.data ?? [] });
   } catch (error) {
     console.error('Admin workspace data could not be loaded.', error);
     return NextResponse.json({ error: 'L’administration est momentanément indisponible.' }, { status: 503 });

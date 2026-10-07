@@ -22,6 +22,7 @@ interface AdminRestaurant {
   created_at: string;
   chips: AdminChip[];
   subscriptions: Array<{ status: string; trial_ends_at: string }> | null;
+  hasOwner: boolean;
 }
 
 interface GeneratedChip {
@@ -245,7 +246,7 @@ export function AdminWorkspace() {
               <div><h3>{restaurant.name}{!restaurant.active && <span className="next-chip-status next-chip-status--disabled">désactivé</span>}</h3><p className="next-muted">/{restaurant.slug} · créé le {new Date(restaurant.created_at).toLocaleDateString('fr-FR')}</p></div>
               <span>Abonnement : {subscription?.status ?? 'non défini'}</span>
               <span>{restaurant.chips?.length ?? 0} puce(s)</span>
-              <button className="product-button product-button--secondary" type="button" disabled={impersonatingId === restaurant.id} onClick={() => void impersonate(restaurant)}>{impersonatingId === restaurant.id ? 'Connexion…' : 'Entrer dans ce restaurant'}</button>
+              <button className="product-button product-button--secondary" type="button" disabled={impersonatingId === restaurant.id || !restaurant.hasOwner} title={restaurant.hasOwner ? undefined : 'Aucun compte restaurateur associé.'} onClick={() => void impersonate(restaurant)}>{impersonatingId === restaurant.id ? 'Connexion…' : 'Entrer dans ce restaurant'}</button>
               <div className="next-chip-list">{restaurant.chips?.map(chip => <span key={chip.id} className={`next-chip-status next-chip-status--${chip.status}`}>{chip.id.slice(0, 8)} · {chip.status}{chip.status === 'active' && <Link href={`/r/${chip.id}`}>Ouvrir</Link>}<button type="button" disabled={busyChipId === chip.id} onClick={() => void toggleChip(chip)}>{busyChipId === chip.id ? '…' : chip.status === 'disabled' ? 'Réactiver' : 'Désactiver'}</button></span>)}</div>
             </article>;
           })}

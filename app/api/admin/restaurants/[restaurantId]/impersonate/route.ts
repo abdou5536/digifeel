@@ -43,6 +43,12 @@ export async function POST(_request: Request, { params }: { params: Promise<{ re
     const tokenHash = link.properties?.hashed_token;
     if (!tokenHash) return NextResponse.json({ error: 'Le lien de connexion n’a pas pu être généré.' }, { status: 503 });
 
+    const { error: auditError } = await supabase.rpc('super_admin_log_impersonation', {
+      p_restaurant: restaurantId,
+      p_target_email: email
+    });
+    if (auditError) console.error('Impersonation audit log failed.', auditError);
+
     const url = `/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=magiclink&next=${encodeURIComponent('/caisse')}`;
     return NextResponse.json({ url, email, restaurantName: restaurant.name });
   } catch (error) {

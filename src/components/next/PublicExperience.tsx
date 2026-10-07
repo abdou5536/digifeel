@@ -26,6 +26,35 @@ const modules = [
   { titleKey: 'featureMultiTitle' as const, textKey: 'featureMultiText' as const, Icon: Building2 }
 ];
 
+function HeroMockupCard() {
+  return (
+    <div className="next-mockup-card">
+      <div className="next-mockup-card__bar">
+        <span /><span /><span />
+        <div className="next-mockup-card__tabs">
+          <span className="is-active">Caisse</span>
+          <span>Avis</span>
+          <span>Analyse</span>
+        </div>
+      </div>
+      <div className="next-mockup-card__body">
+        <div className="next-mockup-stat">
+          <span>Chiffre du jour</span>
+          <strong>1 248 €</strong>
+        </div>
+        <div className="next-mockup-stat">
+          <span>Avis Google</span>
+          <strong>4.9 ★</strong>
+        </div>
+        <div className="next-mockup-bars">
+          <i style={{ height: '38%' }} /><i style={{ height: '62%' }} /><i style={{ height: '48%' }} />
+          <i style={{ height: '82%' }} /><i style={{ height: '56%' }} /><i style={{ height: '70%' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PublicExperience() {
   const { locale, text } = useLanguage();
 
@@ -62,11 +91,15 @@ export function PublicExperience() {
       <SiteHeader />
       <main>
         <section className="next-home-hero" id="accueil">
+          <div className="next-home-hero__brandmark" aria-hidden="true" data-next-reveal>
+            <span className="next-home-hero__brandmark-glow" />
+            <img src="/icons/icon-gold.svg" alt="" />
+          </div>
+          <span className="product-eyebrow next-home-hero__eyebrow" data-next-reveal><Radio aria-hidden="true" /> {text('eyebrow')}</span>
+          <h1 className="next-home-hero__title" data-next-reveal>{text('heroTitle').split('\n').map((line, index) => (
+            <React.Fragment key={line}>{index > 0 && <br />}<span className={index === 1 ? 'next-accent' : ''}>{line}</span></React.Fragment>
+          ))}</h1>
           <div className="next-home-hero__copy" data-next-reveal>
-            <span className="product-eyebrow"><Radio aria-hidden="true" /> {text('eyebrow')}</span>
-            <h1>{text('heroTitle').split('\n').map((line, index) => (
-              <React.Fragment key={line}>{index > 0 && <br />}<span className={index === 1 ? 'next-accent' : ''}>{line}</span></React.Fragment>
-            ))}</h1>
             <p>{text('heroText')}</p>
             <div className="next-home-hero__buttons">
               <a className="product-button magnetic-button" href="#fonctionnement">
@@ -78,10 +111,13 @@ export function PublicExperience() {
             </div>
             <p className="next-home-hero__trust"><Check aria-hidden="true" /> {text('promise')}</p>
           </div>
-          <div className="next-home-hero__scene" data-next-reveal>
-            <div className="immersive-hero__halo" aria-hidden="true" />
-            <span className="next-scene-caption">APPROCHEZ · SCANNEZ · PARTAGEZ</span>
+          <div className="next-home-hero__mockup" aria-hidden="true" data-next-reveal>
+            <HeroMockupCard />
+            <div className="next-mockup-card--reflection">
+              <HeroMockupCard />
+            </div>
           </div>
+          <span className="next-scene-caption" aria-hidden="true">APPROCHEZ · SCANNEZ · PARTAGEZ</span>
         </section>
 
         <section className="next-section" id="logiciel">

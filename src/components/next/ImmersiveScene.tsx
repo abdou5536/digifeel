@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, Float, Lightformer } from '@react-three/drei';
 
 /**
- * Scène 3D du fond immersif : gemme dorée centrale, particules flottantes et reflet « eau » en bas.
+ * Scène 3D du fond immersif : particules flottantes et reflet « eau » en bas.
  * Chargée uniquement côté client via ImmersiveBackground (lazy).
  */
 
@@ -115,53 +114,6 @@ function Particles({ count, dark, mirror, reducedMotion }: { count: number; dark
   );
 }
 
-/** Gemme : noyau métal doré + coque de verre. Rotation lente, légère parallaxe souris. */
-function Gem({ dark, reducedMotion }: { dark: boolean; reducedMotion: boolean }) {
-  const group = useRef<THREE.Group>(null);
-  const aspect = useThree(state => state.size.width / state.size.height);
-  // Grand écran : la gemme se place à droite du texte. Portrait : centrée et plus petite.
-  const baseX = aspect > 1.2 ? 2.6 : 0;
-  const core = useRef<THREE.Mesh>(null);
-
-  useFrame((_, delta) => {
-    const g = group.current;
-    if (!g) return;
-    if (!reducedMotion && core.current) core.current.rotation.y += delta * 0.18;
-    // Parallaxe douce : l'objet suit le pointeur et glisse vers la droite en scrollant.
-    const targetX = reducedMotion ? baseX : baseX + input.x * 0.6 - input.scroll * baseX * 0.6;
-    const targetY = reducedMotion ? 0 : input.y * 0.4 - input.scroll * 0.8;
-    g.position.x = THREE.MathUtils.damp(g.position.x, targetX, 3, delta);
-    g.position.y = THREE.MathUtils.damp(g.position.y, targetY, 3, delta);
-    g.scale.setScalar(aspect > 1.2 ? 1 : 0.7);
-    g.rotation.x = THREE.MathUtils.damp(g.rotation.x, reducedMotion ? 0 : -input.y * 0.25, 3, delta);
-    g.rotation.z = THREE.MathUtils.damp(g.rotation.z, reducedMotion ? 0 : input.x * 0.15, 3, delta);
-  });
-
-  return (
-    <group ref={group}>
-      <Float speed={reducedMotion ? 0 : 1.2} rotationIntensity={0.15} floatIntensity={0.5}>
-        <mesh ref={core} scale={1.25}>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial color="#d9a441" metalness={1} roughness={0.22} flatShading envMapIntensity={dark ? 1.4 : 0.9} />
-        </mesh>
-        <mesh scale={1.75}>
-          <icosahedronGeometry args={[1, 0]} />
-          <meshPhysicalMaterial
-            color="#ffffff"
-            transparent
-            opacity={dark ? 0.16 : 0.12}
-            roughness={0.05}
-            metalness={0}
-            clearcoat={1}
-            ior={1.45}
-            depthWrite={false}
-          />
-        </mesh>
-      </Float>
-    </group>
-  );
-}
-
 /** Caméra : avance doucement avec le scroll. */
 function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
   useFrame(({ camera }, delta) => {
@@ -205,15 +157,6 @@ export default function ImmersiveScene({ dark, mobile, reducedMotion }: ScenePro
       frameloop={reducedMotion ? 'demand' : 'always'}
       aria-hidden="true"
     >
-      <ambientLight intensity={dark ? 0.25 : 0.5} />
-      <directionalLight position={[4, 5, 5]} intensity={dark ? 1.2 : 0.8} color="#ffe2a8" />
-      {/* Environnement local (aucun fichier HDR téléchargé) pour les reflets métalliques */}
-      <Environment resolution={128} frames={1}>
-        <Lightformer form="rect" intensity={3} position={[0, 5, -5]} scale={[10, 3, 1]} />
-        <Lightformer form="rect" intensity={2} position={[-6, 1, 2]} scale={[3, 6, 1]} color="#ffd48a" />
-        <Lightformer form="rect" intensity={1.5} position={[6, -1, 3]} scale={[3, 6, 1]} />
-      </Environment>
-      <Gem dark={dark} reducedMotion={reducedMotion} />
       <Particles count={count} dark={dark} mirror={false} reducedMotion={reducedMotion} />
       <Particles count={Math.round(count / 2)} dark={dark} mirror reducedMotion={reducedMotion} />
       <CameraRig reducedMotion={reducedMotion} />
