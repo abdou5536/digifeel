@@ -33,6 +33,8 @@ export interface LocalPosSale {
   createdAt: string;
   status: 'pending' | 'synced' | 'conflict';
   error?: string;
+  voidedAt?: string | null;
+  voidReason?: string | null;
 }
 
 export interface PosSaleRecord {
@@ -42,6 +44,8 @@ export interface PosSaleRecord {
   payment_reference: string | null;
   sync_source: 'online' | 'offline';
   sold_at: string;
+  voided_at?: string | null;
+  void_reason?: string | null;
   pos_sale_items: Array<{
     product_name: string;
     quantity: number;

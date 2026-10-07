@@ -43,6 +43,7 @@ export async function buildSalesReport(
       .from('pos_sales')
       .select('id,sold_at,total_dzd,payment_method,cashier_user_id')
       .eq('restaurant_id', restaurantId)
+      .is('voided_at', null)
       .gte('sold_at', from.toISOString())
       .lt('sold_at', to.toISOString())
       .order('sold_at', { ascending: false })

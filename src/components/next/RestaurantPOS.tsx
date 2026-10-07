@@ -56,7 +56,9 @@ function normalizeSale(sale: PosSaleRecord): LocalPosSale {
     paymentReference: sale.payment_reference ?? '',
     syncSource: sale.sync_source,
     createdAt: sale.sold_at,
-    status: 'synced'
+    status: 'synced',
+    voidedAt: sale.voided_at ?? null,
+    voidReason: sale.void_reason ?? null
   };
 }
 
@@ -84,6 +86,7 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
   const [receiptFormat, setReceiptFormat] = useState<'80' | '58' | 'a4'>('80');
   const [restaurantName, setRestaurantName] = useState('');
   const [restaurantAddress, setRestaurantAddress] = useState('');
+  const [voidingSaleId, setVoidingSaleId] = useState<string | null>(null);
 
   const refreshSales = useCallback(async () => {
     if (demo || !navigator.onLine) return;
@@ -216,6 +219,10 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
     return [...byId.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }, [localSales, serverSales]);
   const pendingCount = localSales.filter(sale => sale.status !== 'synced').length;
+  const dayTotalDzd = useMemo(() => visibleSales
+    .filter(sale => !sale.voidedAt)
+    .reduce((sum, sale) => sum + totalSaleDzd(sale.items), 0), [visibleSales]);
+  const voidedCount = useMemo(() => visibleSales.filter(sale => sale.voidedAt).length, [visibleSales]);
 
   const addProduct = (product: PosProduct) => {
     setCart(current => {
@@ -432,6 +439,30 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
     window.requestAnimationFrame(() => window.print());
   };
 
+  const voidSale = async (saleId: string) => {
+    if (demo || !catalog || catalog.role !== 'restaurant_admin' || voidingSaleId) return;
+    const reason = window.prompt(isArabic ? 'سبب الإلغاء (اختياري):' : 'Motif de l’annulation (optionnel) :', '');
+    if (reason === null) return;
+    if (!window.confirm(isArabic ? 'هل تريد إلغاء هذه العملية؟ لن تُحتسب في الإيرادات.' : 'Annuler cette vente ? Elle ne sera plus comptée dans le chiffre d’affaires.')) return;
+    setVoidingSaleId(saleId);
+    setError('');
+    try {
+      const response = await fetch(`/api/pos/sales/${saleId}/void`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason: reason.trim() })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'La vente n’a pas pu être annulée.');
+      await refreshSales();
+      setMessage(isArabic ? 'تم إلغاء العملية.' : 'Vente annulée.');
+    } catch (voidError) {
+      setError(voidError instanceof Error ? voidError.message : 'La vente n’a pas pu être annulée.');
+    } finally {
+      setVoidingSaleId(null);
+    }
+  };
+
   if (unconfigured) {
     return <main className="pos-shell">
       <header className="pos-topbar"><Link href="/" className="pos-brand"><span className="pos-brand-mark"><ChefHat /></span>DIGIFEEL POS</Link><div className="pos-topbar__actions"><ThemePicker locale={locale} compact /><button className="pos-language" onClick={toggleLocale} type="button">{locale === 'fr' ? 'العربية' : locale === 'ar' ? 'EN' : 'FR'}</button></div></header>
@@ -540,12 +571,17 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
 
       {activeTab === 'history' && <section className="pos-history-page">
         <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'العمليات المسجلة' : 'JOURNÉE EN COURS'}</span><h1>{isArabic ? 'المبيعات' : 'Ventes du jour'}</h1></div><span className="pos-heading-tools"><label className="pos-receipt-format">{isArabic ? 'ورق التذكرة' : 'Format du ticket'}<select value={receiptFormat} onChange={event => setReceiptFormat(event.target.value as '80' | '58' | 'a4')}><option value="80">80 mm</option><option value="58">58 mm</option><option value="a4">A4</option></select></label><span>{visibleSales.length} {isArabic ? 'عملية' : 'ticket(s)'}</span></span></div>
+        <div className="pos-day-summary">
+          <span>{isArabic ? 'إجمالي اليوم' : 'Total du jour'} : <strong>{money(dayTotalDzd, locale)}</strong></span>
+          {voidedCount > 0 && <span className="pos-day-summary__voided">{voidedCount} {isArabic ? 'عملية ملغاة' : 'vente(s) annulée(s) (non comptée(s))'}</span>}
+        </div>
         <div className="pos-sales-list">
           {visibleSales.length === 0 && <p className="pos-empty-hint">{isArabic ? 'لا توجد مبيعات بعد.' : 'Aucune vente enregistrée pour le moment.'}</p>}
-          {visibleSales.map(sale => <article className={`pos-sale-card${printingSaleId === sale.id ? ' is-printing' : ''}`} key={sale.id}>
-            <div className="pos-sale-card__main"><span className={`pos-sale-state is-${sale.status}`}>{sale.status === 'synced' ? (isArabic ? 'مزامن' : 'Synchronisée') : sale.status === 'conflict' ? (isArabic ? 'تحتاج مراجعة' : 'À vérifier') : (isArabic ? 'بانتظار المزامنة' : 'En attente')}</span><strong>{money(totalSaleDzd(sale.items), locale)}</strong><small>{new Date(sale.createdAt).toLocaleString(isArabic ? 'ar-DZ' : 'fr-DZ')}</small></div>
+          {visibleSales.map(sale => <article className={`pos-sale-card${printingSaleId === sale.id ? ' is-printing' : ''}${sale.voidedAt ? ' is-voided' : ''}`} key={sale.id}>
+            <div className="pos-sale-card__main"><span className={`pos-sale-state is-${sale.voidedAt ? 'voided' : sale.status}`}>{sale.voidedAt ? (isArabic ? 'ملغاة' : 'Annulée') : sale.status === 'synced' ? (isArabic ? 'مزامن' : 'Synchronisée') : sale.status === 'conflict' ? (isArabic ? 'تحتاج مراجعة' : 'À vérifier') : (isArabic ? 'بانتظار المزامنة' : 'En attente')}</span><strong>{money(totalSaleDzd(sale.items), locale)}</strong><small>{new Date(sale.createdAt).toLocaleString(isArabic ? 'ar-DZ' : 'fr-DZ')}</small></div>
             <ul>{sale.items.map((item, index) => <li key={`${sale.id}-${index}`}>{item.quantity} × {item.productName} <span>{money(item.priceDzd * item.quantity, locale)}</span></li>)}</ul>
-            <div className="pos-sale-card__footer"><span>{sale.paymentMethod === 'cash' ? (isArabic ? 'نقداً' : 'Espèces') : sale.paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Carte') : 'BaridiMob'}{sale.paymentReference && ` · ${sale.paymentReference}`}</span>{sale.status === 'synced' && <button type="button" onClick={() => printSale(sale.id)}><Printer size={15} />{isArabic ? 'طباعة' : 'Imprimer'}</button>}{sale.error && <small className="pos-sale-error">{sale.error}</small>}</div>
+            <div className="pos-sale-card__footer"><span>{sale.paymentMethod === 'cash' ? (isArabic ? 'نقداً' : 'Espèces') : sale.paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Carte') : 'BaridiMob'}{sale.paymentReference && ` · ${sale.paymentReference}`}</span><span className="pos-sale-card__actions">{sale.status === 'synced' && !sale.voidedAt && <button type="button" onClick={() => printSale(sale.id)}><Printer size={15} />{isArabic ? 'طباعة' : 'Imprimer'}</button>}{sale.status === 'synced' && !sale.voidedAt && catalog.role === 'restaurant_admin' && <button type="button" className="pos-sale-void" disabled={voidingSaleId === sale.id} onClick={() => void voidSale(sale.id)}>{isArabic ? 'إلغاء' : 'Annuler'}</button>}</span>{sale.error && <small className="pos-sale-error">{sale.error}</small>}</div>
+            {sale.voidedAt && <small className="pos-sale-void-reason">{isArabic ? 'ملغاة' : 'Annulée'} {new Date(sale.voidedAt).toLocaleString(isArabic ? 'ar-DZ' : 'fr-DZ')}{sale.voidReason ? ` · ${sale.voidReason}` : ''}</small>}
           </article>)}
         </div>
         <button className="pos-sync-button pos-sync-button--large" type="button" disabled={pendingCount === 0 || !online} onClick={() => void synchronize()}><RefreshCw size={16} />{isArabic ? 'مزامنة المبيعات المحفوظة' : 'Synchroniser les ventes en attente'}</button>

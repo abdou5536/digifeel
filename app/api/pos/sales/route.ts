@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createSupabaseServerClient();
     let query = supabase.from('pos_sales')
-      .select('id,total_dzd,payment_method,payment_reference,sync_source,sold_at,pos_sale_items(product_name,quantity,unit_price_dzd,line_total_dzd)')
+      .select('id,total_dzd,payment_method,payment_reference,sync_source,sold_at,voided_at,void_reason,pos_sale_items(product_name,quantity,unit_price_dzd,line_total_dzd)')
       .eq('restaurant_id', current.profile.restaurant_id)
       .order('sold_at', { ascending: false })
       .limit(100);

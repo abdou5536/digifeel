@@ -22,6 +22,9 @@ export const posSaleSchema = z.object({
   items: z.array(z.object({ productId: uuid, quantity: z.number().int().min(1).max(100) })).min(1).max(200)
 });
 
+export const posSaleIdSchema = uuid;
+export const voidPosSaleSchema = z.object({ reason: z.string().trim().max(300).optional() });
+
 export const paymentRequestSchema = z.object({
   billId: uuid,
   amountDzd: z.number().int().positive().max(100_000_000),

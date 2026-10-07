@@ -3,10 +3,14 @@ import { getAuthenticatedAppUser } from '@/src/lib/supabase/auth';
 import { createSupabaseServerClient } from '@/src/lib/supabase/server';
 
 export function rpcErrorResponse(error: { code?: string }) {
-  const status = error.code === '42501' ? 403 : error.code === '22023' || error.code === '23505' ? 409 : error.code === '23514' ? 400 : 503;
+  const status = error.code === '42501' ? 403
+    : error.code === '22023' || error.code === '23505' ? 409
+    : error.code === '23514' ? 400
+    : error.code === 'P0002' ? 404
+    : 503;
   const messages: Record<number, string> = {
     403: 'Action non autorisée.', 409: 'Opération refusée (addition fermée, doublon ou montant incorrect).',
-    400: 'Données invalides.', 503: 'Service indisponible.'
+    400: 'Données invalides.', 404: 'Introuvable.', 503: 'Service indisponible.'
   };
   return NextResponse.json({ error: messages[status] }, { status });
 }

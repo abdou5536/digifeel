@@ -182,15 +182,26 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 .pos-product-actions button:not(:disabled):hover { border-color: var(--pl-accent-line); background: var(--pl-accent-soft); }
 
 /* Ventes du jour */
+.pos-day-summary { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; align-items: baseline; margin: -.3rem 0 .6rem; font-size: .9rem; color: var(--df-text-muted); }
+.pos-day-summary strong { color: var(--df-text); font-size: 1.05rem; }
+.pos-day-summary__voided { color: var(--df-danger); }
 .pos-sales-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: .75rem; }
 .pos-sale-card { border-color: var(--pl-hairline); border-radius: 1rem; transition: border-color var(--pl-base) ease, transform var(--pl-fast) var(--pl-ease); }
 .pos-sale-card:hover { border-color: var(--pl-hairline-strong); transform: translateY(-1px); }
+.pos-sale-card.is-voided { opacity: .6; border-color: var(--df-danger); }
+.pos-sale-card.is-voided .pos-sale-card__main strong { text-decoration: line-through; }
 .pos-sale-state { padding: .15rem .6rem; border: 1px solid currentColor; border-radius: 999px; font-size: .7rem; font-weight: 700; }
 .pos-sale-state.is-synced { color: var(--df-success); }
 .pos-sale-state.is-conflict { color: var(--df-danger); }
 .pos-sale-state.is-pending { color: var(--df-warning); }
+.pos-sale-state.is-voided { color: var(--df-danger); }
+.pos-sale-card__footer { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; justify-content: space-between; }
+.pos-sale-card__actions { display: flex; gap: .4rem; }
 .pos-sale-card__footer button { min-height: 2.2rem; padding: .3rem .7rem; border: 1px solid var(--pl-hairline-strong); border-radius: .55rem; background: transparent; color: inherit; cursor: pointer; }
 .pos-sale-card__footer button:hover { border-color: var(--pl-accent-line); background: var(--pl-accent-soft); }
+.pos-sale-void { color: var(--df-danger) !important; border-color: var(--df-danger) !important; }
+.pos-sale-void:disabled { opacity: .5; cursor: not-allowed; }
+.pos-sale-void-reason { display: block; margin-top: .3rem; color: var(--df-danger); }
 .pos-footer { color: var(--df-text-subtle); }
 
 /* ============ DASHBOARD ============ */
