@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
   const ownerEmail = str('ownerEmail').toLowerCase();
   const ownerPassword = typeof body?.ownerPassword === 'string' ? body.ownerPassword : '';
   const tables = body?.tables;
+  const currency = body?.currency === 'EUR' ? 'EUR' : 'DZD';
 
   if (name.length < 2 || name.length > 120) return invalid('Le nom doit contenir 2 à 120 caractères.');
   if (slug && (!SLUG.test(slug) || slug.length > 60)) return invalid('Identifiant d’URL invalide (lettres minuscules, chiffres et tirets).');
@@ -54,6 +55,10 @@ export async function POST(request: NextRequest) {
       await supabase.auth.admin.deleteUser(created.user.id);
       console.error('Restaurant provisioning failed.', error);
       return NextResponse.json({ error: error.code === '23505' ? 'Cet identifiant d’URL est déjà utilisé.' : 'Le restaurant n’a pas pu être créé.' }, { status: error.code === '23505' ? 409 : 503 });
+    }
+    if (currency !== 'DZD') {
+      const { error: currencyError } = await supabase.from('restaurants').update({ currency }).eq('id', restaurantId as string);
+      if (currencyError) console.error('Restaurant currency could not be set.', currencyError);
     }
     return NextResponse.json({ restaurantId }, { status: 201 });
   } catch (error) {

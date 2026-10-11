@@ -42,7 +42,7 @@ export function AdminWorkspace() {
   const [busyChipId, setBusyChipId] = useState('');
   const [busyRestaurantId, setBusyRestaurantId] = useState('');
   const [impersonatingId, setImpersonatingId] = useState('');
-  const [newResto, setNewResto] = useState({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10 });
+  const [newResto, setNewResto] = useState({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10, currency: 'DZD' });
   const [creating, setCreating] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -87,7 +87,7 @@ export function AdminWorkspace() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Le restaurant n’a pas pu être créé.');
-      setNewResto({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10 });
+      setNewResto({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10, currency: 'DZD' });
       setMessage('Restaurant créé. Transmettez-lui son e-mail et son mot de passe de connexion.');
       setReloadKey(key => key + 1);
     } catch (createError) {
@@ -233,6 +233,7 @@ export function AdminWorkspace() {
           <label>Logo (adresse https://)<input type="url" value={newResto.logoUrl} onChange={event => setNewResto({ ...newResto, logoUrl: event.target.value })} /></label>
           <label>E-mail du restaurateur<input required type="email" autoComplete="off" value={newResto.ownerEmail} onChange={event => setNewResto({ ...newResto, ownerEmail: event.target.value })} /></label>
           <label>Mot de passe initial (10 caractères min.)<input required type="password" minLength={10} maxLength={72} autoComplete="new-password" value={newResto.ownerPassword} onChange={event => setNewResto({ ...newResto, ownerPassword: event.target.value })} /></label>
+          <label>Devise de la caisse<select value={newResto.currency} onChange={event => setNewResto({ ...newResto, currency: event.target.value })}><option value="DZD">Dinar algérien (DA)</option><option value="EUR">Euro (€)</option></select></label>
           <label>Nombre de tables<input type="number" min={0} max={200} value={newResto.tables} onChange={event => setNewResto({ ...newResto, tables: Number(event.target.value) })} /></label>
           <button className="product-button" type="submit" disabled={creating}>{creating ? 'Création…' : 'Créer le restaurant'}</button>
         </form>
