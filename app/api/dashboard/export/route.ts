@@ -6,6 +6,11 @@ import { buildSalesReport } from '@/src/lib/pos/salesReport';
 
 const ALLOWED_PERIODS = new Set([7, 30, 90, 365]);
 const PAGE_SIZE = 500;
+const STAR_TIER_LABELS: Record<string, string> = {
+  'half-star': '+0,5 étoile',
+  'one-star': '+1 étoile',
+  'three-stars': '+3 étoiles'
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,8 +66,17 @@ export async function GET(request: NextRequest) {
     const allScansByDay = current.profile.role === 'restaurant_admin' ? summary?.scans_by_day ?? [] : [];
     const sales = await buildSalesReport(supabase, createSupabaseServiceClient(), current.profile.restaurant_id, from, to, { includeLines: true });
     const { data: money } = await supabase.from('restaurants').select('currency,vat_rate_bp').eq('id', current.profile.restaurant_id).maybeSingle();
+    const { data: billedTiers } = current.profile.role === 'restaurant_admin'
+      ? await supabase.from('star_billed_tiers').select('tier_id,period,amount_cents').eq('restaurant_id', current.profile.restaurant_id).gte('period', from.toISOString().slice(0, 7)).order('period')
+      : { data: [] };
+    const starBonus = (billedTiers ?? []).map(row => ({
+      period: row.period,
+      tierLabel: STAR_TIER_LABELS[row.tier_id] ?? row.tier_id,
+      amountCents: row.amount_cents
+    }));
     return NextResponse.json({
       restaurantName: restaurant.name,
+      starBonus,
       currency: money?.currency ?? 'DZD',
       vatRateBp: money?.vat_rate_bp ?? 0,
       periodDays: days,

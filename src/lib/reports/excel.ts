@@ -109,6 +109,7 @@ function summarySheet(workbook: Workbook, model: ReportModel) {
           ['Chiffre d’affaires hors taxes', model.revenue - model.vatAmount, FMT_DZD] as [string, number, string]
         ]
       : []),
+    ...(model.starBonus.map(line => [`Prime étoiles ${line.period} (${line.tierLabel})`, line.amountCents / 100, '#,##0.00 "€"'] as [string, number, string])),
     ['Produits vendus (quantité)', model.hasLineDetail ? model.itemsSold : NOT_AVAILABLE, '#,##0'],
     ['Produit le plus vendu', model.topByQuantity ? `${model.topByQuantity.name} (${formatInt(model.topByQuantity.quantity)})` : NOT_AVAILABLE],
     ['Produit n°1 en chiffre d’affaires', model.topByRevenue ? `${model.topByRevenue.name} (${formatDzd(model.topByRevenue.revenue)})` : NOT_AVAILABLE],

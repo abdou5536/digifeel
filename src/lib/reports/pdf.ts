@@ -256,6 +256,15 @@ export async function buildPdfReport(model: ReportModel): Promise<Blob> {
     }
   }
 
+  if (model.starBonus.length > 0) {
+    w.section('Primes d’étoiles', 'Facturées sur la période');
+    w.table(
+      [{ label: 'Mois', width: 30 }, { label: 'Palier', width: 60 }, { label: 'Montant', width: 40, align: 'right' }],
+      model.starBonus.map(line => [line.period, line.tierLabel, `${(line.amountCents / 100).toFixed(2).replace('.', ',')} €`]),
+      { totals: ['Total', '', `${(model.starBonus.reduce((sum, line) => sum + line.amountCents, 0) / 100).toFixed(2).replace('.', ',')} €`] }
+    );
+  }
+
   w.section('Équipe', 'Activité de la période');
   if (model.servers.length === 0) {
     w.note(NOT_AVAILABLE);

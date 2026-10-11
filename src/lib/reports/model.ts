@@ -26,6 +26,13 @@ export interface ExportData {
   sales: SalesReport;
   currency?: 'EUR' | 'DZD';
   vatRateBp?: number;
+  starBonus?: StarBonusLine[];
+}
+
+export interface StarBonusLine {
+  period: string;
+  tierLabel: string;
+  amountCents: number;
 }
 
 // Les montants stockés sont en centimes pour l'EUR : on les ramène en unités pour tout le rapport.
@@ -78,6 +85,7 @@ export interface ReportModel {
   currency: 'EUR' | 'DZD';
   vatRateBp: number;
   vatAmount: number;
+  starBonus: StarBonusLine[];
   from: Date;
   to: Date;
   generatedAt: Date;
@@ -322,7 +330,8 @@ export function buildReportModel(data: ExportData): ReportModel {
     currency,
     vatRateBp: data.vatRateBp ?? 0,
     vatAmount: data.vatRateBp ? revenue * data.vatRateBp / (10000 + data.vatRateBp) : 0,
-    from,
+        starBonus: data.starBonus ?? [],
+        from,
     to,
     generatedAt,
     periodDays: data.periodDays,
