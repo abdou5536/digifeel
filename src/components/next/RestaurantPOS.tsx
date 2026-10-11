@@ -770,7 +770,7 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
           {pendingCount > 0 && <button className="pos-sync-button" type="button" onClick={() => void synchronize()}><RefreshCw size={16} />{pendingCount} {isArabic ? 'للمزامنة' : 'à synchroniser'}</button>}
           <ThemePicker locale={locale} compact />
           <button className="pos-language" type="button" onClick={toggleLocale}>{locale === 'fr' ? 'العربية' : locale === 'ar' ? 'EN' : 'FR'}</button>
-          <Link className="pos-logout" href="/dashboard">{isArabic ? 'الإدارة' : 'Gestion'}</Link>
+          {catalog.role === 'restaurant_admin' && <Link className="pos-logout" href="/dashboard">{isArabic ? 'الإدارة' : 'Gestion'}</Link>}
           <button className="pos-logout" onClick={() => { window.location.assign('/'); }} type="button">{isArabic ? 'الرئيسية' : 'Accueil'}</button>
         </div>
       </header>

@@ -7,10 +7,8 @@ type ThemeContextValue = { preference: ThemePreference; effectiveTheme: 'light' 
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function applyTheme(preference: ThemePreference) {
-  const resolved = preference === 'system'
-    ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    : preference;
+function applyTheme(preference: ThemePreference): 'light' | 'dark' {
+  const resolved = 'dark' as const;
   document.documentElement.dataset.theme = resolved;
   document.documentElement.dataset.themePreference = preference;
   document.documentElement.style.colorScheme = resolved;
@@ -18,24 +16,15 @@ function applyTheme(preference: ThemePreference) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>('system');
+  const [preference, setPreferenceState] = useState<ThemePreference>('dark');
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('digifeel-theme');
-    const next: ThemePreference = saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system';
-    setPreferenceState(next);
-    setEffectiveTheme(applyTheme(next));
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const onSystemChange = () => {
-      if ((window.localStorage.getItem('digifeel-theme') ?? 'system') === 'system') setEffectiveTheme(applyTheme('system'));
-    };
-    media.addEventListener('change', onSystemChange);
-    return () => media.removeEventListener('change', onSystemChange);
+    setPreferenceState('dark');
+    setEffectiveTheme(applyTheme('dark'));
   }, []);
 
   const setPreference = useCallback((next: ThemePreference) => {
-    window.localStorage.setItem('digifeel-theme', next);
     setPreferenceState(next);
     setEffectiveTheme(applyTheme(next));
   }, []);

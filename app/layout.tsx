@@ -39,7 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="next-app">
-        <Script id="digifeel-theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('digifeel-theme')||'system';var d=t==='system'?matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light':t;document.documentElement.dataset.theme=d;document.documentElement.dataset.themePreference=t;document.documentElement.style.colorScheme=d}catch(e){document.documentElement.dataset.theme='dark'}})()`}</Script>
+        <Script id="digifeel-theme-init" strategy="beforeInteractive">{`(function(){document.documentElement.dataset.theme='dark';document.documentElement.dataset.themePreference='dark';document.documentElement.style.colorScheme='dark'})()`}</Script>
         <ThemeProvider>
           <LanguageProvider>
             <AppChrome>

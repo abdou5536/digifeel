@@ -1,4 +1,4 @@
-const CACHE_NAME = 'digifeel-app-v2';
+const CACHE_NAME = 'digifeel-app-v3';
 const isCacheableAsset = pathname =>
   pathname.startsWith('/_next/static/') ||
   pathname.startsWith('/icons/') ||
