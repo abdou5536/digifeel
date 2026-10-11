@@ -51,6 +51,7 @@ const PERIODS = [7, 30, 90, 365] as const;
 
 export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [periodDays, setPeriodDays] = useState<number>(30);
+  const [exportMonth, setExportMonth] = useState('');
   const [reviewStarsFilter, setReviewStarsFilter] = useState('all');
   const [reviewServerFilter, setReviewServerFilter] = useState('all');
   const [data, setData] = useState<DashboardData | null>(() => demo ? createDemoData(30) : null);
@@ -212,7 +213,8 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       reviews: data.reviews,
       sales: EMPTY_SALES
     };
-    const response = await fetch(`/api/dashboard/export?days=${periodDays}`, { cache: 'no-store' });
+    const query = exportMonth ? `month=${exportMonth}` : `days=${periodDays}`;
+    const response = await fetch(`/api/dashboard/export?${query}`, { cache: 'no-store' });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Les données n’ont pas pu être exportées.');
     return result as ExportData;
@@ -225,7 +227,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       const report = await loadExportData();
       const model = buildReportModel(report);
       const blob = kind === 'xlsx' ? await (await import('@/src/lib/reports/excel')).buildExcelReport(model) : await (await import('@/src/lib/reports/pdf')).buildPdfReport(model);
-      downloadFile(URL.createObjectURL(blob), `${fileSlug(report.restaurantName)}-${report.periodDays}j.${kind}`);
+      downloadFile(URL.createObjectURL(blob), `${fileSlug(report.restaurantName)}-${exportMonth || `${report.periodDays}j`}.${kind}`);
     } catch (error) {
       console.error('Report export failed.', error);
       setExportError(error instanceof Error ? error.message : kind === 'xlsx' ? 'L’export Excel n’a pas pu être généré.' : 'Le rapport PDF n’a pas pu être généré.');
@@ -317,6 +319,9 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
         </section>
         <div className="next-dashboard-toolbar">
           <span className="next-muted">Export complet de la période : ventes, scans quotidiens et avis détaillés.</span>
+          <label className="next-period-picker">Mois précis
+            <input type="month" value={exportMonth} max={new Date().toISOString().slice(0, 7)} onChange={event => setExportMonth(event.target.value)} />
+          </label>
           <div className="next-nav__actions">
             <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportPdf()}><Download aria-hidden="true" /> {exporting ? 'Préparation…' : 'Exporter en PDF'}</button>
             <button className="product-button product-button--secondary" type="button" disabled={exporting} onClick={() => void exportExcel()}><Download aria-hidden="true" /> Exporter en Excel (.xlsx)</button>

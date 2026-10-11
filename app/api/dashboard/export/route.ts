@@ -20,8 +20,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Aucun restaurant n’est associé à ce compte.' }, { status: 403 });
     }
 
-    const days = Number(request.nextUrl.searchParams.get('days') ?? 30);
-    if (!Number.isInteger(days) || !ALLOWED_PERIODS.has(days)) {
+    const month = request.nextUrl.searchParams.get('month');
+    let days = Number(request.nextUrl.searchParams.get('days') ?? 30);
+    let monthRange: { from: Date; to: Date } | null = null;
+    if (month !== null) {
+      const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(month);
+      if (!match) return NextResponse.json({ error: 'Mois invalide (AAAA-MM).' }, { status: 400 });
+      const start = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+      if (start.getTime() > Date.now()) return NextResponse.json({ error: 'Ce mois n’a pas encore commencé.' }, { status: 400 });
+      const end = new Date(Date.UTC(Number(match[1]), Number(match[2]), 1));
+      monthRange = { from: start, to: end.getTime() > Date.now() ? new Date() : end };
+      days = Math.round((end.getTime() - start.getTime()) / 86400000);
+    } else if (!Number.isInteger(days) || !ALLOWED_PERIODS.has(days)) {
       return NextResponse.json({ error: 'Choisissez une période de 7, 30, 90 ou 365 jours.' }, { status: 400 });
     }
 
@@ -31,8 +41,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Les exports nécessitent un abonnement actif. Les puces continuent de fonctionner.' }, { status: 403 });
     }
 
-    const to = new Date();
-    const from = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate() - days + 1));
+    const to = monthRange?.to ?? new Date();
+    const from = monthRange?.from ?? new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate() - days + 1));
     const supabase = await createSupabaseServerClient();
     const { data: summary, error: summaryError } = await supabase.rpc('get_dashboard_summary', {
       p_from: from.toISOString(),
@@ -67,7 +77,7 @@ export async function GET(request: NextRequest) {
     const sales = await buildSalesReport(supabase, createSupabaseServiceClient(), current.profile.restaurant_id, from, to, { includeLines: true });
     const { data: money } = await supabase.from('restaurants').select('currency,vat_rate_bp').eq('id', current.profile.restaurant_id).maybeSingle();
     const { data: billedTiers } = current.profile.role === 'restaurant_admin'
-      ? await supabase.from('star_billed_tiers').select('tier_id,period,amount_cents').eq('restaurant_id', current.profile.restaurant_id).gte('period', from.toISOString().slice(0, 7)).order('period')
+      ? await supabase.from('star_billed_tiers').select('tier_id,period,amount_cents').eq('restaurant_id', current.profile.restaurant_id).gte('period', from.toISOString().slice(0, 7)).lte('period', to.toISOString().slice(0, 7)).order('period')
       : { data: [] };
     const starBonus = (billedTiers ?? []).map(row => ({
       period: row.period,
