@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
     }));
     return NextResponse.json({
       restaurantName: restaurant.name,
+      logoUrl: (restaurant as { logo_url?: string | null }).logo_url ?? null,
       starBonus,
       currency: money?.currency ?? 'DZD',
       vatRateBp: money?.vat_rate_bp ?? 0,

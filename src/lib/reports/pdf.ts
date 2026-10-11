@@ -183,12 +183,25 @@ class Writer {
   }
 }
 
-function cover(w: Writer, model: ReportModel) {
+function cover(w: Writer, model: ReportModel, logo: LoadedLogo | null) {
   const { doc } = w;
   w.fill(DARK);
   doc.rect(0, 0, PAGE_W, 62, 'F');
   w.fill(GOLD);
   doc.rect(0, 62, PAGE_W, 1.5, 'F');
+  if (logo) {
+    const box = 24;
+    const ratio = logo.width / logo.height;
+    const width = ratio >= 1 ? box : box * ratio;
+    const height = ratio >= 1 ? box / ratio : box;
+    w.fill(WHITE);
+    doc.roundedRect(PAGE_W - MARGIN - box - 2, 28 - 1, box + 2, box + 2, 2, 2, 'F');
+    try {
+      doc.addImage(logo.dataUrl, logo.format, PAGE_W - MARGIN - box - 1 + (box - width) / 2, 28 + (box - height) / 2, width, height);
+    } catch {
+      // Logo illisible : le rapport reste valide sans lui.
+    }
+  }
   w.fill(GOLD);
   doc.roundedRect(MARGIN, 14, 11, 11, 2.5, 2.5, 'F');
   w.text('D', MARGIN + 5.5, 22, 13, WHITE, 'bold', 'center');
@@ -203,12 +216,41 @@ function cover(w: Writer, model: ReportModel) {
   }
 }
 
+interface LoadedLogo { dataUrl: string; format: 'PNG' | 'JPEG'; width: number; height: number }
+
+async function loadLogo(url: string | null | undefined): Promise<LoadedLogo | null> {
+  if (!url || !/^https:\/\//i.test(url) || typeof window === 'undefined') return null;
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const format = blob.type === 'image/png' ? 'PNG' : blob.type === 'image/jpeg' ? 'JPEG' : null;
+    if (!format || blob.size > 2_000_000) return null;
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve({ width: image.naturalWidth || 1, height: image.naturalHeight || 1 });
+      image.onerror = () => reject(new Error('image'));
+      image.src = dataUrl;
+    });
+    return { dataUrl, format, ...size };
+  } catch {
+    return null;
+  }
+}
+
 export async function buildPdfReport(model: ReportModel): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
+  const logo = await loadLogo(model.logoUrl);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.setProperties({ title: `Rapport ${clean(model.restaurantName)}`, author: 'DigiFeel', creator: 'DigiFeel' });
   const w = new Writer(doc, model);
-  cover(w, model);
+  cover(w, model, logo);
 
   w.section('Résumé exécutif');
   w.kpis([

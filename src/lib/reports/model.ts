@@ -27,6 +27,7 @@ export interface ExportData {
   currency?: 'EUR' | 'DZD';
   vatRateBp?: number;
   starBonus?: StarBonusLine[];
+  logoUrl?: string | null;
 }
 
 export interface StarBonusLine {
@@ -86,6 +87,7 @@ export interface ReportModel {
   vatRateBp: number;
   vatAmount: number;
   starBonus: StarBonusLine[];
+  logoUrl: string | null;
   from: Date;
   to: Date;
   generatedAt: Date;
@@ -331,6 +333,7 @@ export function buildReportModel(data: ExportData): ReportModel {
     vatRateBp: data.vatRateBp ?? 0,
     vatAmount: data.vatRateBp ? revenue * data.vatRateBp / (10000 + data.vatRateBp) : 0,
         starBonus: data.starBonus ?? [],
+    logoUrl: data.logoUrl ?? null,
         from,
     to,
     generatedAt,
