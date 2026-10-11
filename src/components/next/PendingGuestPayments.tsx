@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Clock3 } from 'lucide-react';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
+import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { formatMoney, normalizeCurrency, type PosCurrency } from '@/src/lib/pos/currency';
 import {
   confirmPendingPayment, getRestaurantData, getSelectedRestaurantId, subscribeRestaurantData,
@@ -25,11 +26,14 @@ export function PendingGuestPayments() {
   const [livePayments, setLivePayments] = useState<LivePayment[] | null>(null);
   const [currency, setCurrency] = useState<PosCurrency>('DZD');
   const [error, setError] = useState('');
+  const [signedOut, setSignedOut] = useState(false);
   const [busyId, setBusyId] = useState('');
 
   const load = useCallback(async () => {
     try {
       if (isSupabaseConfigured) {
+        const { data: sessionData } = await createSupabaseBrowserClient().auth.getSession();
+        if (!sessionData.session) { setSignedOut(true); return; }
         const response = await fetch('/api/pos/guest-payments', { cache: 'no-store' });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Impossible de charger les paiements en attente.');
@@ -87,6 +91,7 @@ export function PendingGuestPayments() {
 
   const loading = isSupabaseConfigured ? livePayments === null && !error : data === null && !error;
   const formatAmount = (amount: number) => isSupabaseConfigured ? formatMoney(amount, currency, 'fr-FR') : `${amount.toLocaleString('fr-FR')} DZD`;
+  if (signedOut) return null;
   if (loading) return <p role="status" style={{ padding: '1rem' }}>Chargement des paiements…</p>;
 
   return (
