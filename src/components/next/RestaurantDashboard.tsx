@@ -67,6 +67,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [baridimobRip, setBaridimobRip] = useState('');
   const [baridimobPhone, setBaridimobPhone] = useState('');
+  const [vatPercent, setVatPercent] = useState('0');
   const [settingsNotice, setSettingsNotice] = useState('');
   const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -100,6 +101,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
         if (alive) {
           setBaridimobRip(result.baridimobRip ?? '');
           setBaridimobPhone(result.baridimobPhone ?? '');
+          setVatPercent(String((result.vatRateBp ?? 0) / 100));
         }
       })
       .catch(loadError => {
@@ -180,7 +182,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       const response = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl, baridimobRip, baridimobPhone })
+        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl, baridimobRip, baridimobPhone, vatRateBp: Math.round(Number(vatPercent.replace(',', '.')) * 100) })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Les réglages n’ont pas pu être enregistrés.');
@@ -374,6 +376,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                 <label>Logo (adresse https://, facultatif)<input type="url" maxLength={2048} value={logoUrl} onChange={event => setLogoUrl(event.target.value)} /></label>
                 <label>RIP BaridiMob<input inputMode="numeric" autoComplete="off" maxLength={34} value={baridimobRip} onChange={event => setBaridimobRip(event.target.value)} placeholder="Coordonnées du compte de votre restaurant" /></label>
                 <label>Téléphone BaridiMob (facultatif)<input type="tel" autoComplete="tel" maxLength={32} value={baridimobPhone} onChange={event => setBaridimobPhone(event.target.value)} placeholder="+213 …" /></label>
+                <label>TVA sur les tickets (%)<input inputMode="decimal" maxLength={5} value={vatPercent} onChange={event => setVatPercent(event.target.value)} placeholder="0 = pas de TVA (ex. 10 ou 19)" /></label>
                 <p className="next-muted">Ces coordonnées seront affichées uniquement aux clients munis du lien de leur addition.</p>
                 <label className="next-checkbox-label"><input type="checkbox" checked={tipEnabled} onChange={event => setTipEnabled(event.target.checked)} /> Proposer un choix de pourboire (sans encaissement)</label>
                 <button className="product-button product-button--secondary" type="submit" disabled={settingsBusy}>{settingsBusy ? 'Enregistrement…' : 'Enregistrer les réglages'}</button>

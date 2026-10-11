@@ -791,17 +791,20 @@ export function RestaurantPOS() {
         const paymentLabel = sale.paymentMethod === 'cash' ? (isArabic ? 'نقداً' : 'Espèces') : sale.paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Carte') : 'BaridiMob';
         const date = new Date(sale.createdAt);
         const units = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+        const vatBp = catalog?.restaurant.vat_rate_bp ?? 0;
+        const vatAmount = vatBp > 0 ? Math.round(totalSaleDzd(sale.items) * vatBp / (10000 + vatBp)) : 0;
         return <div className={`pos-receipt pos-receipt--${receiptFormat}`} aria-hidden="true">
           <header>
             <strong className="pos-receipt__name">{catalog?.restaurant.name ?? 'Digifeel'}</strong>
             <span>{date.toLocaleDateString('fr-DZ')} · {date.toLocaleTimeString('fr-DZ', { hour: '2-digit', minute: '2-digit' })}</span>
-            <span>{isArabic ? 'تذكرة' : 'Ticket'} n° {sale.id.slice(0, 8).toUpperCase()}</span>
+            <span>{isArabic ? 'تذكرة' : 'Ticket'}             n° {sale.ticketNumber ? String(sale.ticketNumber).padStart(6, '0') : sale.id.slice(0, 8).toUpperCase()}</span>
           </header>
           <table>
             <thead><tr><th>{isArabic ? 'المنتج' : 'Article'}</th><th>{isArabic ? 'الكمية' : 'Qté'}</th><th>{isArabic ? 'المبلغ' : 'Montant'}</th></tr></thead>
             <tbody>{sale.items.map((item, index) => <tr key={`${sale.id}-r-${index}`}><td>{item.productName}<small>{money(item.priceDzd, locale)} {isArabic ? '/ وحدة' : 'l’unité'}</small></td><td>{item.quantity}</td><td>{money(item.priceDzd * item.quantity, locale)}</td></tr>)}</tbody>
           </table>
           <div className="pos-receipt__total"><span>{isArabic ? 'المجموع' : 'TOTAL'} ({units})</span><strong>{money(totalSaleDzd(sale.items), locale)}</strong></div>
+          {vatBp > 0 && <div className="pos-receipt__meta"><span>{isArabic ? 'قبل الضريبة' : 'Total HT'} : {money(totalSaleDzd(sale.items) - vatAmount, locale)}</span><span>{isArabic ? 'ضريبة' : 'TVA'} {vatBp / 100} % : {money(vatAmount, locale)}</span></div>}
           <div className="pos-receipt__meta"><span>{isArabic ? 'الدفع' : 'Paiement'} : {paymentLabel}</span>{sale.paymentReference && <span>Réf. {sale.paymentReference}</span>}</div>
           <footer>{isArabic ? 'شكراً لزيارتكم' : 'Merci de votre visite'}</footer>
         </div>;

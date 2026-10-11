@@ -12,14 +12,15 @@ export async function GET() {
     }
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.from('restaurants')
-      .select('baridimob_rip, baridimob_phone')
+      .select('baridimob_rip, baridimob_phone, vat_rate_bp')
       .eq('id', current.profile.restaurant_id)
       .maybeSingle();
     if (error) throw error;
     if (!data) return NextResponse.json({ error: 'Restaurant introuvable.' }, { status: 404 });
     return NextResponse.json({
       baridimobRip: data.baridimob_rip ?? '',
-      baridimobPhone: data.baridimob_phone ?? ''
+      baridimobPhone: data.baridimob_phone ?? '',
+      vatRateBp: data.vat_rate_bp ?? 0
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('Restaurant payment settings could not be loaded.', error);
@@ -40,7 +41,8 @@ export async function PATCH(request: NextRequest) {
       !isValidGoogleReviewUrl(googleReviewUrl) || typeof tipEnabled !== 'boolean' ||
       logoUrl.length > 2048 || (logoUrl !== '' && !/^(https:\/\/|data:image\/svg\+xml;base64,)/i.test(logoUrl)) ||
       (body?.baridimobRip !== undefined && (typeof body.baridimobRip !== 'string' || baridimobRip.length > 34)) ||
-      (body?.baridimobPhone !== undefined && (typeof body.baridimobPhone !== 'string' || baridimobPhone.length > 32))) {
+      (body?.baridimobPhone !== undefined && (typeof body.baridimobPhone !== 'string' || baridimobPhone.length > 32)) ||
+      (body?.vatRateBp !== undefined && (!Number.isInteger(body.vatRateBp) || (body.vatRateBp as number) < 0 || (body.vatRateBp as number) > 3000))) {
     return NextResponse.json({ error: 'Vérifiez le nom, l’adresse et le lien Google.' }, { status: 400 });
   }
 
@@ -51,7 +53,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Accès réservé au restaurateur.' }, { status: 403 });
     }
     const supabase = await createSupabaseServerClient();
-    const patch: Record<string, string | boolean | null> = {
+    const patch: Record<string, string | boolean | number | null> = {
       name,
       address: address || null,
       google_review_url: googleReviewUrl,
@@ -61,6 +63,7 @@ export async function PATCH(request: NextRequest) {
     };
     if (body?.baridimobRip !== undefined) patch.baridimob_rip = baridimobRip || null;
     if (body?.baridimobPhone !== undefined) patch.baridimob_phone = baridimobPhone || null;
+    if (body?.vatRateBp !== undefined) patch.vat_rate_bp = body.vatRateBp as number;
     const { error } = await supabase.from('restaurants').update(patch).eq('id', current.profile.restaurant_id);
     if (error) throw error;
     return NextResponse.json({ saved: true });

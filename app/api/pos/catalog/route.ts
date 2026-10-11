@@ -18,7 +18,7 @@ export async function GET() {
 
     const supabase = await createSupabaseServerClient();
     const [restaurantResult, productsResult] = await Promise.all([
-      supabase.from('restaurants').select('id,name').eq('id', current.profile.restaurant_id).maybeSingle(),
+      supabase.from('restaurants').select('id,name,vat_rate_bp').eq('id', current.profile.restaurant_id).maybeSingle(),
       supabase.from('pos_products')
         .select('id,name,category,price_dzd,active,updated_at')
         .eq('restaurant_id', current.profile.restaurant_id)

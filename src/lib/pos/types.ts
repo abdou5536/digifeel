@@ -11,7 +11,7 @@ export interface PosProduct {
 
 export interface PosCatalog {
   userId: string;
-  restaurant: { id: string; name: string };
+  restaurant: { id: string; name: string; vat_rate_bp?: number };
   role: 'restaurant_admin' | 'server';
   products: PosProduct[];
 }
