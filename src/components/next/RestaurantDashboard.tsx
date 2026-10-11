@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { SetupChecklist } from './SetupChecklist';
+import { TableQrSheet } from './TableQrSheet';
+import { NfcChipWriter } from './NfcChipWriter';
 import Link from 'next/link';
 import { ArrowLeft, Download, LogOut, Star, Users } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
@@ -401,6 +403,8 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
             </section>}
             {data.role === 'restaurant_admin' && data.restaurant.slug && <section className="next-glass-card next-surface-card">
               <h2>Liens de vos tables</h2>
+              {data.tableNumbers?.length ? <TableQrSheet restaurantName={data.restaurant.name} slug={data.restaurant.slug} tables={data.tableNumbers} /> : null}
+              {data.tableNumbers?.length ? <NfcChipWriter slug={data.restaurant.slug} tables={data.tableNumbers} /> : null}
               {!data.tableNumbers?.length ? <p className="next-muted">Aucune table n’est encore configurée. Contactez Digifeel pour générer vos puces et QR codes.</p> : <ul className="next-table-links">
                 {data.tableNumbers.map(number => <li key={number}><span>Table {number}</span><Link className="next-link" href={`/r/${data.restaurant.slug}/t/${number}`}>/r/{data.restaurant.slug}/t/{number}</Link></li>)}
               </ul>}
