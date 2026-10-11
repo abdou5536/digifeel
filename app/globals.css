@@ -1779,6 +1779,13 @@ html[dir="rtl"] .pos-hero-device { direction:ltr; text-align:left; }
   .pos-sale-card { display:none !important; }
 }
 
+/* Poste de travail : pas d'animation décorative en continu, flou léger. */
+.next-home-hero__brandmark,.next-home-hero__brandmark-glow,.next-demo-nfc { animation:none !important; }
+.pos-shell *,.pos-landing * { backdrop-filter:blur(6px) !important; }
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+
 .digifeel-theme-picker { display:inline-flex; min-height:42px; align-items:center; gap:.5rem; color:var(--df-text-muted); }
 .digifeel-theme-picker select { min-height:40px; max-width:150px; padding:.45rem 2rem .45rem .7rem; border:1px solid var(--df-border); border-radius:var(--df-radius-control); background:var(--df-surface-raised); color:var(--df-text); font-size:.78rem; }
 .digifeel-theme-picker.is-compact { min-height:40px; gap:.35rem; padding-inline:.55rem; border:1px solid var(--df-border); border-radius:var(--df-radius-control); background:var(--df-surface); }
