@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { ArrowDownToLine, Check, ChefHat, CircleDollarSign, CreditCard, Minus, Plus, Printer, ReceiptText, RefreshCw, ShoppingBag, Table2, Wifi, WifiOff } from 'lucide-react';
 import { useLanguage } from './LanguageProvider';
 import { paperCss, readPaperWidth } from '@/src/lib/pos/printer-settings';
+import { applyBrandColor } from '@/src/lib/brand';
+import { MenuImport } from './MenuImport';
 import { ThemePicker } from './ThemePicker';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
@@ -29,6 +31,7 @@ interface ActiveBill {
     quantity: number;
     unit_price_dzd: number;
     line_total_dzd: number | string;
+    sent_at?: string | null;
   }>;
   payments: Array<{
     id: string;
@@ -75,6 +78,11 @@ export function RestaurantPOS() {
   const currency = normalizeCurrency(catalog?.restaurant.currency);
   const money = (value: number, loc: string) => formatMoney(value, currency, loc);
   const [unconfigured, setUnconfigured] = useState(false);
+  const brandColor = catalog?.restaurant.brand_color;
+  useEffect(() => {
+    applyBrandColor(brandColor);
+    return () => applyBrandColor(null);
+  }, [brandColor]);
   const [cart, setCart] = useState<CartProduct[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentReference, setPaymentReference] = useState('');
@@ -130,10 +138,37 @@ export function RestaurantPOS() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'tables' && online) void refreshBills().catch(loadError => {
-      setError(loadError instanceof Error ? loadError.message : 'Les additions n’ont pas pu être chargées.');
-    });
+    if (activeTab !== 'tables' || !online) return;
+    const load = () => {
+      if (document.visibilityState === 'hidden' || billActionInProgress.current) return;
+      void refreshBills().catch(loadError => {
+        setError(loadError instanceof Error ? loadError.message : 'Les additions n’ont pas pu être chargées.');
+      });
+    };
+    load();
+    const timer = window.setInterval(load, 5000);
+    return () => window.clearInterval(timer);
   }, [activeTab, online, refreshBills]);
+
+  const sendToCounter = async (bill: ActiveBill) => {
+    if (billBusy || billActionInProgress.current) return;
+    billActionInProgress.current = true;
+    setBillBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch(`/api/pos/bills/${bill.id}/send`, { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'La commande n’a pas pu être envoyée.');
+      await refreshBills();
+      setMessage(result.sent > 0 ? 'Commande envoyée au comptoir.' : 'Rien de nouveau à envoyer.');
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'La commande n’a pas pu être envoyée.');
+    } finally {
+      billActionInProgress.current = false;
+      setBillBusy(false);
+    }
+  };
 
   const openTableBill = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -817,7 +852,7 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
           <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'الطلب المفتوح' : 'ADDITION OUVERTE'}</span><h2>{selectedBill.table_label}</h2></div><span>{new Date(selectedBill.created_at).toLocaleTimeString(isArabic ? 'ar-DZ' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
           <div className="pos-ticket-lines">
             {selectedBill.bill_items.map(item => <article className="pos-ticket-line" key={item.id}>
-              <div><strong>{item.product_name}</strong><small>{money(item.unit_price_dzd, locale)} × {item.quantity}</small></div>
+              <div><strong>{item.product_name}</strong><small>{money(item.unit_price_dzd, locale)} × {item.quantity}{item.sent_at ? '' : (isArabic ? ' · لم يُرسل' : ' · à envoyer')}</small></div>
               <strong>{money(Number(item.line_total_dzd), locale)}</strong>
             </article>)}
             {selectedBill.bill_items.length === 0 && <p className="pos-empty-hint">{isArabic ? 'أضف منتجات إلى هذه الإضافة.' : 'Ajoutez des produits pour commencer cette addition.'}</p>}
@@ -835,6 +870,7 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
             <label>{isArabic ? 'خصم' : 'Remise'} ({currency === 'EUR' ? '€' : 'DA'})<input type="text" inputMode="decimal" value={billDiscount} onChange={event => setBillDiscount(event.target.value)} placeholder={minorToInput(Number(selectedBill.discount_dzd), currency)} /></label>
             <button className="pos-sync-button" type="submit" disabled={billBusy}>{isArabic ? 'تطبيق الخصم' : 'Appliquer la remise'}</button>
           </form>}
+          <button className="pos-checkout-button" type="button" disabled={billBusy || !selectedBill.bill_items.some(item => !item.sent_at)} onClick={() => void sendToCounter(selectedBill)}><Printer size={17} />{isArabic ? 'إرسال الطلب إلى الكاونتر' : 'Envoyer la commande au comptoir'}</button>
           <button className="pos-sync-button" type="button" onClick={() => printBill(selectedBill)}><Printer size={15} />{isArabic ? 'طباعة الفاتورة' : 'Imprimer l’addition'}</button>
           <div className="pos-ticket-total"><span>{isArabic ? 'مدفوع' : 'Déjà payé'}</span><strong>{money(selectedBillPaid, locale)}</strong></div>
           {selectedBill.payments.some(payment => payment.status === 'pending') && <p className="pos-payment-note">{isArabic ? 'يوجد دفع بالبطاقة بانتظار التأكيد من جهاز الدفع.' : 'Un paiement carte attend la confirmation du terminal ; il ne réduit pas encore le solde.'}</p>}
@@ -857,6 +893,7 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
       {activeTab === 'products' && catalog.role === 'restaurant_admin' && <section className="pos-products-page">
         <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'الإعدادات' : 'CONFIGURATION'}</span><h1>{isArabic ? 'قائمة الطعام والأسعار' : 'Produits et prix'}</h1></div></div>
         <div className="pos-products-layout">
+          <MenuImport currency={currency} onImported={() => window.location.reload()} />
           <form className="pos-product-form" onSubmit={saveProduct}>
             <h2>{editingProductId ? (isArabic ? 'تعديل المنتج' : 'Modifier un produit') : (isArabic ? 'إضافة منتج' : 'Ajouter un produit')}</h2>
             <label>{isArabic ? 'الاسم' : 'Nom du produit'}<input required maxLength={120} value={productName} onChange={event => setProductName(event.target.value)} /></label>

@@ -7,6 +7,10 @@ export async function POST(request: NextRequest) {
   const body = await parseJsonObject(request);
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const password = typeof body?.password === 'string' && body.password.length > 0 ? body.password : '';
+  if (password && (password.length < 8 || password.length > 72)) {
+    return NextResponse.json({ error: 'Le mot de passe doit contenir entre 8 et 72 caractères.' }, { status: 400 });
+  }
   if (name.length < 2 || name.length > 100 || email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Indiquez un nom et une adresse e-mail valides.' }, { status: 400 });
@@ -31,9 +35,11 @@ export async function POST(request: NextRequest) {
     serverId = server.id;
 
     const admin = createSupabaseServiceClient();
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { display_name: name }
-    });
+    const created = password
+      ? await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { display_name: name } })
+      : await admin.auth.admin.inviteUserByEmail(email, { data: { display_name: name } });
+    const invited = created.data;
+    const inviteError = created.error;
     if (inviteError || !invited.user) throw inviteError || new Error('Supabase n’a pas créé le compte invité.');
     invitedUserId = invited.user.id;
 
@@ -47,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const { error: linkError } = await admin.from('servers').update({ user_id: invitedUserId }).eq('id', serverId);
     if (linkError) throw linkError;
-    return NextResponse.json({ id: serverId, name, email, invitationSent: true }, { status: 201 });
+    return NextResponse.json({ id: serverId, name, email, invitationSent: !password, accountCreated: Boolean(password) }, { status: 201 });
   } catch (error) {
     console.error('Restaurant server invitation failed.', error);
     if (invitedUserId || serverId) {

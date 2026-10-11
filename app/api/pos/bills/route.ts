@@ -6,7 +6,7 @@ import { rpcErrorResponse, withTeamSession } from '@/src/lib/billingApi';
 export async function GET() {
   return withTeamSession(async supabase => {
     const { data, error } = await supabase.from('bills')
-      .select('id,table_label,status,discount_dzd,created_at,bill_items(id,product_id,product_name,quantity,unit_price_dzd,line_total_dzd),payments(id,amount_dzd,tip_dzd,method,status)')
+      .select('id,table_label,status,discount_dzd,created_at,bill_items(id,product_id,product_name,quantity,unit_price_dzd,line_total_dzd,sent_at),payments(id,amount_dzd,tip_dzd,method,status)')
       .eq('status', 'open')
       .order('created_at', { ascending: false });
     if (error) return rpcErrorResponse(error);

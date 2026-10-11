@@ -3,7 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('digifeelDesktop', Object.freeze({
   retryConnection: () => ipcRenderer.send('digifeel:retry'),
   logError: (payload) => ipcRenderer.send('digifeel:log-error', payload),
-  saveBackup: (content) => ipcRenderer.invoke('digifeel:save-backup', { content })
+  saveBackup: (content) => ipcRenderer.invoke('digifeel:save-backup', { content }),
+  printSilent: (html) => ipcRenderer.invoke('digifeel:print-silent', { html })
 }));
 
 window.addEventListener('DOMContentLoaded', () => {

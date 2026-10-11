@@ -195,6 +195,25 @@ function createWindow() {
     return writeDailyBackup(payload.content);
   });
 
+  ipcMain.handle('digifeel:print-silent', async (event, payload) => {
+    if (!isTrustedAppUrl(event.senderFrame?.url ?? '') || typeof payload?.html !== 'string' || payload.html.length > 200_000) return false;
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, javascript: false }
+    });
+    try {
+      await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(payload.html)}`);
+      return await new Promise((resolve) => {
+        printWindow.webContents.print({ silent: true, printBackground: false }, (success) => resolve(success));
+      });
+    } catch (error) {
+      log.error('Impression silencieuse impossible.', error);
+      return false;
+    } finally {
+      printWindow.destroy();
+    }
+  });
+
   void openApplication();
 }
 

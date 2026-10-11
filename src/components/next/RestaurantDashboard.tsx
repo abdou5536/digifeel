@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { SetupChecklist } from './SetupChecklist';
+import { applyBrandColor, dominantColor } from '@/src/lib/brand';
 import { TableQrSheet } from './TableQrSheet';
 import { NfcChipWriter } from './NfcChipWriter';
 import Link from 'next/link';
@@ -61,6 +62,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [serverPassword, setServerPassword] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
@@ -69,6 +71,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
   const [tipEnabled, setTipEnabled] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
+  const [brandColor, setBrandColor] = useState('');
   const [baridimobRip, setBaridimobRip] = useState('');
   const [baridimobPhone, setBaridimobPhone] = useState('');
   const [vatPercent, setVatPercent] = useState('0');
@@ -106,6 +109,8 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
           setBaridimobRip(result.baridimobRip ?? '');
           setBaridimobPhone(result.baridimobPhone ?? '');
           setVatPercent(String((result.vatRateBp ?? 0) / 100));
+          setBrandColor(result.brandColor ?? '');
+          applyBrandColor(result.brandColor);
         }
       })
       .catch(loadError => {
@@ -164,13 +169,14 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       const response = await fetch('/api/dashboard/servers', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name, email })
+        body: JSON.stringify({ name, email, password: serverPassword })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Invitation impossible.');
-      setNotice(`Invitation envoyée à ${result.email}.`);
+      setNotice(result.accountCreated ? `Compte créé pour ${result.name}. Il se connecte avec ${result.email} et le mot de passe choisi.` : `Invitation envoyée à ${result.email}.`);
       setName('');
       setEmail('');
+      setServerPassword('');
     } catch (inviteError) {
       setNotice(inviteError instanceof Error ? inviteError.message : 'Invitation impossible.');
     } finally {
@@ -186,7 +192,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       const response = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl, baridimobRip, baridimobPhone, vatRateBp: Math.round(Number(vatPercent.replace(',', '.')) * 100) })
+        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl, baridimobRip, baridimobPhone, brandColor, vatRateBp: Math.round(Number(vatPercent.replace(',', '.')) * 100) })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Les réglages n’ont pas pu être enregistrés.');
@@ -368,11 +374,13 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
               {data.servers.length === 0 ? <p className="next-muted">Aucun serveur ajouté.</p> : data.servers.map(server => <p className="next-server-row" key={server.id}>{server.name}<span>{server.review_count} avis · {server.average_rating ? server.average_rating.toFixed(1) : '—'}/5</span></p>)}
             </section>}
             {data.role === 'restaurant_admin' && <section className="next-glass-card next-surface-card">
-              <h2>Inviter un serveur</h2>
+              <h2>Ajouter un serveur</h2>
               <form className="next-form" onSubmit={inviteServer}>
                 <label>Nom<input required minLength={2} maxLength={100} value={name} onChange={event => setName(event.target.value)} /></label>
-                <label>E-mail<input type="email" required value={email} onChange={event => setEmail(event.target.value)} /></label>
-                <button className="product-button" type="submit" disabled={busy}>{busy ? 'Envoi…' : 'Envoyer une invitation'}</button>
+                <label>E-mail (identifiant de connexion)<input type="email" required value={email} onChange={event => setEmail(event.target.value)} /></label>
+                <label>Mot de passe (8 caractères minimum)<input type="password" autoComplete="new-password" minLength={8} maxLength={72} value={serverPassword} onChange={event => setServerPassword(event.target.value)} /></label>
+                <p className="next-muted">Avec un mot de passe, le compte est prêt tout de suite : le serveur se connecte sur sa tablette. Sans mot de passe, une invitation lui est envoyée par e-mail.</p>
+                <button className="product-button" type="submit" disabled={busy}>{busy ? 'Création…' : serverPassword ? 'Créer le compte serveur' : 'Envoyer une invitation'}</button>
                 {notice && <p className="next-muted" role="status">{notice}</p>}
               </form>
             </section>}
@@ -383,6 +391,24 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                 <label>Adresse<input maxLength={200} value={address} onChange={event => setAddress(event.target.value)} /></label>
                 <label>Lien Google<input required type="url" value={googleReviewUrl} onChange={event => setGoogleReviewUrl(event.target.value)} /></label>
                 <label>Logo (adresse https://, facultatif)<input type="url" maxLength={2048} value={logoUrl} onChange={event => setLogoUrl(event.target.value)} /></label>
+                <label>Couleur du restaurant
+                  <span style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}>
+                    <input type="color" value={brandColor || '#d3a04d'} onChange={event => { setBrandColor(event.target.value); applyBrandColor(event.target.value); }} aria-label="Choisir la couleur" />
+                    <button type="button" className="product-button product-button--secondary" onClick={() => { setBrandColor(''); applyBrandColor(null); }}>Couleur par défaut</button>
+                  </span>
+                </label>
+                <label>Ou choisir une photo / un logo : la couleur est détectée automatiquement
+                  <input type="file" accept="image/*" onChange={event => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void dominantColor(file).then(color => {
+                      if (!color) { setSettingsNotice('Aucune couleur nette trouvée sur cette image. Choisissez-la à la main.'); return; }
+                      setBrandColor(color);
+                      applyBrandColor(color);
+                      setSettingsNotice('Couleur détectée. Enregistrez pour la garder.');
+                    }).catch(() => setSettingsNotice('Cette image ne peut pas être lue.'));
+                  }} />
+                </label>
                 <label>RIP BaridiMob<input inputMode="numeric" autoComplete="off" maxLength={34} value={baridimobRip} onChange={event => setBaridimobRip(event.target.value)} placeholder="Coordonnées du compte de votre restaurant" /></label>
                 <label>Téléphone BaridiMob (facultatif)<input type="tel" autoComplete="tel" maxLength={32} value={baridimobPhone} onChange={event => setBaridimobPhone(event.target.value)} placeholder="+213 …" /></label>
                 <label>TVA sur les tickets (%)<input inputMode="decimal" maxLength={5} value={vatPercent} onChange={event => setVatPercent(event.target.value)} placeholder="0 = pas de TVA (ex. 10 ou 19)" /></label>

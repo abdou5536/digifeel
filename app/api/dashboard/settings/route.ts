@@ -12,7 +12,7 @@ export async function GET() {
     }
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.from('restaurants')
-      .select('baridimob_rip, baridimob_phone, vat_rate_bp')
+      .select('baridimob_rip, baridimob_phone, vat_rate_bp, brand_color')
       .eq('id', current.profile.restaurant_id)
       .maybeSingle();
     if (error) throw error;
@@ -20,7 +20,8 @@ export async function GET() {
     return NextResponse.json({
       baridimobRip: data.baridimob_rip ?? '',
       baridimobPhone: data.baridimob_phone ?? '',
-      vatRateBp: data.vat_rate_bp ?? 0
+      vatRateBp: data.vat_rate_bp ?? 0,
+      brandColor: data.brand_color ?? ''
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('Restaurant payment settings could not be loaded.', error);
@@ -42,7 +43,8 @@ export async function PATCH(request: NextRequest) {
       logoUrl.length > 2048 || (logoUrl !== '' && !/^(https:\/\/|data:image\/svg\+xml;base64,)/i.test(logoUrl)) ||
       (body?.baridimobRip !== undefined && (typeof body.baridimobRip !== 'string' || baridimobRip.length > 34)) ||
       (body?.baridimobPhone !== undefined && (typeof body.baridimobPhone !== 'string' || baridimobPhone.length > 32)) ||
-      (body?.vatRateBp !== undefined && (!Number.isInteger(body.vatRateBp) || (body.vatRateBp as number) < 0 || (body.vatRateBp as number) > 3000))) {
+      (body?.vatRateBp !== undefined && (!Number.isInteger(body.vatRateBp) || (body.vatRateBp as number) < 0 || (body.vatRateBp as number) > 3000)) ||
+      (body?.brandColor !== undefined && (typeof body.brandColor !== 'string' || (body.brandColor !== '' && !/^#[0-9a-f]{6}$/i.test(body.brandColor))))) {
     return NextResponse.json({ error: 'Vérifiez le nom, l’adresse et le lien Google.' }, { status: 400 });
   }
 
@@ -64,6 +66,7 @@ export async function PATCH(request: NextRequest) {
     if (body?.baridimobRip !== undefined) patch.baridimob_rip = baridimobRip || null;
     if (body?.baridimobPhone !== undefined) patch.baridimob_phone = baridimobPhone || null;
     if (body?.vatRateBp !== undefined) patch.vat_rate_bp = body.vatRateBp as number;
+    if (body?.brandColor !== undefined) patch.brand_color = (body.brandColor as string) || null;
     const { error } = await supabase.from('restaurants').update(patch).eq('id', current.profile.restaurant_id);
     if (error) throw error;
     return NextResponse.json({ saved: true });
