@@ -1646,6 +1646,11 @@ html[dir="rtl"] .next-app .next-team-art { direction:ltr; }
 }
 
 /* Caisse restaurant */
+.local-backup { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; width:min(100% - 2rem, 92rem); margin:0 auto 2rem; padding:1rem; border:1px solid rgba(255,255,255,.1); border-radius:12px; color:#f2f1ec; }
+.local-backup p { margin:.25rem 0 0; font-size:.85rem; opacity:.75; }
+.local-backup__actions { display:flex; gap:.5rem; }
+.local-backup__actions button { display:inline-flex; align-items:center; gap:.4rem; min-height:2.75rem; padding:0 1rem; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:transparent; color:inherit; cursor:pointer; }
+.local-backup__error { color:#ff8a80; opacity:1; }
 .pos-shortcuts { margin:.5rem 0 0; font-size:.75rem; opacity:.65; }
 .pos-license { margin:0; padding:.6rem 1rem; text-align:center; font-weight:600; color:#1c1500; background:#f5c451; }
 .pos-license--expired { color:#fff; background:#b3261e; }

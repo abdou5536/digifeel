@@ -1,7 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('digifeelDesktop', Object.freeze({
-  retryConnection: () => ipcRenderer.send('digifeel:retry')
+  retryConnection: () => ipcRenderer.send('digifeel:retry'),
+  logError: (payload) => ipcRenderer.send('digifeel:log-error', payload),
+  saveBackup: (content) => ipcRenderer.invoke('digifeel:save-backup', { content })
 }));
 
 window.addEventListener('DOMContentLoaded', () => {

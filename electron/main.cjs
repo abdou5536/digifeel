@@ -184,8 +184,39 @@ function createWindow() {
     if (event.senderFrame?.url === offlinePage) void openApplication();
   });
 
+  ipcMain.on('digifeel:log-error', (event, payload) => {
+    if (!isTrustedAppUrl(event.senderFrame?.url ?? '')) return;
+    const clean = (value, max) => String(value ?? '').slice(0, max);
+    log.error(`[interface] ${clean(payload?.message, 500)} (${clean(payload?.source, 200)})`, clean(payload?.stack, 2000));
+  });
+
+  ipcMain.handle('digifeel:save-backup', (event, payload) => {
+    if (!isTrustedAppUrl(event.senderFrame?.url ?? '') || typeof payload?.content !== 'string' || payload.content.length > 20_000_000) return null;
+    return writeDailyBackup(payload.content);
+  });
+
   void openApplication();
 }
+
+const BACKUP_DIR = path.join(app.getPath('userData'), 'backups');
+const BACKUP_KEEP = 14;
+
+function writeDailyBackup(content) {
+  try {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const name = `digifeel-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+    fs.writeFileSync(path.join(BACKUP_DIR, name), content, 'utf8');
+    const old = fs.readdirSync(BACKUP_DIR).filter((file) => /^digifeel-sauvegarde-.*\.json$/.test(file)).sort().reverse().slice(BACKUP_KEEP);
+    for (const file of old) fs.rmSync(path.join(BACKUP_DIR, file), { force: true });
+    return name;
+  } catch (error) {
+    log.error('Sauvegarde automatique impossible.', error);
+    return null;
+  }
+}
+
+process.on('uncaughtException', (error) => log.error('Erreur non gérée.', error));
+process.on('unhandledRejection', (reason) => log.error('Promesse rejetée non gérée.', reason));
 
 function createApplicationMenu() {
   const menu = Menu.buildFromTemplate([
@@ -193,6 +224,8 @@ function createApplicationMenu() {
       label: 'Digifeel',
       submenu: [
         { label: 'Rechercher une mise à jour', click: () => autoUpdater.checkForUpdates().catch((error) => log.warn('Vérification des mises à jour impossible.', error)) },
+        { label: 'Ouvrir le dossier des journaux', click: () => shell.openPath(path.dirname(log.transports.file.getFile().path)) },
+        { label: 'Ouvrir le dossier des sauvegardes', click: () => { fs.mkdirSync(BACKUP_DIR, { recursive: true }); shell.openPath(BACKUP_DIR); } },
         { type: 'separator' },
         { role: 'quit', label: 'Quitter Digifeel' }
       ]

@@ -80,6 +80,15 @@ export async function deleteLocalSale(id: string) {
   }
 }
 
+export async function loadAllLocalSales(): Promise<LocalPosSale[]> {
+  const database = await openDatabase();
+  try {
+    return await runRequest<LocalPosSale[]>(database, 'sales', 'readonly', store => store.getAll());
+  } finally {
+    database.close();
+  }
+}
+
 export async function loadLocalSales(ownerId: string): Promise<LocalPosSale[]> {
   const database = await openDatabase();
   try {

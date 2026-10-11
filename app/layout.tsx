@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/src/components/next/LanguageProvider';
 import { ThemeProvider } from '@/src/components/next/ThemeProvider';
 import { AppChrome } from '@/src/components/next/AppChrome';
 import { ServiceWorkerRegistration } from '@/src/components/next/ServiceWorkerRegistration';
+import { DesktopSafety } from '@/src/components/next/LocalBackup';
 import './globals.css';
 import './polish.css';
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <AppChrome>
               {children}
               <ServiceWorkerRegistration />
+              <DesktopSafety />
             </AppChrome>
           </LanguageProvider>
         </ThemeProvider>
