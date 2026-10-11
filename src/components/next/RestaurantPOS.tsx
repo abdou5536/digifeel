@@ -8,6 +8,7 @@ import { ThemePicker } from './ThemePicker';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 import { deleteCatalog, deleteLocalSale, loadCatalog, loadLocalSales, saveCatalog, saveLocalSale } from '@/src/lib/pos/offline-store';
+import { formatMoney, minorToInput, normalizeCurrency, parseMoneyInput } from '@/src/lib/pos/currency';
 import { totalSaleDzd, type LocalPosSale, type PaymentMethod, type PosCatalog, type PosProduct, type PosSaleLine, type PosSaleRecord } from '@/src/lib/pos/types';
 
 interface CartProduct extends PosSaleLine {
@@ -44,10 +45,6 @@ function PrintReset({ onDone }: { onDone: () => void }) {
   return null;
 }
 
-function money(value: number, locale: string) {
-  return `${new Intl.NumberFormat(locale === 'ar' ? 'ar-DZ' : 'fr-DZ', { maximumFractionDigits: 0 }).format(value)} دج`;
-}
-
 function normalizeSale(sale: PosSaleRecord): LocalPosSale {
   return {
     id: sale.id,
@@ -73,6 +70,8 @@ export function RestaurantPOS() {
   const { locale, toggleLocale } = useLanguage();
   const isArabic = locale === 'ar';
   const [catalog, setCatalog] = useState<PosCatalog | null>(null);
+  const currency = normalizeCurrency(catalog?.restaurant.currency);
+  const money = (value: number, loc: string) => formatMoney(value, currency, loc);
   const [unconfigured, setUnconfigured] = useState(false);
   const [cart, setCart] = useState<CartProduct[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -200,8 +199,14 @@ export function RestaurantPOS() {
   const recordBillPayment = async (event: FormEvent<HTMLFormElement>, bill: ActiveBill, remainingDzd: number) => {
     event.preventDefault();
     if (billBusy || billActionInProgress.current) return;
-    const amountDzd = billPaymentAmount.trim() ? Number(billPaymentAmount) : remainingDzd;
-    const tipDzd = billPaymentTip.trim() ? Number(billPaymentTip) : 0;
+    const parsedAmount = billPaymentAmount.trim() ? parseMoneyInput(billPaymentAmount, currency) : remainingDzd;
+    const parsedTip = billPaymentTip.trim() ? parseMoneyInput(billPaymentTip, currency) : 0;
+    if (parsedAmount === null || parsedTip === null) {
+      setError('Vérifiez le montant du paiement et le pourboire.');
+      return;
+    }
+    const amountDzd = parsedAmount;
+    const tipDzd = parsedTip;
     if (!Number.isSafeInteger(amountDzd) || amountDzd < 1 || amountDzd > remainingDzd ||
         !Number.isSafeInteger(tipDzd) || tipDzd < 0 || tipDzd > selectedBillTotal) {
       setError('Vérifiez le montant du paiement et le pourboire.');
@@ -462,9 +467,10 @@ export function RestaurantPOS() {
 
   const saveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const priceDzd = Number(productPrice);
-    if (!productName.trim() || !category.trim() || !Number.isSafeInteger(priceDzd) || priceDzd < 0) {
-      setError(isArabic ? 'تحقق من اسم المنتج والقسم والسعر.' : 'Vérifiez le nom, la catégorie et le prix en dinars.');
+    const parsedPrice = parseMoneyInput(productPrice, currency);
+    const priceDzd = parsedPrice ?? -1;
+    if (!productName.trim() || !category.trim() || parsedPrice === null) {
+      setError(isArabic ? 'تحقق من اسم المنتج والقسم والسعر.' : 'Vérifiez le nom, la catégorie et le prix.');
       return;
     }
     setBusy(true);
@@ -533,7 +539,7 @@ export function RestaurantPOS() {
     setEditingProductId(product.id);
     setProductName(product.name);
     setCategory(product.category);
-    setProductPrice(String(product.price_dzd));
+    setProductPrice(minorToInput(product.price_dzd, currency));
   };
 
   const setupRestaurant = async (event: FormEvent<HTMLFormElement>) => {
@@ -680,7 +686,7 @@ export function RestaurantPOS() {
             <legend>{isArabic ? 'طريقة الدفع' : 'Mode de paiement'}</legend>
             <button type="button" className={paymentMethod === 'cash' ? 'is-active' : ''} aria-pressed={paymentMethod === 'cash'} onClick={() => setPaymentMethod('cash')}><CircleDollarSign />{isArabic ? 'نقداً' : 'Espèces'}</button>
             <button type="button" className={paymentMethod === 'card' ? 'is-active' : ''} aria-pressed={paymentMethod === 'card'} onClick={() => setPaymentMethod('card')}><CreditCard />{isArabic ? 'بطاقة' : 'Carte'}</button>
-            <button type="button" className={paymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={paymentMethod === 'baridimob'} onClick={() => setPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>
+            {currency === 'DZD' && <button type="button" className={paymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={paymentMethod === 'baridimob'} onClick={() => setPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>}
           </fieldset>
           {paymentMethod !== 'cash' && <label className="pos-reference">{isArabic ? 'مرجع الدفع (اختياري)' : 'Référence de paiement (facultatif)'}<input maxLength={120} value={paymentReference} onChange={event => setPaymentReference(event.target.value)} placeholder={isArabic ? 'رقم العملية' : 'N° de transaction'} /></label>}
           <button className="pos-checkout-button" type="button" disabled={cart.length === 0 || busy} onClick={() => void saveSale()}>{busy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : <><Check size={18} />{isArabic ? 'تسجيل البيع' : 'Enregistrer la vente'}</>}</button>
@@ -733,13 +739,13 @@ export function RestaurantPOS() {
           {selectedBill.payments.some(payment => payment.status === 'pending') && <p className="pos-payment-note">{isArabic ? 'يوجد دفع بالبطاقة بانتظار التأكيد من جهاز الدفع.' : 'Un paiement carte attend la confirmation du terminal ; il ne réduit pas encore le solde.'}</p>}
           {selectedBillRemaining > 0 && <form className="pos-product-form" onSubmit={event => void recordBillPayment(event, selectedBill, selectedBillRemaining)}>
             <h3>{isArabic ? 'تسجيل دفعة' : 'Encaisser un paiement'}</h3>
-            <label>{isArabic ? 'المبلغ بالدينار (فارغ = الرصيد)' : 'Montant en dinars (vide = solde)'}<input type="number" min="1" max={selectedBillRemaining} step="1" value={billPaymentAmount} onChange={event => setBillPaymentAmount(event.target.value)} /></label>
-            <label>{isArabic ? 'الإكرامية' : 'Pourboire en dinars'}<input type="number" min="0" step="1" value={billPaymentTip} onChange={event => setBillPaymentTip(event.target.value)} /></label>
+            <label>{isArabic ? 'المبلغ (فارغ = الرصيد)' : 'Montant (vide = solde)'}<input type="text" inputMode="decimal" value={billPaymentAmount} onChange={event => setBillPaymentAmount(event.target.value)} /></label>
+            <label>{isArabic ? 'الإكرامية' : 'Pourboire'}<input type="text" inputMode="decimal" value={billPaymentTip} onChange={event => setBillPaymentTip(event.target.value)} /></label>
             <fieldset className="pos-payment-methods">
               <legend>{isArabic ? 'طريقة الدفع' : 'Mode de paiement'}</legend>
               <button type="button" className={billPaymentMethod === 'cash' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'cash'} onClick={() => setBillPaymentMethod('cash')}><CircleDollarSign />{isArabic ? 'نقداً' : 'Espèces'}</button>
               <button type="button" className={billPaymentMethod === 'card' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'card'} onClick={() => setBillPaymentMethod('card')}><CreditCard />{isArabic ? 'بطاقة' : 'Carte'}</button>
-              <button type="button" className={billPaymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'baridimob'} onClick={() => setBillPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>
+              {currency === 'DZD' && <button type="button" className={billPaymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'baridimob'} onClick={() => setBillPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>}
             </fieldset>
             <button className="pos-checkout-button" type="submit" disabled={billBusy || selectedBillTotal <= 0}>{billBusy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : (isArabic ? 'تسجيل الدفعة' : 'Enregistrer le paiement')}</button>
             {billPaymentMethod === 'card' && <p className="pos-payment-note">{isArabic ? 'تحقق من الدفع على جهاز الدفع. ستبقى الدفعة معلقة حتى تأكيدها.' : 'La carte est enregistrée en attente : vérifiez le terminal, la confirmation bancaire n’est pas encore intégrée.'}</p>}
@@ -754,7 +760,7 @@ export function RestaurantPOS() {
             <h2>{editingProductId ? (isArabic ? 'تعديل المنتج' : 'Modifier un produit') : (isArabic ? 'إضافة منتج' : 'Ajouter un produit')}</h2>
             <label>{isArabic ? 'الاسم' : 'Nom du produit'}<input required maxLength={120} value={productName} onChange={event => setProductName(event.target.value)} /></label>
             <label>{isArabic ? 'القسم' : 'Catégorie'}<input required maxLength={60} value={category} onChange={event => setCategory(event.target.value)} placeholder={isArabic ? 'مثال: مشروبات' : 'Ex. Boissons'} /></label>
-            <label>{isArabic ? 'السعر بالدينار' : 'Prix en dinars'}<input required type="number" min="0" max="100000000" step="1" value={productPrice} onChange={event => setProductPrice(event.target.value)} /></label>
+            <label>{isArabic ? 'السعر' : 'Prix'} ({currency === 'EUR' ? '€' : 'DA'})<input required type="text" inputMode="decimal" value={productPrice} onChange={event => setProductPrice(event.target.value)} /></label>
             <button className="pos-checkout-button" type="submit" disabled={busy}>{editingProductId ? (isArabic ? 'حفظ التعديلات' : 'Enregistrer les modifications') : (isArabic ? 'إضافة إلى القائمة' : 'Ajouter au menu')}</button>
             {editingProductId && <button className="pos-cancel-edit" type="button" onClick={() => { setEditingProductId(null); setProductName(''); setCategory(''); setProductPrice(''); }}>{isArabic ? 'إلغاء' : 'Annuler'}</button>}
           </form>
@@ -810,7 +816,7 @@ export function RestaurantPOS() {
         </div>;
       })()}
       {printingSaleId && <PrintReset onDone={() => setPrintingSaleId(null)} />}
-      <footer className="pos-footer"><span>{isArabic ? 'يتم تخزين التذاكر غير المتصلة على هذا الجهاز حتى المزامنة.' : 'Les tickets hors ligne restent sur cet appareil jusqu’à leur synchronisation.'}</span><span>{isArabic ? 'العملة: الدينار الجزائري' : 'Devise : dinar algérien (DZD)'}</span></footer>
+      <footer className="pos-footer"><span>{isArabic ? 'يتم تخزين التذاكر غير المتصلة على هذا الجهاز حتى المزامنة.' : 'Les tickets hors ligne restent sur cet appareil jusqu’à leur synchronisation.'}</span><span>{currency === 'EUR' ? 'Devise : euro (EUR)' : (isArabic ? 'العملة: الدينار الجزائري' : 'Devise : dinar algérien (DZD)')}</span></footer>
     </main>
   );
 }
