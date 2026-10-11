@@ -60,8 +60,11 @@ export async function GET(request: NextRequest) {
 
     const allScansByDay = current.profile.role === 'restaurant_admin' ? summary?.scans_by_day ?? [] : [];
     const sales = await buildSalesReport(supabase, createSupabaseServiceClient(), current.profile.restaurant_id, from, to, { includeLines: true });
+    const { data: money } = await supabase.from('restaurants').select('currency,vat_rate_bp').eq('id', current.profile.restaurant_id).maybeSingle();
     return NextResponse.json({
       restaurantName: restaurant.name,
+      currency: money?.currency ?? 'DZD',
+      vatRateBp: money?.vat_rate_bp ?? 0,
       periodDays: days,
       generatedAt: to.toISOString(),
       periodFrom: from.toISOString(),

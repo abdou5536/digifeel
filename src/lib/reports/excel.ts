@@ -7,7 +7,8 @@ const GOLD = 'FFC8963E';
 const DARK = 'FF1B1F27';
 const LIGHT = 'FFF6F1E7';
 const BORDER = { style: 'thin' as const, color: { argb: 'FFD9DCE0' } };
-const FMT_DZD = '#,##0 "DZD"';
+const FMT_DZD_BASE = '#,##0 "DZD"';
+let FMT_DZD = FMT_DZD_BASE;
 const FMT_PCT = '0.0%';
 
 const sanitize = (value: string) => value.replace(/[\u0000-\u001F]/g, ' ').trim();
@@ -102,6 +103,12 @@ function summarySheet(workbook: Workbook, model: ReportModel) {
     ['Chiffre d’affaires total', model.hasSales ? model.revenue : NOT_AVAILABLE, FMT_DZD],
     ['Nombre de commandes', model.hasSales ? model.orderCount : NOT_AVAILABLE, '#,##0'],
     ['Panier moyen', model.averageBasket ?? NOT_AVAILABLE, FMT_DZD],
+    ...(model.vatRateBp > 0
+      ? [
+          [`dont TVA (${model.vatRateBp / 100} %)`, model.vatAmount, FMT_DZD] as [string, number, string],
+          ['Chiffre d’affaires hors taxes', model.revenue - model.vatAmount, FMT_DZD] as [string, number, string]
+        ]
+      : []),
     ['Produits vendus (quantité)', model.hasLineDetail ? model.itemsSold : NOT_AVAILABLE, '#,##0'],
     ['Produit le plus vendu', model.topByQuantity ? `${model.topByQuantity.name} (${formatInt(model.topByQuantity.quantity)})` : NOT_AVAILABLE],
     ['Produit n°1 en chiffre d’affaires', model.topByRevenue ? `${model.topByRevenue.name} (${formatDzd(model.topByRevenue.revenue)})` : NOT_AVAILABLE],
@@ -408,6 +415,7 @@ function nfcSheet(workbook: Workbook, model: ReportModel) {
 
 export async function buildExcelReport(model: ReportModel): Promise<Blob> {
   const ExcelJS = (await import('exceljs')).default;
+  FMT_DZD = model.currency === 'EUR' ? '#,##0.00 "€"' : FMT_DZD_BASE;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'DigiFeel';
   workbook.created = model.generatedAt;

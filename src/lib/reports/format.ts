@@ -22,7 +22,18 @@ export function formatInt(value: number) {
   return groupDigits(value);
 }
 
+let reportCurrency: 'EUR' | 'DZD' = 'DZD';
+
+export function setReportCurrency(currency: 'EUR' | 'DZD') {
+  reportCurrency = currency;
+}
+
 export function formatDzd(value: number) {
+  if (reportCurrency === 'EUR') {
+    const fixed = Math.abs(value).toFixed(2);
+    const [integer, decimals] = fixed.split('.');
+    return `${value < 0 && Number(fixed) !== 0 ? '-' : ''}${groupDigits(Number(integer))},${decimals} €`;
+  }
   return `${groupDigits(value)} DZD`;
 }
 

@@ -54,6 +54,20 @@ describe('rapports PDF / Excel', () => {
     expect(m.voidedDzd).toBe(800);
   });
 
+  it('convertit les centimes en euros et calcule la TVA incluse', async () => {
+    const m = buildReportModel({ ...data, currency: 'EUR', vatRateBp: 1000 });
+    expect(m.revenue).toBe(15);
+    expect(m.vatAmount).toBeCloseTo(15 * 1000 / 11000, 5);
+    const xlsx = Buffer.from(await (await buildExcelReport(m)).arrayBuffer());
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(xlsx as never);
+    const cells: string[] = [];
+    wb.worksheets.forEach(s => s.eachRow(r => r.eachCell(c => cells.push(String(c.text)))));
+    expect(cells.join('|')).toContain('€');
+    expect(cells.join('|')).not.toContain('DZD');
+    expect((await buildPdfReport(m)).size).toBeGreaterThan(1000);
+  });
+
   it('génère un Excel et un PDF valides sans valeur technique', async () => {
     const m = buildReportModel(data);
     const xlsx = Buffer.from(await (await buildExcelReport(m)).arrayBuffer());

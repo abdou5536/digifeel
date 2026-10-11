@@ -1,5 +1,5 @@
 import type { SalesReport } from '@/src/lib/pos/salesReport';
-import { PAYMENT_LABELS, dayKey, formatDay, monthKeyOf } from './format';
+import { PAYMENT_LABELS, dayKey, formatDay, monthKeyOf, setReportCurrency } from './format';
 
 export interface ReportReview {
   id: string;
@@ -24,6 +24,21 @@ export interface ExportData {
   averageRating: number;
   reviews: ReportReview[];
   sales: SalesReport;
+  currency?: 'EUR' | 'DZD';
+  vatRateBp?: number;
+}
+
+// Les montants stockés sont en centimes pour l'EUR : on les ramène en unités pour tout le rapport.
+function toMajorUnits<T>(value: T, factor: number): T {
+  if (factor === 1) return value;
+  if (Array.isArray(value)) return value.map(item => toMajorUnits(item, factor)) as unknown as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+      key,
+      typeof item === 'number' && /dzd$/i.test(key) ? item / factor : toMajorUnits(item, factor)
+    ])) as T;
+  }
+  return value;
 }
 
 export interface ReportOrder {
@@ -60,6 +75,9 @@ export interface ServerStat {
 export interface ReportModel {
   restaurantName: string;
   isDemo: boolean;
+  currency: 'EUR' | 'DZD';
+  vatRateBp: number;
+  vatAmount: number;
   from: Date;
   to: Date;
   generatedAt: Date;
@@ -131,7 +149,10 @@ export function buildReportModel(data: ExportData): ReportModel {
   const generatedAt = new Date(data.generatedAt);
   const to = generatedAt;
   const from = data.periodFrom ? new Date(data.periodFrom) : new Date(to.getTime() - (data.periodDays - 1) * 86400000);
-  const sales = data.sales ?? { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [], voidedCount: 0, voidedDzd: 0 };
+  const currency = data.currency === 'EUR' ? 'EUR' : 'DZD';
+  setReportCurrency(currency);
+  const rawSales = data.sales ?? { totalDzd: 0, salesCount: 0, sales: [], byServer: [], byMonth: [], voidedCount: 0, voidedDzd: 0 };
+  const sales = toMajorUnits(rawSales, currency === 'EUR' ? 100 : 1);
 
   const orders: ReportOrder[] = [...sales.sales]
     .sort((a, b) => a.sold_at.localeCompare(b.sold_at))
@@ -298,6 +319,9 @@ export function buildReportModel(data: ExportData): ReportModel {
   return {
     restaurantName: data.restaurantName,
     isDemo: Boolean(data.demo),
+    currency,
+    vatRateBp: data.vatRateBp ?? 0,
+    vatAmount: data.vatRateBp ? revenue * data.vatRateBp / (10000 + data.vatRateBp) : 0,
     from,
     to,
     generatedAt,

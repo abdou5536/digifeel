@@ -215,6 +215,7 @@ export async function buildPdfReport(model: ReportModel): Promise<Blob> {
     { label: 'Chiffre d’affaires', value: model.hasSales ? formatDzd(model.revenue) : NOT_AVAILABLE, hint: model.trend?.change != null ? `${model.trend.change >= 0 ? '+' : ''}${formatPercent(model.trend.change)} (2e moitié vs 1re)` : undefined },
     { label: 'Commandes', value: model.hasSales ? formatInt(model.orderCount) : NOT_AVAILABLE },
     { label: 'Panier moyen', value: model.averageBasket != null ? formatDzd(model.averageBasket) : NOT_AVAILABLE },
+    ...(model.vatRateBp > 0 ? [{ label: `TVA (${model.vatRateBp / 100} %)`, value: formatDzd(model.vatAmount), hint: `${formatDzd(model.revenue - model.vatAmount)} HT` }] : []),
     { label: 'Produits vendus', value: model.hasLineDetail ? formatInt(model.itemsSold) : NOT_AVAILABLE, hint: 'quantités' },
     { label: 'Avis clients', value: formatInt(model.reviewCount), hint: model.reviewCount ? `${formatInt(model.positive)} positifs · ${formatInt(model.negative)} négatifs` : undefined },
     { label: 'Note moyenne', value: model.averageRating != null ? `${formatRating(model.averageRating)} / 5` : NOT_AVAILABLE },
