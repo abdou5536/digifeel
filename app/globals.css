@@ -1646,6 +1646,8 @@ html[dir="rtl"] .next-app .next-team-art { direction:ltr; }
 }
 
 /* Caisse restaurant */
+.pos-license { margin:0; padding:.6rem 1rem; text-align:center; font-weight:600; color:#1c1500; background:#f5c451; }
+.pos-license--expired { color:#fff; background:#b3261e; }
 .pos-shell { width:min(100% - 2rem, 92rem); min-height:100svh; margin-inline:auto; padding:1rem 0 2rem; color:#f2f1ec; }
 .pos-topbar,.pos-topbar__actions,.pos-topbar__restaurant,.pos-brand,.pos-connection,.pos-tabs,.pos-tabs button,.pos-sync-button,.pos-section-heading,.pos-product-card,.pos-payment-methods,.pos-payment-methods button,.pos-products-table article,.pos-product-actions,.pos-sale-card__footer,.pos-sale-card__main,.pos-hero-points,.pos-hero-actions,.pos-landing-nav,.pos-landing-actions,.pos-landing-footer { display:flex; align-items:center; }
 .pos-topbar { min-height:4.2rem; justify-content:space-between; gap:1rem; padding:0 .5rem 1rem; border-bottom:1px solid rgba(255,255,255,.1); }
