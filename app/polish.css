@@ -4,6 +4,17 @@
  * Principe : peu d'effets, mais soignés ; transitions courtes sur transform/opacity uniquement.
  */
 
+.pos-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.6rem; }
+.pos-product-tile {
+  display: flex; flex-direction: column; justify-content: center; gap: 0.25rem;
+  min-height: 72px; padding: 0.6rem 0.75rem; text-align: start; cursor: pointer;
+  color: inherit; background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px;
+}
+.pos-product-tile:active:not(:disabled) { transform: scale(0.97); }
+.pos-product-tile:disabled { opacity: 0.55; cursor: wait; }
+.pos-product-tile small { color: var(--df-accent, #d4a64a); font-weight: 600; }
+
 :root {
   --pl-ease: cubic-bezier(.2, .7, .2, 1);
   --pl-fast: 120ms;

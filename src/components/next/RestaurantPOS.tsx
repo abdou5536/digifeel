@@ -96,7 +96,6 @@ export function RestaurantPOS() {
   const [bills, setBills] = useState<ActiveBill[]>([]);
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [tableLabel, setTableLabel] = useState('');
-  const [billProductId, setBillProductId] = useState('');
   const [billPaymentAmount, setBillPaymentAmount] = useState('');
   const [billPaymentTip, setBillPaymentTip] = useState('');
   const [billDiscount, setBillDiscount] = useState('');
@@ -209,9 +208,8 @@ export function RestaurantPOS() {
     }
   };
 
-  const addBillProduct = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedBillId || !billProductId || billBusy || billActionInProgress.current) return;
+  const addProductToBill = async (productId: string) => {
+    if (!selectedBillId || !productId || billBusy || billActionInProgress.current) return;
     billActionInProgress.current = true;
     setBillBusy(true);
     setError('');
@@ -220,12 +218,11 @@ export function RestaurantPOS() {
       const response = await fetch(`/api/pos/bills/${selectedBillId}/items`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ productId: billProductId, quantity: 1 })
+        body: JSON.stringify({ productId, quantity: 1 })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Le produit n’a pas pu être ajouté.');
       await refreshBills();
-      setBillProductId('');
       setMessage('Produit ajouté à l’addition.');
     } catch (addError) {
       setError(addError instanceof Error ? addError.message : 'Le produit n’a pas pu être ajouté.');
@@ -857,13 +854,12 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
             </article>)}
             {selectedBill.bill_items.length === 0 && <p className="pos-empty-hint">{isArabic ? 'أضف منتجات إلى هذه الإضافة.' : 'Ajoutez des produits pour commencer cette addition.'}</p>}
           </div>
-          <form className="pos-product-form" onSubmit={addBillProduct}>
-            <label>{isArabic ? 'إضافة منتج' : 'Ajouter un produit'}<select required value={billProductId} onChange={event => setBillProductId(event.target.value)}>
-              <option value="">{isArabic ? 'اختر منتجاً' : 'Choisir un produit'}</option>
-              {catalog.products.filter(product => product.active).map(product => <option key={product.id} value={product.id}>{product.name} · {money(product.price_dzd, locale)}</option>)}
-            </select></label>
-            <button className="pos-checkout-button" type="submit" disabled={billBusy || !billProductId}><Plus size={17} />{isArabic ? 'إضافة' : 'Ajouter à la table'}</button>
-          </form>
+          <div className="pos-product-form">
+            <h3>{isArabic ? 'إضافة منتج' : 'Ajouter un produit'}</h3>
+            <div className="pos-tile-grid">
+              {catalog.products.filter(product => product.active).map(product => <button key={product.id} type="button" className="pos-product-tile" disabled={billBusy} onClick={() => void addProductToBill(product.id)}><strong>{product.name}</strong><small>{money(product.price_dzd, locale)}</small></button>)}
+            </div>
+          </div>
           <div className="pos-ticket-total"><span>{isArabic ? 'المجموع' : 'Total'}</span><strong>{money(selectedBillTotal, locale)}</strong></div>
           {Number(selectedBill.discount_dzd) > 0 && <div className="pos-ticket-total"><span>{isArabic ? 'خصم' : 'Dont remise'}</span><strong>- {money(Number(selectedBill.discount_dzd), locale)}</strong></div>}
           {catalog.role === 'restaurant_admin' && <form className="pos-product-form" onSubmit={event => { event.preventDefault(); void applyBillDiscount(selectedBill); }}>
