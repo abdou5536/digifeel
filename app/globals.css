@@ -1646,6 +1646,7 @@ html[dir="rtl"] .next-app .next-team-art { direction:ltr; }
 }
 
 /* Caisse restaurant */
+.pos-shortcuts { margin:.5rem 0 0; font-size:.75rem; opacity:.65; }
 .pos-license { margin:0; padding:.6rem 1rem; text-align:center; font-weight:600; color:#1c1500; background:#f5c451; }
 .pos-license--expired { color:#fff; background:#b3261e; }
 .pos-shell { width:min(100% - 2rem, 92rem); min-height:100svh; margin-inline:auto; padding:1rem 0 2rem; color:#f2f1ec; }

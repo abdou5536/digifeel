@@ -670,6 +670,37 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
     }
   };
 
+  const shortcutsRef = useRef<() => ((event: KeyboardEvent) => void)>(() => () => undefined);
+  shortcutsRef.current = () => (event: KeyboardEvent) => {
+    if (!catalog) return;
+    const target = event.target as HTMLElement | null;
+    const typing = Boolean(target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)));
+    if (event.ctrlKey && event.key === 'Enter') {
+      if (activeTab === 'cashier' && cart.length > 0 && !busy) { event.preventDefault(); void saveSale(); }
+      return;
+    }
+    if (!event.altKey || event.ctrlKey || event.metaKey || typing) return;
+    const tabs = ['cashier', 'tables', 'history', 'products'] as const;
+    const tabIndex = ['1', '2', '3', '4'].indexOf(event.key);
+    if (tabIndex >= 0) {
+      const next = tabs[tabIndex];
+      if (next === 'products' && catalog.role !== 'restaurant_admin') return;
+      event.preventDefault();
+      setActiveTab(next);
+      return;
+    }
+    const key = event.key.toLowerCase();
+    if (activeTab !== 'cashier') return;
+    if (key === 'e') { event.preventDefault(); setPaymentMethod('cash'); }
+    else if (key === 'c') { event.preventDefault(); setPaymentMethod('card'); }
+    else if (key === 'b' && currency === 'DZD') { event.preventDefault(); setPaymentMethod('baridimob'); }
+  };
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => shortcutsRef.current()(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
+
   if (unconfigured) {
     return <main className="pos-shell">
       <header className="pos-topbar"><Link href="/" className="pos-brand"><span className="pos-brand-mark"><ChefHat /></span>DIGIFEEL POS</Link><div className="pos-topbar__actions"><ThemePicker locale={locale} compact /><button className="pos-language" onClick={toggleLocale} type="button">{locale === 'fr' ? 'العربية' : locale === 'ar' ? 'EN' : 'FR'}</button></div></header>
@@ -751,7 +782,8 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
             {currency === 'DZD' && <button type="button" className={paymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={paymentMethod === 'baridimob'} onClick={() => setPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>}
           </fieldset>
           {paymentMethod !== 'cash' && <label className="pos-reference">{isArabic ? 'مرجع الدفع (اختياري)' : 'Référence de paiement (facultatif)'}<input maxLength={120} value={paymentReference} onChange={event => setPaymentReference(event.target.value)} placeholder={isArabic ? 'رقم العملية' : 'N° de transaction'} /></label>}
-          <button className="pos-checkout-button" type="button" disabled={cart.length === 0 || busy} onClick={() => void saveSale()}>{busy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : <><Check size={18} />{isArabic ? 'تسجيل البيع' : 'Enregistrer la vente'}</>}</button>
+          <button className="pos-checkout-button" type="button" title="Ctrl + Entrée" disabled={cart.length === 0 || busy} onClick={() => void saveSale()}>{busy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : <><Check size={18} />{isArabic ? 'تسجيل البيع' : 'Enregistrer la vente'}</>}</button>
+          <p className="pos-shortcuts">{isArabic ? 'Alt+1…4 الأقسام · Alt+E/C/B الدفع · Ctrl+Enter تسجيل' : 'Alt+1…4 onglets · Alt+E espèces · Alt+C carte · Alt+B BaridiMob · Ctrl+Entrée enregistrer'}</p>
           {paymentMethod !== 'cash' && <p className="pos-payment-note">{paymentMethod === 'card'
             ? (isArabic ? 'تحقق من الدفع على جهاز الدفع البنكي قبل تسجيل البيع.' : 'Vérifiez le paiement sur le terminal bancaire avant d’enregistrer la vente.')
             : (isArabic ? 'تحقق من تحويل BaridiMob خارج التطبيق قبل تسجيل البيع.' : 'Vérifiez le virement BaridiMob en dehors de l’application avant d’enregistrer la vente.')}</p>}
