@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import Link from 'next/link';
 import { ArrowDownToLine, Check, ChefHat, CircleDollarSign, CreditCard, Minus, Plus, Printer, ReceiptText, RefreshCw, ShoppingBag, Table2, Wifi, WifiOff } from 'lucide-react';
 import { useLanguage } from './LanguageProvider';
+import { paperCss, readPaperWidth } from '@/src/lib/pos/printer-settings';
 import { ThemePicker } from './ThemePicker';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
@@ -428,7 +429,7 @@ export function RestaurantPOS() {
     const vat = vatBp > 0 ? Math.round(total * vatBp / (10000 + vatBp)) : 0;
     const lines = bill.bill_items.map(item => `<tr><td>${item.quantity} × ${esc(item.product_name)}</td><td class="r">${fmt(Number(item.line_total_dzd))}</td></tr>`).join('');
     popup.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Addition ${esc(bill.table_label)}</title>
-<style>body{font-family:Arial,sans-serif;font-size:13px;margin:16px;color:#000;max-width:320px}h1{font-size:16px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:10px}td{padding:3px 0}.r{text-align:right}.sep td{border-top:1px dashed #666}.tot td{font-weight:bold;border-top:2px solid #000}</style></head><body>
+<style>${paperCss(readPaperWidth())}body{font-family:Arial,sans-serif;font-size:13px;color:#000}h1{font-size:16px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:10px}td{padding:3px 0}.r{text-align:right}.sep td{border-top:1px dashed #666}.tot td{font-weight:bold;border-top:2px solid #000}</style></head><body>
 <h1>${esc(catalog?.restaurant.name ?? 'Digifeel')}</h1><div>Table ${esc(bill.table_label)}</div><div>${esc(new Date().toLocaleString('fr-FR'))}</div>
 <table>${lines}
 <tr class="sep"><td>Sous-total</td><td class="r">${fmt(subtotal)}</td></tr>
