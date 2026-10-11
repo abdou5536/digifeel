@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
     });
     if (error) {
       console.error('POS sale could not be saved.', error);
+      if (error.code === 'DF402') {
+        return NextResponse.json({ error: 'Abonnement expiré : renouvelez votre licence pour continuer à encaisser.' }, { status: 402 });
+      }
       const status = error.code === '42501' ? 403
         : error.code === '23505' ? 409
           : error.code === '22023' ? 409
