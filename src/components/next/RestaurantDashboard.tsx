@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { SetupChecklist } from './SetupChecklist';
 import Link from 'next/link';
 import { ArrowLeft, Download, LogOut, Star, Users } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
@@ -268,6 +269,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
           <p className="next-muted">Statut de l’abonnement : {data.subscription?.status ?? 'non actif'}.</p>
         </section>
       ) : <>
+        {!demo && data.role === 'restaurant_admin' && <SetupChecklist googleLinkSet={Boolean(data.restaurant.google_review_url)} tableCount={data.tableNumbers?.length ?? 0} />}
         <div className="next-dashboard-toolbar">
           <label className="next-period-picker">Période
             <select value={periodDays} onChange={event => setPeriodDays(Number(event.target.value))}>
@@ -372,7 +374,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                 {notice && <p className="next-muted" role="status">{notice}</p>}
               </form>
             </section>}
-            {data.role === 'restaurant_admin' && <section className="next-glass-card next-surface-card">
+            {data.role === 'restaurant_admin' && <section id="reglages" className="next-glass-card next-surface-card">
               <h2>Réglages du restaurant</h2>
               {!demo ? <form className="next-form" onSubmit={saveSettings}>
                 <label>Nom du restaurant<input required minLength={2} maxLength={120} value={restaurantName} onChange={event => setRestaurantName(event.target.value)} /></label>
