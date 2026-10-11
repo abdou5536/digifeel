@@ -14,6 +14,22 @@ export function clientIp(request: NextRequest): string {
   return 'unknown-ip';
 }
 
+export function isSameOriginRequest(request: NextRequest): boolean {
+  let expectedOrigin = '';
+  try {
+    expectedOrigin = process.env.APP_ORIGIN
+      ? new URL(process.env.APP_ORIGIN).origin
+      : process.env.NODE_ENV === 'production' ? '' : request.nextUrl.origin;
+    const originHeader = request.headers.get('origin');
+    const requestOrigin = originHeader ? new URL(originHeader).origin : null;
+    return Boolean(expectedOrigin) &&
+      (!requestOrigin || requestOrigin === expectedOrigin) &&
+      (Boolean(requestOrigin) || process.env.NODE_ENV !== 'production');
+  } catch {
+    return false;
+  }
+}
+
 export function hashRequestDevice(request: NextRequest, deviceId: unknown) {
   const pepper = process.env.RATE_LIMIT_PEPPER;
   if (!pepper || pepper.length < 32) {

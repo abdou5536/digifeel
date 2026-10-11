@@ -1,12 +1,11 @@
 import { RestaurantPOS } from '@/src/components/next/RestaurantPOS';
 import { PendingGuestPayments } from '@/src/components/next/PendingGuestPayments';
 
-export default async function CashierPage({ searchParams }: { searchParams: Promise<{ demo?: string }> }) {
-  const { demo } = await searchParams;
+export default function CashierPage() {
   return (
     <>
-      <RestaurantPOS demo={demo === '1'} />
-      {!demo && <PendingGuestPayments />}
+      <RestaurantPOS />
+      <PendingGuestPayments />
     </>
   );
 }

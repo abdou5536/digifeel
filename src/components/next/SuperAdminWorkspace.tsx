@@ -2,20 +2,21 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Building2, Check, CircleAlert, CreditCard, Download, FileDown, KeyRound, Plus, QrCode, ShieldAlert, Star, Tags, TrendingUp, Users, UserRound } from 'lucide-react';
+import { ArrowLeft, Building2, Check, CircleAlert, CreditCard, Download, FileDown, KeyRound, Plus, QrCode, ShieldAlert, Star, TrendingUp, Users, UserRound } from 'lucide-react';
 import QRCode from 'qrcode';
 import { PwaInstallButton } from './PwaInstallButton';
 import {
-  assignTagToTable, createRestaurant, createTagBatch, getPackPrices, getRestaurantData, recordResellerPlatformPayment,
-  getSuperAdminOverview, setPackPrices, setSubscriptionStatus, subscribeRestaurantData,
+  assignTagToTable, createRestaurant, createTagBatch, getRestaurantData, recordResellerPlatformPayment,
+  getSuperAdminOverview, setSubscriptionStatus, subscribeRestaurantData,
   type RestaurantData, type Tag as RestaurantTag
 } from '@/src/services/restaurant';
 import { paymentProvider, type PaymentMethod } from '@/src/services/paymentProvider';
+import { PRODUCT_PRICING } from '@/src/config/product';
 import { ThemePicker } from './ThemePicker';
 import { StarBonusAdminPanel } from './StarBonusAdminPanel';
 import { ResellerAdminPanel } from './ResellerAdminPanel';
 
-type AdminTab = 'overview' | 'restaurants' | 'chips' | 'subscriptions' | 'packs' | 'referrals' | 'starBonus' | 'resellers';
+type AdminTab = 'overview' | 'restaurants' | 'chips' | 'subscriptions' | 'referrals' | 'starBonus' | 'resellers';
 
 function saveBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -34,12 +35,12 @@ export function SuperAdminWorkspace() {
   const [tab, setTab] = useState<AdminTab>('overview');
   const [data, setData] = useState<RestaurantData | null>(null);
   const [overview, setOverview] = useState<Awaited<ReturnType<typeof getSuperAdminOverview>> | null>(null);
-  const [prices, setPrices] = useState<number[]>([100, 90, 60]);
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [resellerCode, setResellerCode] = useState('');
   const [currency, setCurrency] = useState<'EUR' | 'DZD'>('DZD');
-  const [pack, setPack] = useState(100);
+  const [tableCount, setTableCount] = useState(1);
+  const [includeNfc, setIncludeNfc] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('simulation');
   const [chipCount, setChipCount] = useState('12');
   const [generatedTags, setGeneratedTags] = useState<RestaurantTag[]>([]);
@@ -50,10 +51,9 @@ export function SuperAdminWorkspace() {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [nextData, nextOverview, nextPrices] = await Promise.all([getRestaurantData(), getSuperAdminOverview(), getPackPrices()]);
+    const [nextData, nextOverview] = await Promise.all([getRestaurantData(), getSuperAdminOverview()]);
     setData(nextData);
     setOverview(nextOverview);
-    setPrices(nextPrices);
   }, []);
 
   useEffect(() => {
@@ -87,16 +87,21 @@ export function SuperAdminWorkspace() {
     event.preventDefault();
     const selectedCurrency = currency;
     await action(async () => {
-      const result = await paymentProvider.charge({ amount: pack, currency: 'EUR', method: paymentMethod, description: 'Pack installation Digifeel' });
-      const created = await createRestaurant({ name, city, currency: selectedCurrency, packPrice: pack, resellerCode });
+      const installationTotal = tableCount * PRODUCT_PRICING.installationPricePerTableEuros;
+      const result = await paymentProvider.charge({ amount: installationTotal, currency: 'EUR', method: paymentMethod, description: `Installation QR · ${tableCount} table(s)` });
+      const created = await createRestaurant({ name, city, currency: selectedCurrency, installationAmountEUR: installationTotal, tableCount, resellerCode });
       await recordResellerPlatformPayment({
-        restaurantId: created.restaurant.id, amountEUR: pack, kind: 'installation',
+        restaurantId: created.restaurant.id, amountEUR: installationTotal, kind: 'installation',
         reference: result.reference, status: result.status === 'paid' ? 'validated' : 'pending'
       });
-      setNotice(result.status === 'pending_manual' ? `Restaurant créé. Paiement en attente de validation · ${result.reference}` : `Restaurant créé. Pack simulé payé · ${result.reference}`);
+      setNotice(result.status === 'pending_manual'
+        ? `Restaurant créé pour ${tableCount} table(s). Total : ${installationTotal} € · ${includeNfc ? 'NFC sur devis séparé. ' : ''}${result.reference}`
+        : `Restaurant créé pour ${tableCount} table(s). Installation : ${installationTotal} € · ${includeNfc ? 'NFC sur devis séparé. ' : ''}${result.reference}`);
       setName('');
       setCity('');
       setResellerCode('');
+      setTableCount(1);
+      setIncludeNfc(false);
     }, 'Restaurant créé et mois offert activé.');
   };
 
@@ -106,11 +111,6 @@ export function SuperAdminWorkspace() {
     await action(async () => {
       setGeneratedTags(await createTagBatch(null, count));
     }, `${count} puces générées.`);
-  };
-
-  const savePrices = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await action(() => setPackPrices(prices), 'Les prix des packs ont été enregistrés.');
   };
 
   const selectDomain = () => {
@@ -227,7 +227,6 @@ export function SuperAdminWorkspace() {
     { id: 'restaurants', label: 'Restaurants', icon: Building2 },
     { id: 'chips', label: 'Puces & lots', icon: QrCode },
     { id: 'subscriptions', label: 'Abonnements', icon: CreditCard },
-    { id: 'packs', label: 'Prix des packs', icon: Tags },
     { id: 'referrals', label: 'Parrainages', icon: Users },
     { id: 'starBonus', label: 'Étoiles & primes', icon: Star },
     { id: 'resellers', label: 'Revendeurs', icon: UserRound }
@@ -272,7 +271,9 @@ export function SuperAdminWorkspace() {
               <label>Nom du restaurant<input required minLength={2} value={name} onChange={event => setName(event.target.value)} placeholder="Ex. Le Patio d’Alger" /></label>
               <label>Ville<input value={city} onChange={event => setCity(event.target.value)} placeholder="Alger" /></label>
               <label>Code revendeur (facultatif)<input value={resellerCode} maxLength={40} onChange={event => setResellerCode(event.target.value.toUpperCase())} placeholder="DGF-AGENT-…" /></label>
-              <div className="workspace-form-row"><label>Devise<select value={currency} onChange={event => setCurrency(event.target.value as 'EUR' | 'DZD')}><option value="DZD">DZD · Algérie</option><option value="EUR">EUR · France</option></select></label><label>Pack d’installation<select value={pack} onChange={event => setPack(Number(event.target.value))}>{prices.map(price => <option key={price} value={price}>{formatAdminMoney(price, 'EUR')}</option>)}</select></label></div>
+              <div className="workspace-form-row"><label>Devise<select value={currency} onChange={event => setCurrency(event.target.value as 'EUR' | 'DZD')}><option value="DZD">DZD · Algérie</option><option value="EUR">EUR · France</option></select></label><label>Nombre de tables<input type="number" min="1" max="500" required value={tableCount} onChange={event => setTableCount(Math.max(1, Number(event.target.value) || 1))} /></label></div>
+              <p className="workspace-muted">Installation QR : {tableCount} × {PRODUCT_PRICING.installationPricePerTableEuros} € = {formatAdminMoney(tableCount * PRODUCT_PRICING.installationPricePerTableEuros, 'EUR')}. NFC serveur facultatif, sur devis séparé.</p>
+              <label><input type="checkbox" checked={includeNfc} onChange={event => setIncludeNfc(event.target.checked)} /> Demander un devis séparé pour les puces NFC des serveurs</label>
               <label>Mode de paiement (simulation)<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value as PaymentMethod)}><option value="simulation">Paiement de démonstration</option><option value="local_manual">Paiement local à valider</option></select></label>
               <button className="workspace-primary-button" type="submit" disabled={busy}><Plus size={17} />Créer · 1er mois offert</button><p className="workspace-muted">Le compte démo est créé localement. Aucun règlement réel n’est effectué.</p>
             </form>
@@ -291,7 +292,6 @@ export function SuperAdminWorkspace() {
 
           {tab === 'subscriptions' && data && <article className="workspace-panel workspace-admin-list"><div className="workspace-panel-heading"><div><span className="workspace-eyebrow">Cycle mensuel</span><h3>État des abonnements</h3></div><CreditCard /></div><div className="workspace-admin-table workspace-subscriptions-table"><div><span>Restaurant</span><span>État</span><span>Fin du mois offert</span><span>Action</span></div>{data.restaurants.map(restaurant => <div key={restaurant.id}><strong>{restaurant.name}</strong><span className={`workspace-subscription-pill is-${restaurant.subscriptionStatus}`}>{restaurant.subscriptionStatus === 'trialing' ? 'Mois offert' : restaurant.subscriptionStatus === 'active' ? 'Actif' : 'Suspendu'}</span><span>{new Date(restaurant.trialEndsAt).toLocaleDateString('fr-FR')}</span><select aria-label={`Abonnement ${restaurant.name}`} value={restaurant.subscriptionStatus} onChange={event => void action(() => setSubscriptionStatus(restaurant.id, event.target.value as typeof restaurant.subscriptionStatus), 'Statut d’abonnement modifié.')}><option value="trialing">Premier mois offert</option><option value="active">Activer</option><option value="suspended">Suspendre</option></select></div>)}</div></article>}
 
-          {tab === 'packs' && <form className="workspace-panel workspace-pack-prices" onSubmit={savePrices}><div className="workspace-panel-heading"><div><span className="workspace-eyebrow">Offres d’installation</span><h3>Tarifs modifiables</h3></div><Tags /></div><p className="workspace-muted">Tarifs indicatifs du pack d’installation. Le premier mois d’abonnement est offert.</p><div className="workspace-pack-grid">{prices.map((price, index) => <label key={index}><span>Pack {index + 1}</span><div><input type="number" min="0" value={price} onChange={event => setPrices(current => current.map((item, itemIndex) => itemIndex === index ? Number(event.target.value) : item))} /><b>EUR</b></div></label>)}</div><button type="submit" className="workspace-primary-button" disabled={busy}>Enregistrer les tarifs</button></form>}
           {tab === 'referrals' && data && <article className="workspace-panel workspace-admin-list"><div className="workspace-panel-heading"><div><span className="workspace-eyebrow">Réseau Digifeel</span><h3>Parrainages récompensés · {data.referrals.length}</h3></div><Users /></div>{data.referrals.length === 0 ? <p className="workspace-muted">Aucun parrainage confirmé. Les parrainages validés apparaîtront ici.</p> : <div className="workspace-admin-table"><div><span>Restaurant parrain</span><span>Code</span><span>Nouveau restaurant</span><span>État</span><span>Date</span></div>{data.referrals.map(referral => <div key={referral.id}><strong>{data.restaurants.find(item => item.id === referral.referrerRestaurantId)?.name ?? 'Compte supprimé'}</strong><span>{referral.code}</span><span>{data.restaurants.find(item => item.id === referral.referredRestaurantId)?.name ?? 'Compte supprimé'}</span><span>{referral.status === 'rewarded' ? 'Récompensé' : referral.status}</span><span>{new Date(referral.rewardedAt).toLocaleDateString('fr-FR')}</span></div>)}</div>}</article>}
         </section>
       </section>

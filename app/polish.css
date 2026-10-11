@@ -186,6 +186,11 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 .pos-day-summary strong { color: var(--df-text); font-size: 1.05rem; }
 .pos-day-summary__voided { color: var(--df-danger); }
 .pos-sales-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: .75rem; }
+.pos-tab-selector { display: flex; min-height: 3.4rem; align-items: center; justify-content: space-between; gap: .8rem; padding: .75rem 1rem; border: 1px solid var(--pl-hairline); border-radius: .8rem; background: var(--df-surface); color: var(--df-text); text-align: start; cursor: pointer; }
+.pos-tab-selector:hover, .pos-tab-selector.is-active { border-color: var(--pl-accent-line); background: var(--pl-accent-soft); }
+.pos-tab-selector span { color: var(--df-text-muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.pos-history-page > .pos-product-form { margin: 0 0 1rem; }
+.pos-history-page > .pos-ticket-panel { position: static; max-height: none; margin-top: 1rem; }
 .pos-sale-card { border-color: var(--pl-hairline); border-radius: 1rem; transition: border-color var(--pl-base) ease, transform var(--pl-fast) var(--pl-ease); }
 .pos-sale-card:hover { border-color: var(--pl-hairline-strong); transform: translateY(-1px); }
 .pos-sale-card.is-voided { opacity: .6; border-color: var(--df-danger); }

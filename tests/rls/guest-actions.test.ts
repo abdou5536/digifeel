@@ -34,15 +34,20 @@ describe('actions publiques des additions de table', () => {
     const db = await createDb();
     await seed(db);
     try {
-      const { billId, token } = await openTableBill(db);
+      const { billId, token, code } = await openTableBill(db);
+      await db.query(
+        `update public.restaurants set baridimob_rip = '007999990000000000000000' where id = $1`,
+        [ids.restA]
+      );
       const key = crypto.randomUUID();
       const request = `select public.request_guest_payment($1, 2400, 0, 'baridimob', $2) as id`;
       const first = await query(db, 'anon', request, [token, key]);
       const second = await query(db, 'anon', request, [token, key]);
-      expect(first.ok).toBe(true);
+      expect(first.ok, String(first.error)).toBe(true);
       expect(second.rows[0].id).toBe(first.rows[0].id);
       const bill = await query(db, 'anon', `select public.guest_get_bill($1) as bill`, [token]);
       expect((bill.rows[0].bill as { pending_dzd: number }).pending_dzd).toBe(2400);
+      expect((bill.rows[0].bill as { baridimob_rip: string }).baridimob_rip).toBe('007999990000000000000000');
 
       const paymentId = first.rows[0].id as string;
       expect((await query(db, 'kitchenA', `select public.confirm_guest_payment($1)`, [paymentId])).ok).toBe(false);
@@ -52,6 +57,10 @@ describe('actions publiques des additions de table', () => {
       const paidBill = await db.query<{ status: string }>(`select status from public.bills where id = $1`, [billId]);
       expect(payment.rows[0].status).toBe('succeeded');
       expect(paidBill.rows[0].status).toBe('paid');
+      const { rows: newSession } = await query(db, 'anon',
+        `select public.open_guest_session($1) as token`, [code]);
+      const paidBillView = await query(db, 'anon', `select public.guest_get_bill($1) as bill`, [newSession[0].token]);
+      expect((paidBillView.rows[0].bill as { paid_dzd: number }).paid_dzd).toBe(2400);
       expect((await query(db, 'anon',
         `select public.submit_guest_review($1, 5, 'Avis après paiement', $2, null)`, [token, DEVICE_HASH])).ok).toBe(true);
     } finally {
@@ -69,9 +78,20 @@ describe('actions publiques des additions de table', () => {
       expect((await query(db, 'anon',
         `select public.request_guest_payment($1, 2000, 0, 'cash', 'guest-key-004')`, [token])).ok).toBe(true);
       expect((await query(db, 'anon',
-        `select public.request_guest_payment($1, 500, 0, 'cash', 'guest-key-005')`, [token])).ok).toBe(false);
+        `select public.request_guest_payment($1, 100, 0, 'baridimob', 'guest-key-005')`, [token])).ok).toBe(false);
+      const stripe = await query(db, 'anon',
+        `select public.request_guest_payment($1, 100, 0, 'stripe', 'guest-key-002') as id`, [token]);
+      expect(stripe.ok).toBe(true);
+      const paymentId = stripe.rows[0].id as string;
       expect((await query(db, 'anon',
-        `select public.request_guest_payment($1, 100, 0, 'stripe', 'guest-key-002')`, [token])).ok).toBe(false);
+        `select public.request_guest_payment($1, 100, 0, 'stripe', 'guest-key-002') as id`, [token])).rows[0].id).toBe(paymentId);
+      await db.query(`select public.settle_provider_payment('evt_test_guest_stripe', $1, 'succeeded')`, [paymentId]);
+      const stripePayment = await db.query<{ method: string; status: string }>(
+        `select method, status from public.payments where id = $1`, [paymentId]
+      );
+      expect(stripePayment.rows[0]).toEqual({ method: 'stripe', status: 'succeeded' });
+      expect((await query(db, 'anon',
+        `select public.request_guest_payment($1, 500, 0, 'cash', 'guest-key-006')`, [token])).ok).toBe(false);
       expect((await query(db, 'anon',
         `select public.request_guest_payment('invalid', 100, 0, 'cash', 'guest-key-003')`)).ok).toBe(false);
     } finally {

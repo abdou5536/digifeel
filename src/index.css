@@ -3894,6 +3894,11 @@ body:has(.product-shell) {
   padding-top: 1rem;
 }
 
+.marketing-pricing > .pricing-card--featured {
+  width: min(100%, 48rem);
+  margin-inline: auto;
+}
+
 .marketing-pricing__summary,
 .pricing-grid {
   display: grid;
@@ -3971,8 +3976,34 @@ body:has(.product-shell) {
   color: var(--product-green);
 }
 
+.pricing-card__list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.pricing-card__list-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--product-ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.pricing-card__list-item svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: var(--product-green);
+}
+
 .pricing-card > .product-button {
   margin-top: auto;
+}
+
+.pricing-card--landing {
+  gap: 0;
 }
 
 .marketing-pricing__summary .pricing-card {

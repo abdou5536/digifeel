@@ -1,12 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Building2, Check, CircleHelp, Coins, FileSpreadsheet, LayoutDashboard, QrCode, Radio, ShoppingCart, Star, Users } from 'lucide-react';
-import Lenis from 'lenis';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { INSTALLATION_PACKS, PRODUCT_PRICING } from '@/src/config/product';
+import { PRODUCT_PRICING } from '@/src/config/product';
 import { useLanguage } from './LanguageProvider';
 import { SiteHeader } from './SiteHeader';
 import { ImmersiveBackground } from './ImmersiveBackground';
@@ -57,33 +54,6 @@ function HeroMockupCard() {
 
 export function PublicExperience() {
   const { locale, text } = useLanguage();
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    gsap.registerPlugin(ScrollTrigger);
-    const lenis = new Lenis({ duration: 1.1, smoothWheel: true, anchors: true });
-    const onFrame = (time: number) => lenis.raf(time * 1000);
-    const onScroll = () => ScrollTrigger.update();
-    gsap.ticker.add(onFrame);
-    lenis.on('scroll', onScroll);
-    const context = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>('[data-next-reveal]').forEach(element => {
-        gsap.fromTo(element, { autoAlpha: 0, y: 24 }, {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.7,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: element, start: 'top 86%', once: true }
-        });
-      });
-    });
-    return () => {
-      context.revert();
-      lenis.off('scroll', onScroll);
-      lenis.destroy();
-      gsap.ticker.remove(onFrame);
-    };
-  }, []);
 
   return (
     <div className="product-shell immersive-site next-app">
@@ -215,36 +185,39 @@ export function PublicExperience() {
         <section className="next-section" id="tarifs">
           <div className="next-section-heading" data-next-reveal>
             <span>{text('navPricing')}</span>
-            <h2>{text('pricingTitle')}</h2>
-            <p>{text('pricingText')}</p>
+            <h2>{locale === 'ar' ? 'تسعيرة واضحة لكل طاولة' : 'Une offre simple pour votre restaurant'}</h2>
+            <p>{locale === 'ar'
+              ? `رمز QR لكل طاولة مقابل ${PRODUCT_PRICING.installationPricePerTableEuros} يورو مرة واحدة. قائمتان مجانيتان بالذكاء الاصطناعي، ثم ${PRODUCT_PRICING.monthlySubscriptionEuros} يورو شهرياً للمساعد الذكي.`
+              : `Un QR code de table coûte ${PRODUCT_PRICING.installationPricePerTableEuros} €, une fois. Deux menus IA sont offerts, puis l’assistant de gestion et de comptabilité est à ${PRODUCT_PRICING.monthlySubscriptionEuros} €/mois.`}</p>
           </div>
           <div className="next-pack-grid">
-            {INSTALLATION_PACKS.map(pack => {
-              const packName = locale === 'ar'
-                ? pack.id === 'nfc' ? 'حزمة NFC' : pack.id === 'qr' ? 'حزمة QR' : 'الحزمة الكاملة'
-                : pack.name;
-              const features = locale === 'ar'
-                ? pack.id === 'nfc'
-                  ? ['5 شرائح NFC مخصصة', 'رابط مباشر إلى Google', 'إرشادات التركيب']
-                  : pack.id === 'qr'
-                    ? ['رمز QR فريد لكل طاولة', 'حوامل للطاولات', 'رابط مباشر إلى Google']
-                    : ['5 شرائح NFC مخصصة', 'رموز QR للطاولات', 'مساعدة في التركيب']
-                : pack.features;
-              const summary = locale === 'ar'
-                ? pack.id === 'nfc' ? '5 شرائح جاهزة للتركيب' : pack.id === 'qr' ? 'رموز QR لجميع الطاولات' : 'NFC وQR لمطعمك بالكامل'
-                : pack.summary;
-              return <article className={`next-glass-card next-pack-card ${pack.id === 'complete' ? 'next-pack-card--featured' : ''}`} data-next-reveal key={pack.id}>
-                <span className="next-kicker">{packName}</span>
-                <strong className="next-pricing__amount">{pack.priceEuros} <small>€ · {locale === 'ar' ? 'مرة واحدة' : 'une fois'}</small></strong>
-                <p className="next-pack-card__summary">{summary}</p>
-                <ul>{features.map(feature => <li key={feature}><Check aria-hidden="true" />{feature}</li>)}</ul>
-                <Link className={`product-button ${pack.id === 'complete' ? '' : 'product-button--secondary'}`} href="/login">{locale === 'ar' ? 'إنشاء حساب المطعم' : 'Créer un compte restaurant'} <ArrowRight aria-hidden="true" /></Link>
-              </article>;
-            })}
+            <article className="next-glass-card next-pack-card next-pack-card--featured" data-next-reveal>
+              <span className="next-kicker">{locale === 'ar' ? 'التركيب لكل طاولة' : 'Installation par table'}</span>
+              <strong className="next-pricing__amount">{PRODUCT_PRICING.installationPricePerTableEuros} <small>€ / {locale === 'ar' ? 'طاولة' : 'table'}</small></strong>
+              <p className="next-pack-card__summary">{locale === 'ar' ? 'رمز QR مخصص لكل طاولة. احسب التكلفة حسب عدد الطاولات.' : 'Un QR code unique par table. Le total dépend du nombre de tables à équiper.'}</p>
+              <ul>
+                <li><Check aria-hidden="true" />{locale === 'ar' ? 'رمز QR لكل طاولة' : 'QR code pour chaque table'}</li>
+                <li><Radio aria-hidden="true" />{locale === 'ar' ? 'شرائح NFC اختيارية للنادل، بسعر يتم الاتفاق عليه' : 'Puces NFC pour les serveurs en option, sur devis'}</li>
+              </ul>
+              <Link className="product-button" href="/login">{locale === 'ar' ? 'تواصل معنا' : 'Demander une installation'} <ArrowRight aria-hidden="true" /></Link>
+            </article>
+            <article className="next-glass-card next-pack-card" data-next-reveal>
+              <span className="next-kicker">{locale === 'ar' ? 'مساعد الذكاء الاصطناعي' : 'Assistant IA restaurant'}</span>
+              <strong className="next-pricing__amount">{PRODUCT_PRICING.monthlySubscriptionEuros} <small>€ / {locale === 'ar' ? 'شهر' : 'mois'}</small></strong>
+              <p className="next-pack-card__summary">{locale === 'ar'
+                ? 'أنشئ قائمتين مجاناً، ثم اشترك لاستخدام مساعد إدارة المبيعات.'
+                : `Deux menus web avec lien et QR code sont offerts. L’abonnement donne accès aux synthèses IA des ventes et aux fonctions de gestion.`}</p>
+              <ul>
+                <li><Check aria-hidden="true" />{locale === 'ar' ? 'قائمتان مجاناً مع رابط ورمز QR' : `${PRODUCT_PRICING.freeAiMenuGenerations} menus créés gratuitement avec lien et QR code`}</li>
+                <li><Check aria-hidden="true" />{locale === 'ar' ? 'ملخصات ذكية للمبيعات المسجلة' : 'Synthèses IA des ventes et annulations déjà enregistrées'}</li>
+                <li><Check aria-hidden="true" />{locale === 'ar' ? 'إدارة الاشتراك عبر Stripe' : 'Sans période d’essai · résiliation via Stripe'}</li>
+              </ul>
+              <Link className="product-button" href="/login">{locale === 'ar' ? 'تسجيل الدخول للاشتراك' : 'Se connecter pour souscrire'} <ArrowRight aria-hidden="true" /></Link>
+            </article>
           </div>
           <p className="next-pricing-note">{locale === 'ar'
-            ? `لوحة التحكم اختيارية: ${PRODUCT_PRICING.monthlySubscriptionEuros} يورو شهرياً بعد تجربة مجانية لمدة ${PRODUCT_PRICING.subscriptionTrialDays} يوماً.`
-            : `Tableau de bord facultatif : ${PRODUCT_PRICING.monthlySubscriptionEuros} € par mois après ${PRODUCT_PRICING.subscriptionTrialDays} jours offerts.`}</p>
+            ? 'تُعرض وسائل الدفع المتاحة عبر Stripe حسب البلد والجهاز. BaridiMob تحويل يدوي ولا يدعم التجديد التلقائي.'
+            : 'Stripe affiche les moyens de paiement disponibles selon le pays et l’appareil. BaridiMob reste un virement manuel, sans renouvellement automatique.'}</p>
         </section>
 
         <section className="next-section next-faq" id="faq">

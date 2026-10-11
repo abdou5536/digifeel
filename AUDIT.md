@@ -3,6 +3,8 @@
 Date : 2026-10-04 · Branche : `chore/production-readiness-audit`
 Méthode : lecture du code, des migrations SQL, `npm audit`, `curl` sur le serveur local, `git`. Rien n'a été modifié hors ce fichier.
 
+**Mise à jour du 2026-10-10 :** cet audit reste un instantané historique, pas une certification de l'état courant. Depuis, `npm test` (208 tests), `npm run lint` et `npm run build` passent ; trois tests Playwright couvrent l'état de santé, le rendu des pages principales et le téléchargement d'une vidéo portfolio. Des mises à jour compatibles de dépendances ont été appliquées, mais `npm audit` signale encore 20 vulnérabilités (6 hautes), dont 12 en dépendances de production. L'URL `https://digifeel.com/` échoue actuellement à la vérification du certificat TLS ; aucun installateur ne peut être considéré prêt à distribuer tant que ce point et les éléments de production de la section 0 ne sont pas résolus.
+
 Légende état : **NON CONFORME** (problème constaté, preuve donnée) · **PARTIEL** (existe mais incomplet) · **OK (vérifié)** (preuve donnée, sans prétendre à l'exhaustivité) · **NON VÉRIFIABLE** (nécessite une action humaine).
 
 ## 0. Constat structurant (à lire en premier)

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
-import { RESTAURANTS, buildActivity, logoDataUri } from '../../scripts/seed-data.mjs';
+import { RESTAURANTS, buildActivity, logoDataUri } from '../fixtures/restaurantData.mjs';
 import { createDb } from './harness';
 
 async function insert(db: PGlite, table: string, rows: Record<string, unknown>[]) {

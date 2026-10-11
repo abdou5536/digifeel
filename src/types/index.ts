@@ -102,7 +102,7 @@ export interface RestaurantConfig {
   subscriptionStatus?: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
   googlePlaceId?: string;
   appCustomName?: string;
-  setupKitCost: number; // 100
+  setupKitCost: number;
   tableCount: number;
   currency: string;
   baselineRating: number; // Note de départ du restaurant (ex: 2.0★ avant l'installation)

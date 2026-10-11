@@ -1,8 +1,8 @@
 ﻿'use client';
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { ArrowDownToLine, Check, ChefHat, CircleDollarSign, CreditCard, Minus, Plus, Printer, ReceiptText, RefreshCw, ShoppingBag, Wifi, WifiOff } from 'lucide-react';
+import { ArrowDownToLine, Check, ChefHat, CircleDollarSign, CreditCard, Minus, Plus, Printer, ReceiptText, RefreshCw, ShoppingBag, Table2, Wifi, WifiOff } from 'lucide-react';
 import { useLanguage } from './LanguageProvider';
 import { ThemePicker } from './ThemePicker';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
@@ -10,24 +10,30 @@ import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 import { deleteCatalog, deleteLocalSale, loadCatalog, loadLocalSales, saveCatalog, saveLocalSale } from '@/src/lib/pos/offline-store';
 import { totalSaleDzd, type LocalPosSale, type PaymentMethod, type PosCatalog, type PosProduct, type PosSaleLine, type PosSaleRecord } from '@/src/lib/pos/types';
 
-const demoProducts: PosProduct[] = [
-  { id: 'demo-product-1', name: 'Café crème', category: 'Boissons', price_dzd: 180, active: true, updated_at: '' },
-  { id: 'demo-product-2', name: 'Thé à la menthe', category: 'Boissons', price_dzd: 150, active: true, updated_at: '' },
-  { id: 'demo-product-3', name: 'Chakchouka', category: 'Plats', price_dzd: 850, active: true, updated_at: '' },
-  { id: 'demo-product-4', name: 'Couscous maison', category: 'Plats', price_dzd: 1400, active: true, updated_at: '' },
-  { id: 'demo-product-5', name: 'Salade méchouia', category: 'Entrées', price_dzd: 500, active: true, updated_at: '' },
-  { id: 'demo-product-6', name: 'Tiramisu', category: 'Desserts', price_dzd: 450, active: true, updated_at: '' }
-];
-
-const demoCatalog: PosCatalog = {
-  userId: 'demo',
-  restaurant: { id: 'demo-restaurant', name: 'Dar El Bahia' },
-  role: 'restaurant_admin',
-  products: demoProducts
-};
-
 interface CartProduct extends PosSaleLine {
   category: string;
+}
+
+interface ActiveBill {
+  id: string;
+  table_label: string;
+  discount_dzd: number | string;
+  created_at: string;
+  bill_items: Array<{
+    id: string;
+    product_id: string;
+    product_name: string;
+    quantity: number;
+    unit_price_dzd: number;
+    line_total_dzd: number | string;
+  }>;
+  payments: Array<{
+    id: string;
+    amount_dzd: number | string;
+    tip_dzd: number | string;
+    method: string;
+    status: string;
+  }>;
 }
 
 function PrintReset({ onDone }: { onDone: () => void }) {
@@ -62,10 +68,10 @@ function normalizeSale(sale: PosSaleRecord): LocalPosSale {
   };
 }
 
-export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
+export function RestaurantPOS() {
   const { locale, toggleLocale } = useLanguage();
   const isArabic = locale === 'ar';
-  const [catalog, setCatalog] = useState<PosCatalog | null>(demo ? demoCatalog : null);
+  const [catalog, setCatalog] = useState<PosCatalog | null>(null);
   const [unconfigured, setUnconfigured] = useState(false);
   const [cart, setCart] = useState<CartProduct[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -76,7 +82,15 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'cashier' | 'products' | 'history'>('cashier');
+  const [activeTab, setActiveTab] = useState<'cashier' | 'tables' | 'products' | 'history'>('cashier');
+  const [bills, setBills] = useState<ActiveBill[]>([]);
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [tableLabel, setTableLabel] = useState('');
+  const [billProductId, setBillProductId] = useState('');
+  const [billPaymentAmount, setBillPaymentAmount] = useState('');
+  const [billPaymentTip, setBillPaymentTip] = useState('');
+  const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'baridimob'>('cash');
+  const [billBusy, setBillBusy] = useState(false);
   const [productName, setProductName] = useState('');
   const [category, setCategory] = useState('');
   const [productPrice, setProductPrice] = useState('');
@@ -87,17 +101,145 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
   const [restaurantName, setRestaurantName] = useState('');
   const [restaurantAddress, setRestaurantAddress] = useState('');
   const [voidingSaleId, setVoidingSaleId] = useState<string | null>(null);
+  const saleSubmissionInProgress = useRef(false);
+  const billActionInProgress = useRef(false);
 
   const refreshSales = useCallback(async () => {
-    if (demo || !navigator.onLine) return;
+    if (!navigator.onLine) return;
     const response = await fetch('/api/pos/sales?period=today', { cache: 'no-store' });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Historique indisponible.');
     setServerSales((result.sales as PosSaleRecord[]).map(normalizeSale));
-  }, [demo]);
+  }, []);
+
+  const refreshBills = useCallback(async () => {
+    if (!navigator.onLine) return;
+    const response = await fetch('/api/pos/bills', { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Les additions ouvertes n’ont pas pu être chargées.');
+    const nextBills = result.bills as ActiveBill[];
+    setBills(nextBills);
+    setSelectedBillId(current => current && nextBills.some(bill => bill.id === current)
+      ? current
+      : nextBills[0]?.id ?? null);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'tables' && online) void refreshBills().catch(loadError => {
+      setError(loadError instanceof Error ? loadError.message : 'Les additions n’ont pas pu être chargées.');
+    });
+  }, [activeTab, online, refreshBills]);
+
+  const openTableBill = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const label = tableLabel.trim();
+    if (!label || billBusy || billActionInProgress.current) return;
+    if (!online) {
+      setError('L’ouverture des additions par table nécessite une connexion Internet.');
+      return;
+    }
+    const existing = bills.find(bill => bill.table_label.toLocaleLowerCase() === label.toLocaleLowerCase());
+    if (existing) {
+      setSelectedBillId(existing.id);
+      setTableLabel('');
+      setError('');
+      return;
+    }
+    billActionInProgress.current = true;
+    setBillBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch('/api/pos/bills', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ table: label })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'L’addition n’a pas pu être ouverte.');
+      await refreshBills();
+      setSelectedBillId(result.id as string);
+      setTableLabel('');
+      setMessage(`Addition ouverte pour ${label}.`);
+    } catch (openError) {
+      setError(openError instanceof Error ? openError.message : 'L’addition n’a pas pu être ouverte.');
+    } finally {
+      billActionInProgress.current = false;
+      setBillBusy(false);
+    }
+  };
+
+  const addBillProduct = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedBillId || !billProductId || billBusy || billActionInProgress.current) return;
+    billActionInProgress.current = true;
+    setBillBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch(`/api/pos/bills/${selectedBillId}/items`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ productId: billProductId, quantity: 1 })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Le produit n’a pas pu être ajouté.');
+      await refreshBills();
+      setBillProductId('');
+      setMessage('Produit ajouté à l’addition.');
+    } catch (addError) {
+      setError(addError instanceof Error ? addError.message : 'Le produit n’a pas pu être ajouté.');
+    } finally {
+      billActionInProgress.current = false;
+      setBillBusy(false);
+    }
+  };
+
+  const recordBillPayment = async (event: FormEvent<HTMLFormElement>, bill: ActiveBill, remainingDzd: number) => {
+    event.preventDefault();
+    if (billBusy || billActionInProgress.current) return;
+    const amountDzd = billPaymentAmount.trim() ? Number(billPaymentAmount) : remainingDzd;
+    const tipDzd = billPaymentTip.trim() ? Number(billPaymentTip) : 0;
+    if (!Number.isSafeInteger(amountDzd) || amountDzd < 1 || amountDzd > remainingDzd ||
+        !Number.isSafeInteger(tipDzd) || tipDzd < 0 || tipDzd > selectedBillTotal) {
+      setError('Vérifiez le montant du paiement et le pourboire.');
+      return;
+    }
+    billActionInProgress.current = true;
+    setBillBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch(`/api/pos/bills/${bill.id}/payments`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          amountDzd,
+          tipDzd,
+          method: billPaymentMethod,
+          idempotencyKey: crypto.randomUUID()
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Le paiement n’a pas pu être enregistré.');
+      await refreshBills();
+      setBillPaymentAmount('');
+      setBillPaymentTip('');
+      setMessage(billPaymentMethod === 'card'
+        ? 'Paiement carte enregistré en attente de confirmation du terminal.'
+        : amountDzd === remainingDzd
+          ? 'Addition réglée et clôturée.'
+          : 'Paiement partiel enregistré ; un solde reste à payer.');
+    } catch (paymentError) {
+      setError(paymentError instanceof Error ? paymentError.message : 'Le paiement n’a pas pu être enregistré.');
+    } finally {
+      billActionInProgress.current = false;
+      setBillBusy(false);
+    }
+  };
 
   const synchronize = useCallback(async (ownerId = catalog?.userId ?? '') => {
-    if (demo || !navigator.onLine || !ownerId) return;
+    if (!navigator.onLine || !ownerId) return;
     setOnline(true);
     setError('');
     try {
@@ -133,13 +275,12 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
     } catch {
       setOnline(false);
     }
-  }, [catalog?.userId, demo, isArabic, refreshSales]);
+  }, [catalog?.userId, isArabic, refreshSales]);
 
   useEffect(() => {
     let alive = true;
     const start = async () => {
       setOnline(navigator.onLine);
-      if (demo) return;
       let savedCatalog: PosCatalog | null = null;
       let ownerId = '';
       if (isSupabaseConfigured) {
@@ -206,7 +347,7 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
     };
-  }, [demo, isArabic, synchronize]);
+  }, [isArabic, synchronize]);
 
   const categories = useMemo(() => ['Tout', ...new Set((catalog?.products ?? []).filter(product => product.active).map(product => product.category))], [catalog]);
   const visibleProducts = useMemo(() => (catalog?.products ?? []).filter(product =>
@@ -223,6 +364,15 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
     .filter(sale => !sale.voidedAt)
     .reduce((sum, sale) => sum + totalSaleDzd(sale.items), 0), [visibleSales]);
   const voidedCount = useMemo(() => visibleSales.filter(sale => sale.voidedAt).length, [visibleSales]);
+  const selectedBill = bills.find(bill => bill.id === selectedBillId) ?? null;
+  const selectedBillTotal = selectedBill
+    ? Math.max(0, selectedBill.bill_items.reduce((sum, item) => sum + Number(item.line_total_dzd), 0) - Number(selectedBill.discount_dzd))
+    : 0;
+  const selectedBillPaid = selectedBill
+    ? selectedBill.payments.filter(payment => payment.status === 'succeeded')
+      .reduce((sum, payment) => sum + Number(payment.amount_dzd), 0)
+    : 0;
+  const selectedBillRemaining = Math.max(0, selectedBillTotal - selectedBillPaid);
 
   const addProduct = (product: PosProduct) => {
     setCart(current => {
@@ -239,7 +389,8 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
   };
 
   const saveSale = async () => {
-    if (cart.length === 0 || busy) return;
+    if (cart.length === 0 || busy || saleSubmissionInProgress.current) return;
+    saleSubmissionInProgress.current = true;
     setBusy(true);
     setError('');
     setMessage('');
@@ -254,59 +405,55 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
       status: 'pending'
     };
     try {
-      if (demo) {
-        setLocalSales(current => [{ ...sale, status: 'synced' }, ...current]);
-      } else {
-        await saveLocalSale(sale);
-        setLocalSales(current => [sale, ...current]);
-        if (navigator.onLine) {
-          try {
-            const response = await fetch('/api/pos/sales', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({
-                id: sale.id,
-                items: sale.items.map(item => ({ productId: item.productId, quantity: item.quantity, priceDzd: item.priceDzd })),
-                paymentMethod: sale.paymentMethod,
-                paymentReference: sale.paymentReference,
-                syncSource: sale.syncSource,
-                soldAt: sale.createdAt
-              })
-            });
-            const result = await response.json();
-            if (!response.ok) {
-              if (response.status === 409) {
-                const conflict = { ...sale, status: 'conflict' as const, error: result.error };
-                await saveLocalSale(conflict);
-                setLocalSales(current => current.map(item => item.id === sale.id ? conflict : item));
-                setError(result.error);
-              } else if (response.status === 503) {
-                setMessage(isArabic ? 'تم حفظ البيع محلياً وستتم مزامنته لاحقاً.' : 'Vente conservée sur cet appareil, synchronisation à venir.');
-              } else {
-                throw new Error(result.error || 'La vente a été enregistrée uniquement sur cet appareil.');
-              }
+      await saveLocalSale(sale);
+      setLocalSales(current => [sale, ...current]);
+      if (navigator.onLine) {
+        try {
+          const response = await fetch('/api/pos/sales', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              id: sale.id,
+              items: sale.items.map(item => ({ productId: item.productId, quantity: item.quantity, priceDzd: item.priceDzd })),
+              paymentMethod: sale.paymentMethod,
+              paymentReference: sale.paymentReference,
+              syncSource: sale.syncSource,
+              soldAt: sale.createdAt
+            })
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            if (response.status === 409) {
+              const conflict = { ...sale, status: 'conflict' as const, error: result.error };
+              await saveLocalSale(conflict);
+              setLocalSales(current => current.map(item => item.id === sale.id ? conflict : item));
+              setError(result.error);
+            } else if (response.status === 503) {
+              setMessage(isArabic ? 'تم حفظ البيع محلياً وستتم مزامنته لاحقاً.' : 'Vente conservée sur cet appareil, synchronisation à venir.');
             } else {
-              await deleteLocalSale(sale.id);
-              setLocalSales(current => current.filter(item => item.id !== sale.id));
-              await refreshSales();
+              throw new Error(result.error || 'La vente a été enregistrée uniquement sur cet appareil.');
             }
-          } catch (saveError) {
-            if (saveError instanceof TypeError) {
-              setOnline(false);
-              setMessage(isArabic ? 'تم حفظ البيع محلياً وستتم مزامنته عند عودة الإنترنت.' : 'Vente conservée sur cet appareil, synchronisation au retour du réseau.');
-            }
-            else if (saveError instanceof Error) setError(saveError.message);
+          } else {
+            await deleteLocalSale(sale.id);
+            setLocalSales(current => current.filter(item => item.id !== sale.id));
+            await refreshSales();
           }
-        } else {
-          setMessage(isArabic ? 'تم حفظ البيع على هذا الجهاز، وسيتم إرساله عند عودة الإنترنت.' : 'Vente enregistrée sur cet appareil. Synchronisation dès le retour du réseau.');
+        } catch (saveError) {
+          if (saveError instanceof TypeError) {
+            setOnline(false);
+            setMessage(isArabic ? 'تم حفظ البيع محلياً وستتم مزامنته عند عودة الإنترنت.' : 'Vente conservée sur cet appareil, synchronisation au retour du réseau.');
+          }
+          else if (saveError instanceof Error) setError(saveError.message);
         }
+      } else {
+        setMessage(isArabic ? 'تم حفظ البيع على هذا الجهاز، وسيتم إرساله عند عودة الإنترنت.' : 'Vente enregistrée sur cet appareil. Synchronisation dès le retour du réseau.');
       }
       setCart([]);
       setPaymentReference('');
-      if (demo) setMessage(isArabic ? 'تم تسجيل عملية البيع التجريبية.' : 'Vente de démonstration enregistrée.');
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Le ticket n’a pas pu être enregistré.');
     } finally {
+      saleSubmissionInProgress.current = false;
       setBusy(false);
     }
   };
@@ -321,53 +468,30 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
     setBusy(true);
     setError('');
     try {
-      if (demo) {
-        if (editingProductId) {
-          setCatalog(current => current ? {
-            ...current,
-            products: current.products.map(product => product.id === editingProductId
-              ? { ...product, name: productName.trim(), category: category.trim(), price_dzd: priceDzd }
-              : product)
-          } : current);
-        } else {
-          setCatalog(current => current ? {
-            ...current,
-            products: [...current.products, {
-              id: crypto.randomUUID(),
-              name: productName.trim(),
-              category: category.trim(),
-              price_dzd: priceDzd,
-              active: true,
-              updated_at: new Date().toISOString()
-            }]
-          } : current);
-        }
-      } else {
-        const response = await fetch('/api/pos/catalog', {
-          method: editingProductId ? 'PATCH' : 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            ...(editingProductId ? { id: editingProductId, active: true } : {}),
-            name: productName.trim(),
-            category: category.trim(),
-            priceDzd
-          })
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Le produit n’a pas pu être enregistré.');
-        setCatalog(current => current ? {
-          ...current,
-          products: editingProductId
-            ? current.products.map(product => product.id === editingProductId ? result as PosProduct : product)
-            : [...current.products, result as PosProduct]
-        } : current);
-        if (catalog) await saveCatalog({
-          ...catalog,
-          products: editingProductId
-            ? catalog.products.map(product => product.id === editingProductId ? result as PosProduct : product)
-            : [...catalog.products, result as PosProduct]
-        });
-      }
+      const response = await fetch('/api/pos/catalog', {
+        method: editingProductId ? 'PATCH' : 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          ...(editingProductId ? { id: editingProductId, active: true } : {}),
+          name: productName.trim(),
+          category: category.trim(),
+          priceDzd
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Le produit n’a pas pu être enregistré.');
+      setCatalog(current => current ? {
+        ...current,
+        products: editingProductId
+          ? current.products.map(product => product.id === editingProductId ? result as PosProduct : product)
+          : [...current.products, result as PosProduct]
+      } : current);
+      if (catalog) await saveCatalog({
+        ...catalog,
+        products: editingProductId
+          ? catalog.products.map(product => product.id === editingProductId ? result as PosProduct : product)
+          : [...catalog.products, result as PosProduct]
+      });
       setProductName('');
       setCategory('');
       setProductPrice('');
@@ -382,23 +506,19 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
 
   const toggleProduct = async (product: PosProduct) => {
     setError('');
-    if (!demo) setBusy(true);
+    setBusy(true);
     try {
-      if (demo) {
-        setCatalog(current => current ? { ...current, products: current.products.map(item => item.id === product.id ? { ...item, active: !item.active } : item) } : current);
-      } else {
-        const response = await fetch('/api/pos/catalog', {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ id: product.id, name: product.name, category: product.category, priceDzd: product.price_dzd, active: !product.active })
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Le produit n’a pas pu être modifié.');
-        const nextCatalog = catalog ? { ...catalog, products: catalog.products.map(item => item.id === product.id ? result as PosProduct : item) } : null;
-        if (nextCatalog) {
-          setCatalog(nextCatalog);
-          await saveCatalog(nextCatalog);
-        }
+      const response = await fetch('/api/pos/catalog', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: product.id, name: product.name, category: product.category, priceDzd: product.price_dzd, active: !product.active })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Le produit n’a pas pu être modifié.');
+      const nextCatalog = catalog ? { ...catalog, products: catalog.products.map(item => item.id === product.id ? result as PosProduct : item) } : null;
+      if (nextCatalog) {
+        setCatalog(nextCatalog);
+        await saveCatalog(nextCatalog);
       }
     } catch (toggleError) {
       setError(toggleError instanceof Error ? toggleError.message : 'Le produit n’a pas pu être modifié.');
@@ -440,7 +560,7 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
   };
 
   const voidSale = async (saleId: string) => {
-    if (demo || !catalog || catalog.role !== 'restaurant_admin' || voidingSaleId) return;
+    if (!catalog || catalog.role !== 'restaurant_admin' || voidingSaleId) return;
     const reason = window.prompt(isArabic ? 'سبب الإلغاء (اختياري):' : 'Motif de l’annulation (optionnel) :', '');
     if (reason === null) return;
     if (!window.confirm(isArabic ? 'هل تريد إلغاء هذه العملية؟ لن تُحتسب في الإيرادات.' : 'Annuler cette vente ? Elle ne sera plus comptée dans le chiffre d’affaires.')) return;
@@ -499,16 +619,16 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
           {pendingCount > 0 && <button className="pos-sync-button" type="button" onClick={() => void synchronize()}><RefreshCw size={16} />{pendingCount} {isArabic ? 'للمزامنة' : 'à synchroniser'}</button>}
           <ThemePicker locale={locale} compact />
           <button className="pos-language" type="button" onClick={toggleLocale}>{locale === 'fr' ? 'العربية' : locale === 'ar' ? 'EN' : 'FR'}</button>
-          {!demo && <Link className="pos-logout" href="/dashboard">{isArabic ? 'الإدارة' : 'Gestion'}</Link>}
-          {demo ? <Link className="pos-logout" href="/login?next=/caisse">{isArabic ? 'تسجيل الدخول' : 'Connexion'}</Link> : <button className="pos-logout" onClick={() => { window.location.assign('/'); }} type="button">{isArabic ? 'الرئيسية' : 'Accueil'}</button>}
+          <Link className="pos-logout" href="/dashboard">{isArabic ? 'الإدارة' : 'Gestion'}</Link>
+          <button className="pos-logout" onClick={() => { window.location.assign('/'); }} type="button">{isArabic ? 'الرئيسية' : 'Accueil'}</button>
         </div>
       </header>
 
       <nav className="pos-tabs" aria-label={isArabic ? 'أقسام نقطة البيع' : 'Sections du logiciel'}>
         <button type="button" className={activeTab === 'cashier' ? 'is-active' : ''} onClick={() => setActiveTab('cashier')}><ShoppingBag size={17} />{isArabic ? 'الصندوق' : 'Caisse'}</button>
+        <button type="button" className={activeTab === 'tables' ? 'is-active' : ''} onClick={() => setActiveTab('tables')}><Table2 size={17} />{isArabic ? 'الطاولات' : 'Tables'}{bills.length > 0 ? ` (${bills.length})` : ''}</button>
         {catalog.role === 'restaurant_admin' && <button type="button" className={activeTab === 'products' ? 'is-active' : ''} onClick={() => setActiveTab('products')}><ChefHat size={17} />{isArabic ? 'قائمة الطعام' : 'Menu'}</button>}
         <button type="button" className={activeTab === 'history' ? 'is-active' : ''} onClick={() => setActiveTab('history')}><ReceiptText size={17} />{isArabic ? 'المبيعات' : 'Ventes du jour'}</button>
-        {demo && <span className="pos-demo-tag">{isArabic ? 'عرض تجريبي' : 'Mode démo'}</span>}
       </nav>
 
       {message && <p className="pos-notice" role="status"><Check size={16} />{message}</p>}
@@ -545,9 +665,68 @@ export function RestaurantPOS({ demo = false }: { demo?: boolean }) {
           </fieldset>
           {paymentMethod !== 'cash' && <label className="pos-reference">{isArabic ? 'مرجع الدفع (اختياري)' : 'Référence de paiement (facultatif)'}<input maxLength={120} value={paymentReference} onChange={event => setPaymentReference(event.target.value)} placeholder={isArabic ? 'رقم العملية' : 'N° de transaction'} /></label>}
           <button className="pos-checkout-button" type="button" disabled={cart.length === 0 || busy} onClick={() => void saveSale()}>{busy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : <><Check size={18} />{isArabic ? 'تسجيل البيع' : 'Enregistrer la vente'}</>}</button>
-          <p className="pos-payment-note">{isArabic ? 'الدفع عبر BaridiMob يتم خارج التطبيق، ويتم تسجيله يدوياً.' : 'BaridiMob est confirmé en dehors de l’application puis enregistré ici.'}</p>
+          {paymentMethod !== 'cash' && <p className="pos-payment-note">{paymentMethod === 'card'
+            ? (isArabic ? 'تحقق من الدفع على جهاز الدفع البنكي قبل تسجيل البيع.' : 'Vérifiez le paiement sur le terminal bancaire avant d’enregistrer la vente.')
+            : (isArabic ? 'تحقق من تحويل BaridiMob خارج التطبيق قبل تسجيل البيع.' : 'Vérifiez le virement BaridiMob en dehors de l’application avant d’enregistrer la vente.')}</p>}
         </aside>
       </div>}
+
+      {activeTab === 'tables' && <section className="pos-history-page">
+        <div className="pos-section-heading">
+          <div><span className="pos-eyebrow">{isArabic ? 'الطاولات والطلبات المفتوحة' : 'SERVICE EN SALLE'}</span><h1>{isArabic ? 'إضافات الطاولات' : 'Tables et additions'}</h1></div>
+          <button className="pos-sync-button" type="button" disabled={!online || billBusy} onClick={() => void refreshBills().catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Actualisation impossible.'))}><RefreshCw size={16} />{isArabic ? 'تحديث' : 'Actualiser'}</button>
+        </div>
+        {!online && <p className="pos-payment-note">{isArabic ? 'إضافات الطاولات تتطلب اتصالاً بالإنترنت.' : 'Les additions par table nécessitent une connexion Internet. La caisse hors ligne reste disponible.'}</p>}
+        <form className="pos-product-form" onSubmit={openTableBill}>
+          <label>{isArabic ? 'رقم أو اسم الطاولة' : 'Numéro ou nom de table'}<input required maxLength={40} value={tableLabel} onChange={event => setTableLabel(event.target.value)} placeholder={isArabic ? 'مثال: 4' : 'Ex. Table 4'} /></label>
+          <button className="pos-checkout-button" type="submit" disabled={!online || billBusy}>{billBusy ? (isArabic ? 'جارٍ التسجيل…' : 'Traitement…') : (isArabic ? 'فتح / استرجاع الإضافة' : 'Ouvrir ou retrouver la table')}</button>
+        </form>
+
+        <div className="pos-sales-list">
+          {bills.map(bill => {
+            const total = Math.max(0, bill.bill_items.reduce((sum, item) => sum + Number(item.line_total_dzd), 0) - Number(bill.discount_dzd));
+            const paid = bill.payments.filter(payment => payment.status === 'succeeded').reduce((sum, payment) => sum + Number(payment.amount_dzd), 0);
+            return <button key={bill.id} type="button" className={`pos-tab-selector ${selectedBillId === bill.id ? 'is-active' : ''}`} onClick={() => setSelectedBillId(bill.id)}>
+              <strong>{bill.table_label}</strong><span>{money(Math.max(0, total - paid), locale)} {isArabic ? 'متبقي' : 'restant'}</span>
+            </button>;
+          })}
+          {bills.length === 0 && <p className="pos-empty-hint">{isArabic ? 'لا توجد إضافات مفتوحة.' : 'Aucune addition ouverte pour le moment.'}</p>}
+        </div>
+
+        {selectedBill && <article className="pos-ticket-panel">
+          <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'الطلب المفتوح' : 'ADDITION OUVERTE'}</span><h2>{selectedBill.table_label}</h2></div><span>{new Date(selectedBill.created_at).toLocaleTimeString(isArabic ? 'ar-DZ' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+          <div className="pos-ticket-lines">
+            {selectedBill.bill_items.map(item => <article className="pos-ticket-line" key={item.id}>
+              <div><strong>{item.product_name}</strong><small>{money(item.unit_price_dzd, locale)} × {item.quantity}</small></div>
+              <strong>{money(Number(item.line_total_dzd), locale)}</strong>
+            </article>)}
+            {selectedBill.bill_items.length === 0 && <p className="pos-empty-hint">{isArabic ? 'أضف منتجات إلى هذه الإضافة.' : 'Ajoutez des produits pour commencer cette addition.'}</p>}
+          </div>
+          <form className="pos-product-form" onSubmit={addBillProduct}>
+            <label>{isArabic ? 'إضافة منتج' : 'Ajouter un produit'}<select required value={billProductId} onChange={event => setBillProductId(event.target.value)}>
+              <option value="">{isArabic ? 'اختر منتجاً' : 'Choisir un produit'}</option>
+              {catalog.products.filter(product => product.active).map(product => <option key={product.id} value={product.id}>{product.name} · {money(product.price_dzd, locale)}</option>)}
+            </select></label>
+            <button className="pos-checkout-button" type="submit" disabled={billBusy || !billProductId}><Plus size={17} />{isArabic ? 'إضافة' : 'Ajouter à la table'}</button>
+          </form>
+          <div className="pos-ticket-total"><span>{isArabic ? 'المجموع' : 'Total'}</span><strong>{money(selectedBillTotal, locale)}</strong></div>
+          <div className="pos-ticket-total"><span>{isArabic ? 'مدفوع' : 'Déjà payé'}</span><strong>{money(selectedBillPaid, locale)}</strong></div>
+          {selectedBill.payments.some(payment => payment.status === 'pending') && <p className="pos-payment-note">{isArabic ? 'يوجد دفع بالبطاقة بانتظار التأكيد من جهاز الدفع.' : 'Un paiement carte attend la confirmation du terminal ; il ne réduit pas encore le solde.'}</p>}
+          {selectedBillRemaining > 0 && <form className="pos-product-form" onSubmit={event => void recordBillPayment(event, selectedBill, selectedBillRemaining)}>
+            <h3>{isArabic ? 'تسجيل دفعة' : 'Encaisser un paiement'}</h3>
+            <label>{isArabic ? 'المبلغ بالدينار (فارغ = الرصيد)' : 'Montant en dinars (vide = solde)'}<input type="number" min="1" max={selectedBillRemaining} step="1" value={billPaymentAmount} onChange={event => setBillPaymentAmount(event.target.value)} /></label>
+            <label>{isArabic ? 'الإكرامية' : 'Pourboire en dinars'}<input type="number" min="0" step="1" value={billPaymentTip} onChange={event => setBillPaymentTip(event.target.value)} /></label>
+            <fieldset className="pos-payment-methods">
+              <legend>{isArabic ? 'طريقة الدفع' : 'Mode de paiement'}</legend>
+              <button type="button" className={billPaymentMethod === 'cash' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'cash'} onClick={() => setBillPaymentMethod('cash')}><CircleDollarSign />{isArabic ? 'نقداً' : 'Espèces'}</button>
+              <button type="button" className={billPaymentMethod === 'card' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'card'} onClick={() => setBillPaymentMethod('card')}><CreditCard />{isArabic ? 'بطاقة' : 'Carte'}</button>
+              <button type="button" className={billPaymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'baridimob'} onClick={() => setBillPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>
+            </fieldset>
+            <button className="pos-checkout-button" type="submit" disabled={billBusy || selectedBillTotal <= 0}>{billBusy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : (isArabic ? 'تسجيل الدفعة' : 'Enregistrer le paiement')}</button>
+            {billPaymentMethod === 'card' && <p className="pos-payment-note">{isArabic ? 'تحقق من الدفع على جهاز الدفع. ستبقى الدفعة معلقة حتى تأكيدها.' : 'La carte est enregistrée en attente : vérifiez le terminal, la confirmation bancaire n’est pas encore intégrée.'}</p>}
+          </form>}
+        </article>}
+      </section>}
 
       {activeTab === 'products' && catalog.role === 'restaurant_admin' && <section className="pos-products-page">
         <div className="pos-section-heading"><div><span className="pos-eyebrow">{isArabic ? 'الإعدادات' : 'CONFIGURATION'}</span><h1>{isArabic ? 'قائمة الطعام والأسعار' : 'Produits et prix'}</h1></div></div>

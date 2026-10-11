@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowDownToLine, ArrowLeft, BadgeCheck, BarChart3, Bell, BookOpenCheck, Boxes, Check, ChevronDown,
   CircleAlert, ClipboardList, Clock3, Copy, CreditCard, FileSpreadsheet, FileText, HelpCircle, LayoutDashboard, Menu,
-  Minus, Pencil, Plus, QrCode, Search, Settings2, ShoppingBag, Star, Store, Table2, Trash2, Users, Utensils, Wallet, Wifi
+  Minus, Pencil, Plus, QrCode, Search, Settings2, ShoppingBag, Sparkles, Star, Store, Table2, Trash2, Users, Utensils, Wallet, Wifi
 } from 'lucide-react';
 import { PwaInstallButton } from './PwaInstallButton';
 import { ThemePicker } from './ThemePicker';
@@ -682,6 +682,7 @@ export function RestaurantWorkspace({ startDemo = false, initialRole = 'admin_re
           <button type="button" className="workspace-demo-switch" onClick={() => void run(loadPalmierDemo, t.demoOn)}><BookOpenCheck size={16} />{t.demo}</button>
           <Link href="/caisse?demo=1"><ShoppingBag size={16} />{currentLocale === 'ar' ? 'نقطة البيع' : currentLocale === 'en' ? 'POS cashier' : 'Caisse POS'}</Link>
           {currentRole !== 'serveur' && <><Link href="/app/cuisine"><Utensils size={16} />{currentLocale === 'ar' ? 'المطبخ' : currentLocale === 'en' ? 'Kitchen' : 'Cuisine'}</Link>
+          <Link href="/app/ia"><Sparkles size={16} />{currentLocale === 'ar' ? 'مساعد الذكاء الاصطناعي' : currentLocale === 'en' ? 'AI assistant' : 'Assistant IA et menus'}</Link>
           <Link href="/app/analyse"><BarChart3 size={16} />{currentLocale === 'ar' ? 'التحليل' : currentLocale === 'en' ? 'Insights' : 'Analyse'}</Link>
           <Link href="/app/fidelite"><BadgeCheck size={16} />{currentLocale === 'ar' ? 'الولاء' : currentLocale === 'en' ? 'Loyalty' : 'Fidélité'}</Link>
           <Link href="/app/pourboires"><Wallet size={16} />{currentLocale === 'ar' ? 'الإكراميات' : currentLocale === 'en' ? 'Tips' : 'Pourboires'}</Link>
@@ -894,7 +895,9 @@ export function RestaurantWorkspace({ startDemo = false, initialRole = 'admin_re
         <footer className="workspace-mobile-cert">{t.certification}</footer>
       </section>
 
-      <nav className="workspace-mobile-nav" aria-label={t.workspace}>{visibleNav.map(({ id, icon: Icon, label }) => <button key={id} type="button" aria-current={active === id ? 'page' : undefined} className={active === id ? 'is-active' : ''} onClick={() => setActive(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+      <nav className={`workspace-mobile-nav${currentRole === 'serveur' ? ' is-server' : ''}`} aria-label={t.workspace}>{visibleNav.map(({ id, icon: Icon, label }) => <button key={id} type="button" aria-current={active === id ? 'page' : undefined} className={active === id ? 'is-active' : ''} onClick={() => setActive(id)}><Icon size={19} /><span>{label}</span></button>)}
+        {currentRole !== 'serveur' && <Link href="/app/ia"><Sparkles size={19} /><span>{currentLocale === 'ar' ? 'الذكاء الاصطناعي' : currentLocale === 'en' ? 'AI' : 'IA'}</span></Link>}
+      </nav>
       {tourStep !== null && <div className="workspace-tour-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setTourStep(null); }}><section className="workspace-tour-dialog" role="dialog" aria-modal="true" aria-labelledby="workspace-tour-title"><span className="workspace-eyebrow">DIGIFEEL · {tourStep + 1}/3</span><h2 id="workspace-tour-title">{[t.home, t.room, t.reviews][tourStep]}</h2><p>{currentLocale === 'ar' ? ['تابع النشاط والمبيعات والتنبيهات من لوحة واحدة.', 'أدر الطاولات والطلبات والفواتير المباشرة.', 'راجع التقييمات وتابع الردود المقترحة.'][tourStep] : currentLocale === 'en' ? ['Track revenue, activity and alerts from one dashboard.', 'Manage tables, guest orders and live bills.', 'Review feedback and prepare thoughtful replies.'][tourStep] : ['Suivez l’activité, les ventes et les alertes depuis un seul écran.', 'Gérez les tables, commandes clients et additions en direct.', 'Traitez les avis et préparez des réponses adaptées.'][tourStep]}</p><div><button type="button" onClick={() => setTourStep(null)}>{t.close}</button>{tourStep < 2 ? <button type="button" className="workspace-primary-button" onClick={() => { setActive((['home', 'room', 'reviews'] as Section[])[tourStep + 1]); setTourStep(current => current === null ? null : current + 1); }}>Continuer</button> : <button type="button" className="workspace-primary-button" onClick={() => setTourStep(null)}>Terminer</button>}</div></section></div>}
       {busy && <div className="workspace-busy-indicator" role="status">{t.simulator}…</div>}
     </main>

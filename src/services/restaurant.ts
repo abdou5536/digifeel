@@ -376,7 +376,6 @@ export interface Tag {
 
 export interface RestaurantData {
   version: 1;
-  packPrices: number[];
   restaurants: RestaurantAccount[];
   users: RestaurantUser[];
   tags: Tag[];
@@ -648,7 +647,7 @@ function makeSeedData(): RestaurantData {
     createdAt: resellerPaymentCreatedAt, validatedAt: resellerPaymentCreatedAt
   };
   return {
-    version: 1, packPrices: [100, 90, 60], restaurants, users, tags, tables, categories, items, bills, payments, tips, reviews, scans,
+    version: 1, restaurants, users, tags, tables, categories, items, bills, payments, tips, reviews, scans,
     orders, alerts, activity, loyaltyAccounts, referrals: [],
     resellers: [{
       id: 'reseller-demo-karim', name: 'Karim Bensaïd', email: 'karim.demo@digifeel.app', city: 'Alger',
@@ -706,7 +705,6 @@ function readData(): RestaurantData {
       const parsed: unknown = JSON.parse(stored);
       if (isRestaurantData(parsed)) {
         const legacyResellerData = !Array.isArray(parsed.resellers);
-        if (!Array.isArray(parsed.packPrices)) parsed.packPrices = [100, 90, 60];
         if (!Array.isArray(parsed.orders)) parsed.orders = [];
         if (!Array.isArray(parsed.alerts)) parsed.alerts = [];
         if (!Array.isArray(parsed.activity)) parsed.activity = [];
@@ -1146,7 +1144,8 @@ export async function activateTag(input: {
   city: string;
   googleReviewUrl: string;
   currency: 'EUR' | 'DZD';
-  packPrice: number;
+  installationAmountEUR: number;
+  tableCount: number;
   resellerCode?: string;
 }) {
   const data = readData();
@@ -1155,8 +1154,8 @@ export async function activateTag(input: {
   const googleUrl = new URL(input.googleReviewUrl);
   if (googleUrl.protocol !== 'https:' || !/google\./i.test(googleUrl.hostname)) throw new Error('Saisissez un lien Google Avis sécurisé.');
   const created = await createRestaurant({
-    name: input.restaurantName, city: input.city, currency: input.currency, packPrice: input.packPrice,
-    resellerCode: input.resellerCode
+    name: input.restaurantName, city: input.city, currency: input.currency, installationAmountEUR: input.installationAmountEUR,
+    tableCount: input.tableCount, resellerCode: input.resellerCode
   });
   const updated = await updateRestaurant(created.restaurant.id, { googleReviewUrl: googleUrl.toString() });
   const next = readData();
@@ -1952,9 +1951,11 @@ export async function getAllScans() {
   return readData().scans;
 }
 
-export async function createRestaurant(input: { name: string; city: string; currency: 'EUR' | 'DZD'; packPrice: number; referralCode?: string; resellerCode?: string; ownerGroupId?: string }) {
+export async function createRestaurant(input: { name: string; city: string; currency: 'EUR' | 'DZD'; installationAmountEUR: number; tableCount?: number; referralCode?: string; resellerCode?: string; ownerGroupId?: string }) {
   if (input.name.trim().length < 2 || input.name.trim().length > 100) throw new Error('Le nom du restaurant doit contenir entre 2 et 100 caractères.');
-  if (!Number.isFinite(input.packPrice) || input.packPrice < 0) throw new Error('Le prix du pack est invalide.');
+  if (!Number.isFinite(input.installationAmountEUR) || input.installationAmountEUR < 0) throw new Error('Le montant de l’installation est invalide.');
+  const tableCount = input.tableCount ?? 6;
+  if (!Number.isInteger(tableCount) || tableCount < 1 || tableCount > 500) throw new Error('Choisissez entre 1 et 500 tables.');
   const data = readData();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -1970,7 +1971,7 @@ export async function createRestaurant(input: { name: string; city: string; curr
     subscriptionStatus: 'trialing', trialEndsAt, createdAt: now,
     ownerGroupId: input.ownerGroupId ?? crypto.randomUUID(),
     resellerId: reseller?.id,
-    installationAmountEUR: input.packPrice,
+    installationAmountEUR: input.installationAmountEUR,
     referralCode: `DGF-${crypto.randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`,
     referredBy: referrer?.id,
     referralRewardApplied: Boolean(referrer)
@@ -1985,7 +1986,7 @@ export async function createRestaurant(input: { name: string; city: string; curr
   data.users.push({ id: crypto.randomUUID(), restaurantId: id, name: 'Gérant', role: 'admin_restaurant', active: true, pin: '2025' });
   const defaultCategory: MenuCategory = { id: crypto.randomUUID(), restaurantId: id, name: 'Menu', sortOrder: 1 };
   data.categories.push(defaultCategory);
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < tableCount; index += 1) {
     const table: RestaurantTable = { id: crypto.randomUUID(), restaurantId: id, name: `Table ${String(index + 1).padStart(2, '0')}`, zone: 'Salle', status: 'free', tagCode: uniqueTagCode(data, 'DF'), active: true };
     data.tables.push(table);
     data.tags.push({ code: table.tagCode, restaurantId: id, tableId: table.id, active: true, createdAt: now });
@@ -2013,20 +2014,6 @@ export async function createTagBatch(restaurantId: string | null, count: number)
   }
   writeData(data);
   return created;
-}
-
-export async function getPackPrices() {
-  return [...readData().packPrices];
-}
-
-export async function setPackPrices(prices: number[]) {
-  if (prices.length !== 3 || prices.some(price => !Number.isFinite(price) || price < 0 || price > 100_000)) {
-    throw new Error('Saisissez trois tarifs valides.');
-  }
-  const data = readData();
-  data.packPrices = prices.map(price => Math.round(price));
-  writeData(data);
-  return data.packPrices;
 }
 
 export async function getStarBonusConfig() {

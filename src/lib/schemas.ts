@@ -52,9 +52,10 @@ export const guestOrderSchema = z.object({
 );
 export const guestPaymentRequestSchema = z.object({
   token: guestTokenSchema,
+  tableCode: tableCodeSchema,
   amountDzd: z.number().int().positive().max(100_000_000),
   tipDzd: z.number().int().min(0).max(100_000_000).default(0),
-  method: z.enum(['cash', 'baridimob']),
+  method: z.enum(['cash', 'baridimob', 'stripe']),
   idempotencyKey: z.string().min(8).max(120)
 });
 export const guestReviewSchema = z.object({

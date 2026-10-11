@@ -1,5 +1,6 @@
 node_modules/
 build/
+release/
 dist/
 .next/
 .next-*/
@@ -17,6 +18,8 @@ coverage/
 test-results/
 playwright-report/
 .next-e2e/
+electron/app-config.json
+build/
 .env
 .vercel
 .env*

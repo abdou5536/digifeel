@@ -65,6 +65,8 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
   const [tipEnabled, setTipEnabled] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
+  const [baridimobRip, setBaridimobRip] = useState('');
+  const [baridimobPhone, setBaridimobPhone] = useState('');
   const [settingsNotice, setSettingsNotice] = useState('');
   const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -87,6 +89,24 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
     setTipEnabled(data.restaurant.tip_enabled);
     setLogoUrl(data.restaurant.logo_url ?? '');
   }, [data?.restaurant]);
+
+  useEffect(() => {
+    if (demo || data?.role !== 'restaurant_admin' || !data.restaurant.id) return;
+    let alive = true;
+    void fetch('/api/dashboard/settings', { cache: 'no-store' })
+      .then(async response => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Les coordonnées BaridiMob ne sont pas disponibles.');
+        if (alive) {
+          setBaridimobRip(result.baridimobRip ?? '');
+          setBaridimobPhone(result.baridimobPhone ?? '');
+        }
+      })
+      .catch(loadError => {
+        if (alive) setSettingsNotice(loadError instanceof Error ? loadError.message : 'Les coordonnées BaridiMob ne sont pas disponibles.');
+      });
+    return () => { alive = false; };
+  }, [data?.restaurant.id, data?.role, demo]);
 
   useEffect(() => {
     let alive = true;
@@ -160,7 +180,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
       const response = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl })
+        body: JSON.stringify({ name: restaurantName, address, googleReviewUrl, tipEnabled, logoUrl, baridimobRip, baridimobPhone })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Les réglages n’ont pas pu être enregistrés.');
@@ -352,6 +372,9 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                 <label>Adresse<input maxLength={200} value={address} onChange={event => setAddress(event.target.value)} /></label>
                 <label>Lien Google<input required type="url" value={googleReviewUrl} onChange={event => setGoogleReviewUrl(event.target.value)} /></label>
                 <label>Logo (adresse https://, facultatif)<input type="url" maxLength={2048} value={logoUrl} onChange={event => setLogoUrl(event.target.value)} /></label>
+                <label>RIP BaridiMob<input inputMode="numeric" autoComplete="off" maxLength={34} value={baridimobRip} onChange={event => setBaridimobRip(event.target.value)} placeholder="Coordonnées du compte de votre restaurant" /></label>
+                <label>Téléphone BaridiMob (facultatif)<input type="tel" autoComplete="tel" maxLength={32} value={baridimobPhone} onChange={event => setBaridimobPhone(event.target.value)} placeholder="+213 …" /></label>
+                <p className="next-muted">Ces coordonnées seront affichées uniquement aux clients munis du lien de leur addition.</p>
                 <label className="next-checkbox-label"><input type="checkbox" checked={tipEnabled} onChange={event => setTipEnabled(event.target.checked)} /> Proposer un choix de pourboire (sans encaissement)</label>
                 <button className="product-button product-button--secondary" type="submit" disabled={settingsBusy}>{settingsBusy ? 'Enregistrement…' : 'Enregistrer les réglages'}</button>
                 {settingsNotice && <p className="next-muted" role="status">{settingsNotice}</p>}
