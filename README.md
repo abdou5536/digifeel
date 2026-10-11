@@ -66,6 +66,8 @@ $env:DIGIFEEL_APP_URL = "https://VOTRE-DOMAINE"
 npm run dist:win
 ```
 
+Si Windows bloque la génération (« Une stratégie de contrôle d’application a bloqué ce fichier », Smart App Control), lancez le workflow GitHub **Installateur Windows** (onglet Actions, bouton *Run workflow*, URL du site) : l’installateur est publié comme artefact.
+
 L’installateur et le désinstallateur sont générés dans `release/`. L’installation propose le dossier de destination et crée les raccourcis Démarrer et Bureau. La fenêtre se souvient de sa taille, et le menu **Affichage** permet le plein écran. Les mises à jour sont proposées depuis les versions publiées dans les releases GitHub de `abdou5536/digifeel` ; publier une version exige une release correspondante et un `GH_TOKEN` configuré de manière sécurisée dans l’environnement de publication. L’installateur local n’est pas signé : avant vente ou diffusion, il faut un certificat de signature de code Windows pour limiter les avertissements SmartScreen.
 
 ## Créer le premier super-administrateur

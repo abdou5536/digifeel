@@ -1,0 +1,28 @@
+name: Installateur Windows
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: URL HTTPS du site Digifeel
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+        env:
+          DIGIFEEL_APP_URL: ${{ inputs.app_url }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Digifeel-Setup
+          path: release/*.exe
