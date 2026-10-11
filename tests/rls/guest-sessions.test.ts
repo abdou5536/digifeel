@@ -36,6 +36,7 @@ describe('tables et sessions client', () => {
     expect(token).toMatch(/^[a-f0-9]{64}$/);
     const bill = (await run('anon', `select public.guest_get_bill($1) as b`, [token])).rows[0].b as { total_dzd: number; items: unknown[] };
     expect(Number(bill.total_dzd)).toBe(2400);
+    expect((bill as { currency?: string }).currency).toBe('DZD');
     expect(bill.items).toHaveLength(1);
     const stored = (await db.query<{ token_hash: string }>(`select token_hash from public.guest_sessions`)).rows.map(r => r.token_hash);
     expect(stored).not.toContain(token);

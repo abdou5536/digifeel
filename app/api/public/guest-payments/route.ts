@@ -47,7 +47,16 @@ export async function POST(request: NextRequest) {
   let stripeAmountCents: number | null = null;
   if (stripeConfig) {
     try {
-      stripeAmountCents = toStripeEurCents(body.data.amountDzd, body.data.tipDzd, stripeConfig.eurToDzd);
+      const supabaseForBill = await createSupabaseServerClient();
+      const { data: billData, error: billError } = await supabaseForBill.rpc('guest_get_bill', { p_token: body.data.token });
+      if (billError) return rpcErrorResponse(billError);
+      const isEuro = (billData as { currency?: string } | null)?.currency === 'EUR';
+      if (isEuro) {
+        stripeAmountCents = body.data.amountDzd + body.data.tipDzd;
+        if (!Number.isSafeInteger(stripeAmountCents) || stripeAmountCents < 50) throw new Error('Le total est inférieur au minimum accepté par Stripe.');
+      } else {
+        stripeAmountCents = toStripeEurCents(body.data.amountDzd, body.data.tipDzd, stripeConfig.eurToDzd);
+      }
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Montant Stripe invalide.' }, { status: 422 });
     }

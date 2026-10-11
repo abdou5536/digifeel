@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Banknote, Check, CircleAlert, CreditCard, LoaderCircle, ReceiptText, ShieldCheck } from 'lucide-react';
+import { formatMoney } from '@/src/lib/pos/currency';
 
 type Bill = {
   table: string;
   restaurant_name: string;
+  currency?: string;
   baridimob_rip: string | null;
   baridimob_phone: string | null;
   total_dzd: number;
@@ -37,7 +39,10 @@ export function TableBill({ code }: { code: string }) {
   const idempotencyKey = useRef<string | null>(null);
   const bill = state.kind === 'ready' ? state.bill : null;
   const balance = bill ? Math.max(0, bill.total_dzd - bill.paid_dzd - bill.pending_dzd) : 0;
-  const hasBaridiMob = Boolean(bill?.baridimob_rip || bill?.baridimob_phone);
+  const isEuro = bill?.currency === 'EUR';
+  const money = (value: number) => (isEuro ? formatMoney(value, 'EUR', 'fr-FR') : dzd(value));
+  const hasBaridiMob = !isEuro && Boolean(bill?.baridimob_rip || bill?.baridimob_phone);
+  const method: PaymentMethod = isEuro ? 'stripe' : paymentMethod;
 
   useEffect(() => {
     let cancelled = false;
@@ -117,7 +122,7 @@ export function TableBill({ code }: { code: string }) {
 
   const submitPayment = async () => {
     if (!bill || !token || balance <= 0) return;
-    if (paymentMethod === 'baridimob' && !hasBaridiMob) {
+    if (method === 'baridimob' && !hasBaridiMob) {
       setError('Le restaurant n’a pas encore configuré ses coordonnées BaridiMob. Contactez le serveur.');
       return;
     }
@@ -134,7 +139,7 @@ export function TableBill({ code }: { code: string }) {
           tableCode: code,
           amountDzd: balance,
           tipDzd: 0,
-          method: paymentMethod,
+          method,
           idempotencyKey: idempotencyKey.current
         })
       });
@@ -143,7 +148,7 @@ export function TableBill({ code }: { code: string }) {
         if (response.status === 422) idempotencyKey.current = null;
         throw new Error(result.error || 'Le paiement n’a pas pu être lancé.');
       }
-      if (paymentMethod === 'stripe') {
+      if (method === 'stripe') {
         if (!result.checkoutUrl || !result.checkoutUrl.startsWith('https://checkout.stripe.com/')) {
           throw new Error('Lien de paiement Stripe invalide.');
         }
@@ -193,15 +198,15 @@ export function TableBill({ code }: { code: string }) {
               {bill.items.map((item, index) => (
                 <article className="table-bill-item" key={`${item.name}-${index}`}>
                   <span className="table-bill-quantity">{item.quantity}×</span>
-                  <span className="table-bill-item-name">{item.name}<small>{dzd(item.unit_price_dzd)} / unité</small></span>
-                  <strong>{dzd(item.line_total_dzd)}</strong>
+                  <span className="table-bill-item-name">{item.name}                  <small>{money(item.unit_price_dzd)} / unité</small></span>
+                                    <strong>{money(item.line_total_dzd)}</strong>
                 </article>
               ))}
-              {bill.discount_dzd > 0 && <div className="table-bill-total-line"><span>Remise</span><strong>−{dzd(bill.discount_dzd)}</strong></div>}
-              <div className="table-bill-total-line"><span>Total</span><strong>{dzd(bill.total_dzd)}</strong></div>
-              {bill.paid_dzd > 0 && <div className="table-bill-total-line"><span>Déjà réglé</span><strong>{dzd(bill.paid_dzd)}</strong></div>}
-              {bill.pending_dzd > 0 && <div className="table-bill-total-line table-bill-pending"><span>En attente de confirmation</span><strong>{dzd(bill.pending_dzd)}</strong></div>}
-              <div className="table-bill-balance"><span>{balance > 0 ? 'Reste à payer' : 'Solde'}</span><strong>{dzd(balance)}</strong></div>
+                                {bill.discount_dzd > 0 && <div className="table-bill-total-line"><span>Remise</span><strong>−{money(bill.discount_dzd)}</strong></div>}
+                                <div className="table-bill-total-line"><span>Total</span><strong>{money(bill.total_dzd)}</strong></div>
+                                {bill.paid_dzd > 0 && <div className="table-bill-total-line"><span>Déjà réglé</span><strong>{money(bill.paid_dzd)}</strong></div>}
+                                {bill.pending_dzd > 0 && <div className="table-bill-total-line table-bill-pending"><span>En attente de confirmation</span><strong>{money(bill.pending_dzd)}</strong></div>}
+                                <div className="table-bill-balance"><span>{balance > 0 ? 'Reste à payer' : 'Solde'}</span><strong>{money(balance)}</strong></div>
             </section>
 
             {balance > 0 && (
@@ -209,34 +214,34 @@ export function TableBill({ code }: { code: string }) {
                 <section className="table-bill-card table-bill-payment" aria-labelledby="payment-heading">
                   <div className="table-bill-section-heading"><div><span className="table-bill-eyebrow">PAIEMENT</span><h2 id="payment-heading">Choisissez votre mode</h2></div></div>
                   <div className="table-bill-methods">
-                    <button type="button" className={paymentMethod === 'baridimob' ? 'is-selected' : ''} disabled={!hasBaridiMob} aria-pressed={paymentMethod === 'baridimob'} onClick={() => setPaymentMethod('baridimob')}>
+                    {!isEuro && <button type="button" className={paymentMethod === 'baridimob' ? 'is-selected' : ''} disabled={!hasBaridiMob} aria-pressed={paymentMethod === 'baridimob'} onClick={() => setPaymentMethod('baridimob')}>
                       <Banknote aria-hidden="true" /><span><strong>BaridiMob</strong><small>{hasBaridiMob ? 'Transfert avec validation du restaurant' : 'Coordonnées non configurées'}</small></span>
-                    </button>
-                    {stripe.available && <button type="button" className={paymentMethod === 'stripe' ? 'is-selected' : ''} aria-pressed={paymentMethod === 'stripe'} onClick={() => setPaymentMethod('stripe')}>
+                    </button>}
+                    {stripe.available && <button type="button" className={method === 'stripe' ? 'is-selected' : ''} aria-pressed={method === 'stripe'} onClick={() => setPaymentMethod('stripe')}>
                       <CreditCard aria-hidden="true" /><span><strong>Carte bancaire · Stripe</strong><small>{stripe.mode === 'test' ? 'Mode test · aucun débit réel' : 'Paiement sécurisé par carte'}</small></span>
                     </button>}
                   </div>
 
-                  {paymentMethod === 'baridimob' && hasBaridiMob && (
+                  {method === 'baridimob' && hasBaridiMob && (
                     <div className="table-bill-transfer">
                       <p>Effectuez le transfert dans BaridiMob vers les coordonnées du restaurant, puis envoyez la demande de validation.</p>
                       {bill.baridimob_rip && <div><span>RIP BaridiMob</span><strong>{bill.baridimob_rip}</strong></div>}
                       {bill.baridimob_phone && <div><span>Téléphone</span><strong>{bill.baridimob_phone}</strong></div>}
-                      <div><span>Montant exact</span><strong>{dzd(balance)}</strong></div>
+                      <div><span>Montant exact</span><strong>{money(balance)}</strong></div>
                       <small>Ne confirmez qu’après avoir effectué le transfert. L’équipe vérifiera la réception avant de valider l’addition.</small>
                     </div>
                   )}
-                  {paymentMethod === 'stripe' && stripe.eurToDzd && (
+                  {method === 'stripe' && !isEuro && stripe.eurToDzd && (
                     <p className="table-bill-conversion">
                       Débit en euros : environ {euro(Math.round(balance * 100 / stripe.eurToDzd) / 100)} · taux affiché : 1 EUR = {dzd(stripe.eurToDzd)}.
                     </p>
                   )}
 
-                  <button className="table-bill-pay-button" type="button" disabled={busy || (paymentMethod === 'baridimob' && !hasBaridiMob)} onClick={() => void submitPayment()}>
-                    {busy ? <LoaderCircle className="table-bill-spinner" aria-hidden="true" /> : paymentMethod === 'stripe' ? <CreditCard aria-hidden="true" /> : <Check aria-hidden="true" />}
-                    {busy ? 'Préparation…' : paymentMethod === 'stripe' ? `Payer ${dzd(balance)} par carte` : `J’ai effectué le transfert · ${dzd(balance)}`}
+                  <button className="table-bill-pay-button" type="button"                   disabled={busy || (method === 'baridimob' && !hasBaridiMob) || (isEuro && !stripe.available)} onClick={() => void submitPayment()}>
+                                      {busy ? <LoaderCircle className="table-bill-spinner" aria-hidden="true" /> : method === 'stripe' ? <CreditCard aria-hidden="true" /> : <Check aria-hidden="true" />}
+                                      {busy ? 'Préparation…' : method === 'stripe' ? `Payer ${money(balance)} par carte` : `J’ai effectué le transfert · ${money(balance)}`}
                   </button>
-                  {!stripe.available && <p className="table-bill-muted">Paiement par carte indisponible pour le moment. Vous pouvez régler par BaridiMob auprès du restaurant.</p>}
+                                    {!stripe.available && <p className="table-bill-muted">{isEuro ? 'Paiement par carte indisponible pour le moment. Réglez auprès du serveur.' : 'Paiement par carte indisponible pour le moment. Vous pouvez régler par BaridiMob auprès du restaurant.'}</p>}
                 </section>
               </>
             )}
