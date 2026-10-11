@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Clock3 } from 'lucide-react';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
+import { formatMoney, normalizeCurrency, type PosCurrency } from '@/src/lib/pos/currency';
 import {
   confirmPendingPayment, getRestaurantData, getSelectedRestaurantId, subscribeRestaurantData,
   type Payment, type RestaurantData
@@ -22,6 +23,7 @@ export function PendingGuestPayments() {
   const [data, setData] = useState<RestaurantData | null>(null);
   const [restaurantId, setRestaurantId] = useState('');
   const [livePayments, setLivePayments] = useState<LivePayment[] | null>(null);
+  const [currency, setCurrency] = useState<PosCurrency>('DZD');
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
 
@@ -32,6 +34,7 @@ export function PendingGuestPayments() {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Impossible de charger les paiements en attente.');
         setLivePayments(result.payments as LivePayment[]);
+        setCurrency(normalizeCurrency(result.currency));
       } else {
         const [next, selected] = await Promise.all([getRestaurantData(), getSelectedRestaurantId()]);
         setData(next);
@@ -83,6 +86,7 @@ export function PendingGuestPayments() {
   }
 
   const loading = isSupabaseConfigured ? livePayments === null && !error : data === null && !error;
+  const formatAmount = (amount: number) => isSupabaseConfigured ? formatMoney(amount, currency, 'fr-FR') : `${amount.toLocaleString('fr-FR')} DZD`;
   if (loading) return <p role="status" style={{ padding: '1rem' }}>Chargement des paiements…</p>;
 
   return (
@@ -93,7 +97,7 @@ export function PendingGuestPayments() {
       <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '.5rem' }}>
         {entries.map(payment => (
           <li key={payment.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-            <span>{payment.description} · {payment.amount.toLocaleString('fr-FR')} DZD{payment.createdAt ? ` · ${new Date(payment.createdAt).toLocaleString('fr-FR')}` : ''}</span>
+            <span>{payment.description} · {formatAmount(payment.amount)}{payment.createdAt ? ` · ${new Date(payment.createdAt).toLocaleString('fr-FR')}` : ''}</span>
             <button type="button" className="product-button product-button--small" disabled={busyId === payment.id} onClick={() => void confirm(payment.id)}>
               <Check size={16} aria-hidden="true" /> Valider après vérification
             </button>

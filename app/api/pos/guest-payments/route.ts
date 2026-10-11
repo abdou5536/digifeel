@@ -14,6 +14,7 @@ export async function GET() {
       console.error('Pending guest payments could not be loaded.', error);
       return NextResponse.json({ error: 'Les paiements à valider sont indisponibles.' }, { status: 503 });
     }
-    return NextResponse.json({ payments: data ?? [] }, { headers: { 'Cache-Control': 'no-store' } });
+    const { data: restaurant } = await supabase.from('restaurants').select('currency').limit(1).maybeSingle();
+    return NextResponse.json({ payments: data ?? [], currency: restaurant?.currency === 'EUR' ? 'EUR' : 'DZD' }, { headers: { 'Cache-Control': 'no-store' } });
   });
 }
