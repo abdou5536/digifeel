@@ -9,6 +9,7 @@ import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 import { deleteCatalog, deleteLocalSale, loadCatalog, loadLocalSales, saveCatalog, saveLocalSale } from '@/src/lib/pos/offline-store';
 import { formatMoney, minorToInput, normalizeCurrency, parseMoneyInput } from '@/src/lib/pos/currency';
+import { ZHistory } from './ZHistory';
 import { totalSaleDzd, type LocalPosSale, type PaymentMethod, type PosCatalog, type PosProduct, type PosSaleLine, type PosSaleRecord } from '@/src/lib/pos/types';
 
 interface CartProduct extends PosSaleLine {
@@ -102,6 +103,7 @@ export function RestaurantPOS() {
   const [restaurantAddress, setRestaurantAddress] = useState('');
   const [voidingSaleId, setVoidingSaleId] = useState<string | null>(null);
   const [closingDay, setClosingDay] = useState(false);
+  const [zRefresh, setZRefresh] = useState(0);
   const saleSubmissionInProgress = useRef(false);
   const billActionInProgress = useRef(false);
 
@@ -601,6 +603,7 @@ export function RestaurantPOS() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'La clôture a échoué.');
       setMessage(isArabic ? 'تم إغلاق الصندوق.' : 'Caisse clôturée (Z).');
+      setZRefresh(value => value + 1);
     } catch (closeError) {
       setError(closeError instanceof Error ? closeError.message : 'La clôture a échoué.');
     } finally {
@@ -790,6 +793,7 @@ export function RestaurantPOS() {
           </article>)}
         </div>
         <button className="pos-sync-button pos-sync-button--large" type="button" disabled={pendingCount === 0 || !online} onClick={() => void synchronize()}><RefreshCw size={16} />{isArabic ? 'مزامنة المبيعات المحفوظة' : 'Synchroniser les ventes en attente'}</button>
+        {catalog.role === 'restaurant_admin' && online && <ZHistory currency={currency} restaurantName={catalog.restaurant.name} refreshKey={zRefresh} />}
       </section>}
       {printingSaleId && (() => {
         const sale = visibleSales.find(item => item.id === printingSaleId);
