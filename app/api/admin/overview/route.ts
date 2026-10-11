@@ -12,7 +12,7 @@ export async function GET() {
 
     const supabase = await createSupabaseServerClient();
     const [restaurantsResult, batchesResult, ownersResult] = await Promise.all([
-      supabase.from('restaurants').select('id,name,slug,active,created_at,chips(id,status,table_number,created_at),subscriptions(status,trial_ends_at)').order('created_at', { ascending: false }),
+      supabase.from('restaurants').select('id,name,slug,active,created_at,chips(id,status,table_number,created_at),subscriptions(status,trial_ends_at,current_period_ends_at)').order('created_at', { ascending: false }),
       supabase.from('chip_batches').select('id,name,created_at').order('created_at', { ascending: false }).limit(50),
       supabase.from('app_users').select('restaurant_id').eq('role', 'restaurant_admin')
     ]);

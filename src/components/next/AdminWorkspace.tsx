@@ -21,13 +21,24 @@ interface AdminRestaurant {
   active: boolean;
   created_at: string;
   chips: AdminChip[];
-  subscriptions: Array<{ status: string; trial_ends_at: string }> | null;
+  subscriptions: Array<{ status: string; trial_ends_at: string; current_period_ends_at: string | null }> | null;
   hasOwner: boolean;
 }
 
 interface GeneratedChip {
   chip_id: string;
   activation_code: string;
+}
+
+type SubscriptionPatch = { status: string; months?: number; freeDays?: number };
+
+const STATUS_LABELS: Record<string, string> = { trialing: 'Mois offert', active: 'Actif', past_due: 'En retard', canceled: 'Résilié', inactive: 'Inactif' };
+
+function subscriptionSummary(subscription: AdminRestaurant['subscriptions'] extends Array<infer T> | null ? T | undefined : never): string {
+  if (!subscription) return 'non défini';
+  const end = subscription.status === 'trialing' ? subscription.trial_ends_at : subscription.current_period_ends_at;
+  const label = STATUS_LABELS[subscription.status] ?? subscription.status;
+  return end ? `${label} jusqu’au ${new Date(end).toLocaleDateString('fr-FR')}` : label;
 }
 
 export function AdminWorkspace() {
@@ -97,7 +108,7 @@ export function AdminWorkspace() {
     }
   };
 
-  const patchRestaurant = async (restaurantId: string, payload: { active: boolean } | { addTables: number }) => {
+  const patchRestaurant = async (restaurantId: string, payload: { active: boolean } | { addTables: number } | { subscription: SubscriptionPatch }) => {
     setBusyRestaurantId(restaurantId);
     setMessage('');
     try {
@@ -245,7 +256,13 @@ export function AdminWorkspace() {
             const subscription = restaurant.subscriptions?.[0];
             return <article className="next-restaurant-row" key={restaurant.id}>
               <div><h3>{restaurant.name}{!restaurant.active && <span className="next-chip-status next-chip-status--disabled">désactivé</span>}</h3><p className="next-muted">/{restaurant.slug} · créé le {new Date(restaurant.created_at).toLocaleDateString('fr-FR')}</p></div>
-              <span>Abonnement : {subscription?.status ?? 'non défini'}</span>
+              <span>Abonnement : {subscriptionSummary(subscription)}</span>
+              <div className="next-subscription-actions">
+                <button className="product-button product-button--secondary" type="button" disabled={busyRestaurantId === restaurant.id} onClick={() => void patchRestaurant(restaurant.id, { subscription: { status: 'active', months: 1 } })}>+1 mois payé</button>
+                <button className="product-button product-button--secondary" type="button" disabled={busyRestaurantId === restaurant.id} onClick={() => void patchRestaurant(restaurant.id, { subscription: { status: 'active', months: 12 } })}>+12 mois payés</button>
+                <button className="product-button product-button--secondary" type="button" disabled={busyRestaurantId === restaurant.id} onClick={() => void patchRestaurant(restaurant.id, { subscription: { status: 'trialing', freeDays: 30 } })}>Offrir 30 jours</button>
+                <button className="product-button product-button--secondary" type="button" disabled={busyRestaurantId === restaurant.id} onClick={() => { if (window.confirm(`Suspendre l’abonnement de « ${restaurant.name} » ?`)) void patchRestaurant(restaurant.id, { subscription: { status: 'inactive' } }); }}>Suspendre</button>
+              </div>
               <span>{restaurant.chips?.length ?? 0} puce(s)</span>
               <button className="product-button product-button--secondary" type="button" disabled={impersonatingId === restaurant.id || !restaurant.hasOwner} title={restaurant.hasOwner ? undefined : 'Aucun compte restaurateur associé.'} onClick={() => void impersonate(restaurant)}>{impersonatingId === restaurant.id ? 'Connexion…' : 'Entrer dans ce restaurant'}</button>
               <div className="next-chip-list">{restaurant.chips?.map(chip => <span key={chip.id} className={`next-chip-status next-chip-status--${chip.status}`}>{chip.id.slice(0, 8)} · {chip.status}{chip.status === 'active' && <Link href={`/r/${chip.id}`}>Ouvrir</Link>}<button type="button" disabled={busyChipId === chip.id} onClick={() => void toggleChip(chip)}>{busyChipId === chip.id ? '…' : chip.status === 'disabled' ? 'Réactiver' : 'Désactiver'}</button></span>)}</div>

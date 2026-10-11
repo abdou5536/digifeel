@@ -26,6 +26,31 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (error) throw error;
       return NextResponse.json({ tables: data }, { status: 201 });
     }
+    if (body?.subscription && typeof body.subscription === 'object') {
+      const input = body.subscription as { status?: unknown; months?: unknown; freeDays?: unknown };
+      const statuses = ['trialing', 'active', 'past_due', 'canceled', 'inactive'];
+      if (typeof input.status !== 'string' || !statuses.includes(input.status)) return NextResponse.json({ error: 'Statut d’abonnement invalide.' }, { status: 400 });
+      const months = input.months === undefined ? 0 : Number(input.months);
+      const freeDays = input.freeDays === undefined ? 0 : Number(input.freeDays);
+      if (!Number.isInteger(months) || months < 0 || months > 24 || !Number.isInteger(freeDays) || freeDays < 0 || freeDays > 90) {
+        return NextResponse.json({ error: 'Durée invalide.' }, { status: 400 });
+      }
+      const service = createSupabaseServiceClient();
+      const { data: current, error: readError } = await service.from('subscriptions').select('trial_ends_at,current_period_ends_at').eq('restaurant_id', restaurantId).maybeSingle();
+      if (readError) throw readError;
+      const now = Date.now();
+      const latest = (value: string | null | undefined) => Math.max(now, value ? Date.parse(value) : 0);
+      const update: Record<string, string> = { status: input.status, updated_at: new Date(now).toISOString() };
+      if (months > 0) {
+        const end = new Date(latest(current?.current_period_ends_at));
+        end.setUTCMonth(end.getUTCMonth() + months);
+        update.current_period_ends_at = end.toISOString();
+      }
+      if (freeDays > 0) update.trial_ends_at = new Date(latest(current?.trial_ends_at) + freeDays * 86_400_000).toISOString();
+      const { error } = await service.from('subscriptions').upsert({ restaurant_id: restaurantId, ...update }, { onConflict: 'restaurant_id' });
+      if (error) throw error;
+      return NextResponse.json({ status: input.status });
+    }
     return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 });
   } catch (error) {
     console.error('Restaurant update failed.', error);
