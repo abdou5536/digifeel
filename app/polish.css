@@ -392,3 +392,10 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 :root[data-theme="light"] .next-account-card p,
 :root[data-theme="light"] .next-page-wrap p,
 :root[data-theme="light"] .next-page-wrap small { color: var(--df-text-muted) !important; }
+
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+[data-reveal], .reveal, [class*="reveal"] { opacity: 1 !important; transform: none !important; }

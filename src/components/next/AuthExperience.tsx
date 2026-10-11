@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 
-export function AuthExperience({ nextPath }: { nextPath: string }) {
+export function AuthExperience({ nextPath, initialSuperAdmin = false }: { nextPath: string; initialSuperAdmin?: boolean }) {
   const router = useRouter();
-  const [superAdmin, setSuperAdmin] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(initialSuperAdmin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

@@ -26,6 +26,7 @@ export function SiteHeader() {
         <button className="next-language-toggle" type="button" onClick={toggleLocale} aria-label={text('language')}>
           {locale === 'fr' ? 'العربية' : locale === 'ar' ? 'EN' : 'FR'}
         </button>
+        <Link className="next-link" href="/login?admin=1">Super-admin</Link>
         <Link className="product-button product-button--small" href="/login">{text('login')}</Link>
       </div>
     </header>
