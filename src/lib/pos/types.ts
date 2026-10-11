@@ -26,6 +26,7 @@ export interface PosSaleLine {
 export interface LocalPosSale {
   id: string;
   ownerId: string;
+  ticketNumber?: number | null;
   items: PosSaleLine[];
   paymentMethod: PaymentMethod;
   paymentReference: string;
@@ -39,6 +40,7 @@ export interface LocalPosSale {
 
 export interface PosSaleRecord {
   id: string;
+  ticket_number?: number | null;
   total_dzd: number;
   payment_method: PaymentMethod;
   payment_reference: string | null;

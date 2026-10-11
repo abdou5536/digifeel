@@ -24,7 +24,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     console.error('POS sale could not be voided.', error);
     return rpcErrorResponse(error, {
       409: 'Cette vente est introuvable ou déjà annulée.',
-      400: 'Une vente ne peut être annulée que le jour même de son enregistrement.'
+      400: 'Cette vente appartient à une journée déjà clôturée (Z) : elle ne peut plus être annulée.'
     });
   }
   return NextResponse.json({ ok: true });
