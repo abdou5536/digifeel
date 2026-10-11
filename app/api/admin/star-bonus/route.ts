@@ -7,6 +7,26 @@ import { computeStarBonus } from '@/src/lib/billing/starBonus';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+export async function GET() {
+  const denied = await requireSuperAdmin();
+  if (denied) return denied;
+  const supabase = createSupabaseServiceClient();
+  try {
+    const [restaurants, ratings, billed] = await Promise.all([
+      supabase.from('restaurants').select('id,name').order('name'),
+      supabase.from('star_ratings').select('restaurant_id,kind,rating,observed_at').order('observed_at', { ascending: false }),
+      supabase.from('star_billed_tiers').select('restaurant_id,tier_id,period,amount_cents,billed_at').order('billed_at', { ascending: false })
+    ]);
+    if (restaurants.error) throw restaurants.error;
+    if (ratings.error) throw ratings.error;
+    if (billed.error) throw billed.error;
+    return NextResponse.json({ restaurants: restaurants.data, ratings: ratings.data, billed: billed.data }, { headers: { 'Cache-Control': 'private, no-store' } });
+  } catch (error) {
+    console.error('Star bonus data could not be loaded.', error);
+    return NextResponse.json({ error: 'Les données n’ont pas pu être chargées.' }, { status: 503 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   const denied = await requireSuperAdmin();
   if (denied) return denied;
