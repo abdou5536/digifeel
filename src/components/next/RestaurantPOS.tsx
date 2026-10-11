@@ -90,6 +90,7 @@ export function RestaurantPOS() {
   const [billProductId, setBillProductId] = useState('');
   const [billPaymentAmount, setBillPaymentAmount] = useState('');
   const [billPaymentTip, setBillPaymentTip] = useState('');
+  const [billDiscount, setBillDiscount] = useState('');
   const [billPaymentMethod, setBillPaymentMethod] = useState<'cash' | 'card' | 'baridimob'>('cash');
   const [billBusy, setBillBusy] = useState(false);
   const [productName, setProductName] = useState('');
@@ -382,6 +383,64 @@ export function RestaurantPOS() {
       .reduce((sum, payment) => sum + Number(payment.amount_dzd), 0)
     : 0;
   const selectedBillRemaining = Math.max(0, selectedBillTotal - selectedBillPaid);
+
+  const applyBillDiscount = async (bill: ActiveBill) => {
+    if (billBusy || billActionInProgress.current) return;
+    const parsed = billDiscount.trim() ? parseMoneyInput(billDiscount, currency) : 0;
+    const subtotal = bill.bill_items.reduce((sum, item) => sum + Number(item.line_total_dzd), 0);
+    if (parsed === null || !Number.isSafeInteger(parsed) || parsed < 0 || parsed > subtotal) {
+      setError('La remise doit être comprise entre 0 et le sous-total de l’addition.');
+      return;
+    }
+    billActionInProgress.current = true;
+    setBillBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/pos/bills/${bill.id}/discount`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ discountMinor: parsed })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'La remise n’a pas pu être appliquée.');
+      await refreshBills();
+      setBillDiscount('');
+      setMessage('Remise enregistrée.');
+    } catch (discountError) {
+      setError(discountError instanceof Error ? discountError.message : 'La remise n’a pas pu être appliquée.');
+    } finally {
+      billActionInProgress.current = false;
+      setBillBusy(false);
+    }
+  };
+
+  const printBill = (bill: ActiveBill) => {
+    const popup = window.open('', '_blank', 'width=420,height=700');
+    if (!popup) { setError('Autorisez l’ouverture de fenêtres pour imprimer.'); return; }
+    const esc = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char);
+    const fmt = (value: number) => esc(formatMoney(value, currency, 'fr-FR'));
+    const subtotal = bill.bill_items.reduce((sum, item) => sum + Number(item.line_total_dzd), 0);
+    const discount = Number(bill.discount_dzd);
+    const total = Math.max(0, subtotal - discount);
+    const paid = bill.payments.filter(payment => payment.status === 'succeeded');
+    const tips = paid.reduce((sum, payment) => sum + Number(payment.tip_dzd), 0);
+    const vatBp = catalog?.restaurant.vat_rate_bp ?? 0;
+    const vat = vatBp > 0 ? Math.round(total * vatBp / (10000 + vatBp)) : 0;
+    const lines = bill.bill_items.map(item => `<tr><td>${item.quantity} × ${esc(item.product_name)}</td><td class="r">${fmt(Number(item.line_total_dzd))}</td></tr>`).join('');
+    popup.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Addition ${esc(bill.table_label)}</title>
+<style>body{font-family:Arial,sans-serif;font-size:13px;margin:16px;color:#000;max-width:320px}h1{font-size:16px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:10px}td{padding:3px 0}.r{text-align:right}.sep td{border-top:1px dashed #666}.tot td{font-weight:bold;border-top:2px solid #000}</style></head><body>
+<h1>${esc(catalog?.restaurant.name ?? 'Digifeel')}</h1><div>Table ${esc(bill.table_label)}</div><div>${esc(new Date().toLocaleString('fr-FR'))}</div>
+<table>${lines}
+<tr class="sep"><td>Sous-total</td><td class="r">${fmt(subtotal)}</td></tr>
+${discount > 0 ? `<tr><td>Remise</td><td class="r">- ${fmt(discount)}</td></tr>` : ''}
+<tr class="tot"><td>Total TTC</td><td class="r">${fmt(total)}</td></tr>
+${vat > 0 ? `<tr><td>dont TVA (${vatBp / 100} %)</td><td class="r">${fmt(vat)}</td></tr>` : ''}
+${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
+<tr class="sep"><td>Déjà payé</td><td class="r">${fmt(paid.reduce((sum, payment) => sum + Number(payment.amount_dzd), 0))}</td></tr></table>
+<p>Merci de votre visite.</p>
+<script>window.onload=function(){window.print()}</script></body></html>`);
+    popup.document.close();
+  };
 
   const addProduct = (product: PosProduct) => {
     setCart(current => {
@@ -738,6 +797,12 @@ export function RestaurantPOS() {
             <button className="pos-checkout-button" type="submit" disabled={billBusy || !billProductId}><Plus size={17} />{isArabic ? 'إضافة' : 'Ajouter à la table'}</button>
           </form>
           <div className="pos-ticket-total"><span>{isArabic ? 'المجموع' : 'Total'}</span><strong>{money(selectedBillTotal, locale)}</strong></div>
+          {Number(selectedBill.discount_dzd) > 0 && <div className="pos-ticket-total"><span>{isArabic ? 'خصم' : 'Dont remise'}</span><strong>- {money(Number(selectedBill.discount_dzd), locale)}</strong></div>}
+          {catalog.role === 'restaurant_admin' && <form className="pos-product-form" onSubmit={event => { event.preventDefault(); void applyBillDiscount(selectedBill); }}>
+            <label>{isArabic ? 'خصم' : 'Remise'} ({currency === 'EUR' ? '€' : 'DA'})<input type="text" inputMode="decimal" value={billDiscount} onChange={event => setBillDiscount(event.target.value)} placeholder={minorToInput(Number(selectedBill.discount_dzd), currency)} /></label>
+            <button className="pos-sync-button" type="submit" disabled={billBusy}>{isArabic ? 'تطبيق الخصم' : 'Appliquer la remise'}</button>
+          </form>}
+          <button className="pos-sync-button" type="button" onClick={() => printBill(selectedBill)}><Printer size={15} />{isArabic ? 'طباعة الفاتورة' : 'Imprimer l’addition'}</button>
           <div className="pos-ticket-total"><span>{isArabic ? 'مدفوع' : 'Déjà payé'}</span><strong>{money(selectedBillPaid, locale)}</strong></div>
           {selectedBill.payments.some(payment => payment.status === 'pending') && <p className="pos-payment-note">{isArabic ? 'يوجد دفع بالبطاقة بانتظار التأكيد من جهاز الدفع.' : 'Un paiement carte attend la confirmation du terminal ; il ne réduit pas encore le solde.'}</p>}
           {selectedBillRemaining > 0 && <form className="pos-product-form" onSubmit={event => void recordBillPayment(event, selectedBill, selectedBillRemaining)}>
