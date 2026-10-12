@@ -1,0 +1,63 @@
+'use client';
+
+import { useState } from 'react';
+import { Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
+
+export function QRCodeDownloads({ chipId, path, fileName }: { chipId: string; path?: string; fileName?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const download = async (format: 'svg' | 'png' | 'pdf') => {
+    setBusy(true);
+    setError('');
+    try {
+      const url = `${window.location.origin}${path ?? `/r/${encodeURIComponent(chipId)}`}`;
+      const base = fileName ?? chipId;
+      if (format === 'svg') {
+        const svg = await QRCode.toString(url, { type: 'svg', width: 640, margin: 2 });
+        saveFile(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${base}.svg`);
+      } else {
+        const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, errorCorrectionLevel: 'H' });
+        if (format === 'pdf') {
+          const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(18);
+          pdf.text('DIGIFEEL', 105, 26, { align: 'center' });
+          pdf.addImage(dataUrl, 'PNG', 50, 45, 110, 110);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(11);
+          pdf.text(base, 105, 166, { align: 'center' });
+          pdf.setFontSize(8);
+          pdf.text(url, 105, 176, { align: 'center', maxWidth: 170 });
+          pdf.save(`${base}.pdf`);
+        } else {
+          const response = await fetch(dataUrl);
+          saveFile(await response.blob(), `${base}.png`);
+        }
+      }
+    } catch (downloadError) {
+      console.error('QR code could not be generated.', downloadError);
+      setError('Le QR code n’a pas pu être généré.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <div className="next-qr-actions">
+    <button className="product-button product-button--secondary" type="button" disabled={busy} onClick={() => void download('svg')}><Download aria-hidden="true" /> SVG</button>
+    <button className="product-button product-button--secondary" type="button" disabled={busy} onClick={() => void download('png')}><Download aria-hidden="true" /> PNG</button>
+    <button className="product-button product-button--secondary" type="button" disabled={busy} onClick={() => void download('pdf')}><Download aria-hidden="true" /> PDF</button>
+    {error && <span className="next-error" role="alert">{error}</span>}
+  </div>;
+}
+
+function saveFile(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

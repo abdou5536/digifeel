@@ -1,0 +1,10 @@
+drop trigger if exists bills_close_guest_sessions on public.bills;
+drop function if exists public.close_guest_sessions();
+drop function if exists public.guest_get_bill(text);
+drop function if exists public.open_guest_session(text);
+drop function if exists public.open_table_bill(uuid);
+drop function if exists public.set_dining_table_active(uuid, boolean);
+drop function if exists public.create_dining_table(text);
+drop table if exists public.guest_sessions;
+alter table public.bills drop column if exists table_id;
+drop table if exists public.dining_tables;

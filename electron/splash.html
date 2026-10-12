@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Digifeel</title>
+    <style>
+      :root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; background: #101a15; color: #f5f4ed; }
+      body { height: 100vh; margin: 0; display: grid; place-items: center; }
+      main { text-align: center; }
+      h1 { margin: 0; font-size: 32px; letter-spacing: .02em; }
+      p { margin: 8px 0 0; color: #a9c4b7; }
+      .indicator { width: 28px; height: 3px; margin: 24px auto 0; border-radius: 3px; background: #79d4b0; animation: pulse 1.2s ease-in-out infinite alternate; }
+      @keyframes pulse { to { width: 64px; opacity: .55; } }
+      @media (prefers-reduced-motion: reduce) { .indicator { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Digifeel</h1>
+      <p>Votre espace restaurant démarre…</p>
+      <div class="indicator" aria-hidden="true"></div>
+    </main>
+  </body>
+</html>

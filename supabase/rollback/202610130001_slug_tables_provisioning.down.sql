@@ -1,0 +1,15 @@
+drop function if exists public.admin_provision_restaurant(text, text, text, text, uuid, integer);
+drop function if exists public.admin_add_tables(uuid, integer);
+drop function if exists public.super_set_restaurant_active(uuid, boolean);
+drop trigger if exists reviews_reject_inactive on public.reviews;
+drop function if exists public.reject_review_if_inactive();
+revoke update on public.restaurants from authenticated;
+grant update on public.restaurants to authenticated;
+drop index if exists chips_restaurant_table_key;
+drop index if exists restaurants_slug_key;
+alter table public.restaurants drop constraint if exists restaurants_slug_format;
+drop trigger if exists restaurants_slug on public.restaurants;
+drop function if exists public.restaurants_set_slug();
+drop function if exists public.slugify(text);
+alter table public.chips drop column if exists table_number;
+alter table public.restaurants drop column if exists active, drop column if exists logo_url, drop column if exists slug;

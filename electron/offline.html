@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Digifeel hors connexion</title>
+    <style>
+      :root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; background: #101a15; color: #f5f4ed; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; }
+      main { max-width: 460px; padding: 36px; text-align: center; }
+      h1 { margin: 0 0 12px; font-size: 28px; }
+      p { color: #c5cfc9; }
+      button { margin-top: 16px; padding: 13px 22px; border: 0; border-radius: 10px; background: #79d4b0; color: #101a15; font: 700 15px system-ui, sans-serif; cursor: pointer; }
+      button:focus-visible { outline: 3px solid #ffad73; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Connexion Internet indisponible</h1>
+      <p>Digifeel n’a pas pu joindre le service en ligne. Vérifiez votre connexion, puis réessayez.</p>
+      <button type="button" onclick="window.digifeelDesktop.retryConnection()">Réessayer</button>
+    </main>
+  </body>
+</html>

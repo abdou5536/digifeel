@@ -1,15 +1,21 @@
 {
   "id": "/",
-  "name": "Digifeel — Avis clients",
-  "short_name": "Digifeel",
-  "description": "Suivez les avis clients et le service de votre établissement.",
+  "name": "Digifeel POS — Caisse restaurant",
+  "short_name": "Digifeel POS",
+  "description": "Caisse et suivi des ventes pour les restaurants en Algérie.",
   "lang": "fr",
-  "start_url": "/",
+  "start_url": "/caisse",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#070B14",
-  "theme_color": "#070B14",
+  "background_color": "#101a15",
+  "theme_color": "#101a15",
   "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
