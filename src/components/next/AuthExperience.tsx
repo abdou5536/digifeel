@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
 import { isSupabaseConfigured } from '@/src/lib/supabase/config';
 
-export function AuthExperience({ nextPath, initialSuperAdmin = false }: { nextPath: string; initialSuperAdmin?: boolean }) {
+export function AuthExperience({ nextPath, initialSuperAdmin = false, setupPassword = false }: { nextPath: string; initialSuperAdmin?: boolean; setupPassword?: boolean }) {
   const router = useRouter();
   const [superAdmin, setSuperAdmin] = useState(initialSuperAdmin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [message] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -22,6 +24,15 @@ export function AuthExperience({ nextPath, initialSuperAdmin = false }: { nextPa
     try {
       if (!isSupabaseConfigured) throw new Error('La connexion sera disponible après configuration de Supabase dans .env.');
       const supabase = createSupabaseBrowserClient();
+      if (setupPassword) {
+        if (newPassword.length < 8 || newPassword.length > 72) throw new Error('Le mot de passe doit contenir entre 8 et 72 caractères.');
+        if (newPassword !== confirmPassword) throw new Error('Les deux mots de passe ne correspondent pas.');
+        const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+        if (updateError) throw new Error('Le mot de passe n’a pas pu être défini. Le lien est peut-être expiré.');
+        router.push(nextPath);
+        router.refresh();
+        return;
+      }
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw new Error('E-mail ou mot de passe incorrect.');
       const { data: profile } = await supabase.from('app_users').select('role').eq('id', data.user.id).maybeSingle();
@@ -46,18 +57,23 @@ export function AuthExperience({ nextPath, initialSuperAdmin = false }: { nextPa
         <Link className="product-brand" href="/"><img src="/icons/icon.svg" alt="" />DIGIFEEL</Link>
         <div className="next-page-heading">
           <span className="next-kicker">{superAdmin ? 'SUPER-ADMIN' : 'ESPACE RESTAURANT'}</span>
-          <h1>Content de vous revoir.</h1>
-          <p>{superAdmin ? 'Connectez-vous pour créer et gérer les restaurants.' : 'Connectez-vous avec les identifiants fournis par Digifeel.'}</p>
+          <h1>{setupPassword ? 'Sécurisez votre espace.' : 'Content de vous revoir.'}</h1>
+          <p>{setupPassword ? 'Choisissez un mot de passe personnel pour activer votre compte restaurateur.' : superAdmin ? 'Connectez-vous pour créer et gérer les restaurants.' : 'Connectez-vous avec vos identifiants.'}</p>
         </div>
         <form className="next-form" onSubmit={submit}>
-          <label>Adresse e-mail<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
-          <label>Mot de passe<input required type="password" minLength={8} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row' }}><input type="checkbox" checked={superAdmin} onChange={event => setSuperAdmin(event.target.checked)} style={{ width: 20, height: 20 }} />Je suis le super-admin Digifeel</label>
+          {setupPassword ? <>
+            <label>Nouveau mot de passe<input required type="password" minLength={8} maxLength={72} autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label>
+            <label>Confirmer le mot de passe<input required type="password" minLength={8} maxLength={72} autoComplete="new-password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} /></label>
+          </> : <>
+            <label>Adresse e-mail<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
+            <label>Mot de passe<input required type="password" minLength={8} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row' }}><input type="checkbox" checked={superAdmin} onChange={event => setSuperAdmin(event.target.checked)} style={{ width: 20, height: 20 }} />Je suis le super-admin Digifeel</label>
+          </>}
           {error && <p className="next-error" role="alert">{error}</p>}
           {message && <p className="next-success" role="status">{message}</p>}
-          <button className="product-button product-button--full" type="submit" disabled={submitting}>{submitting ? 'Un instant…' : 'Me connecter'}</button>
+          <button className="product-button product-button--full" type="submit" disabled={submitting}>{submitting ? 'Un instant…' : setupPassword ? 'Définir mon mot de passe' : 'Me connecter'}</button>
         </form>
-        <p className="next-muted">Pas encore d’accès ? Contactez Digifeel pour ouvrir votre espace.</p>
+        {!setupPassword && <p className="next-muted">Pas encore d’accès ? Contactez Digifeel pour ouvrir votre espace.</p>}
         <Link className="next-link" href="/">Retour au site</Link>
       </section>
     </div>

@@ -22,7 +22,9 @@ Durée : environ 1 heure. Coûts : Supabase et Vercel ont une offre gratuite suf
 Créez-le une seule fois avec le jeton `AUTH_BOOTSTRAP_TOKEN` (voir `README.md`), puis connectez-vous sur `/login`.
 
 ## 4. Créer un restaurant client
-Depuis votre espace super-admin : nom, e-mail du patron, mot de passe (10 caractères minimum), devise, nombre de tables. Envoyez au patron l'adresse du site, son e-mail et son mot de passe. Il se connecte et configure lui-même :
+Avant la première invitation, configurez un serveur SMTP de production dans **Supabase → Authentication → SMTP Settings**. Dans **Authentication → URL Configuration**, vérifiez que l'URL du site et l'URL de redirection `https://votre-domaine/auth/callback` sont autorisées. Le SMTP par défaut Supabase est limité et ne convient pas à l'envoi d'invitations à des clients.
+
+Depuis votre espace super-admin (`/admin`), renseignez le nom, l'e-mail du patron, la devise, le nombre de tables et les informations déjà disponibles (lien Google, logo, identifiant d'URL). Digifeel crée la fiche et les QR, puis envoie une invitation sécurisée à l'adresse indiquée. Le restaurateur ouvre ce lien et définit lui-même son mot de passe : ne demandez ni ne transmettez ses identifiants. Il pourra compléter :
 - **Réglages** : logo, palette de couleurs de caisse propre au restaurant ou couleur personnalisée (la couleur peut aussi être déduite d'une photo), TVA, lien Google.
 - **Caisse → Produits** : import de la carte depuis un fichier Excel/CSV (colonnes nom, catégorie, prix).
 - **Serveurs** : création d'un compte par serveur avec mot de passe (8 caractères minimum).

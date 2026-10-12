@@ -53,7 +53,7 @@ export function AdminWorkspace() {
   const [busyChipId, setBusyChipId] = useState('');
   const [busyRestaurantId, setBusyRestaurantId] = useState('');
   const [impersonatingId, setImpersonatingId] = useState('');
-  const [newResto, setNewResto] = useState({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10, currency: 'DZD' });
+  const [newResto, setNewResto] = useState({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', tables: 10, currency: 'DZD' });
   const [creating, setCreating] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -90,6 +90,7 @@ export function AdminWorkspace() {
     event.preventDefault();
     setCreating(true);
     setMessage('');
+    const invitedEmail = newResto.ownerEmail;
     try {
       const response = await fetch('/api/admin/restaurants', {
         method: 'POST',
@@ -98,8 +99,8 @@ export function AdminWorkspace() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Le restaurant n’a pas pu être créé.');
-      setNewResto({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', ownerPassword: '', tables: 10, currency: 'DZD' });
-      setMessage('Restaurant créé. Transmettez-lui son e-mail et son mot de passe de connexion.');
+      setNewResto({ name: '', slug: '', googleReviewUrl: '', logoUrl: '', ownerEmail: '', tables: 10, currency: 'DZD' });
+      setMessage(`Restaurant créé. Une invitation pour définir son mot de passe a été envoyée à ${invitedEmail}.`);
       setReloadKey(key => key + 1);
     } catch (createError) {
       setMessage(createError instanceof Error ? createError.message : 'Le restaurant n’a pas pu être créé.');
@@ -236,17 +237,17 @@ export function AdminWorkspace() {
       </div>
       <section className="next-glass-card next-surface-card">
         <h2>Créer un restaurant</h2>
-        <p className="next-muted">Crée la fiche, le compte du restaurateur et une puce/QR par table. Lien de scan : /r/identifiant/t/numéro.</p>
+        <p className="next-muted">Crée la fiche et une puce/QR par table, puis envoie au restaurateur un lien sécurisé pour activer son compte. Lien de scan : /r/identifiant/t/numéro.</p>
         <form className="next-form next-form-grid" onSubmit={createRestaurant}>
           <label>Nom du restaurant<input required minLength={2} maxLength={120} value={newResto.name} onChange={event => setNewResto({ ...newResto, name: event.target.value })} placeholder="Chez Marcel" /></label>
           <label>Identifiant d’URL (facultatif)<input maxLength={60} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={newResto.slug} onChange={event => setNewResto({ ...newResto, slug: event.target.value.toLowerCase() })} placeholder="chez-marcel" /></label>
           <label>Lien d’avis Google<input type="url" value={newResto.googleReviewUrl} onChange={event => setNewResto({ ...newResto, googleReviewUrl: event.target.value })} placeholder="https://g.page/r/…/review" /></label>
           <label>Logo (adresse https://)<input type="url" value={newResto.logoUrl} onChange={event => setNewResto({ ...newResto, logoUrl: event.target.value })} /></label>
           <label>E-mail du restaurateur<input required type="email" autoComplete="off" value={newResto.ownerEmail} onChange={event => setNewResto({ ...newResto, ownerEmail: event.target.value })} /></label>
-          <label>Mot de passe initial (10 caractères min.)<input required type="password" minLength={10} maxLength={72} autoComplete="new-password" value={newResto.ownerPassword} onChange={event => setNewResto({ ...newResto, ownerPassword: event.target.value })} /></label>
           <label>Devise de la caisse<select value={newResto.currency} onChange={event => setNewResto({ ...newResto, currency: event.target.value })}><option value="DZD">Dinar algérien (DA)</option><option value="EUR">Euro (€)</option></select></label>
           <label>Nombre de tables<input type="number" min={0} max={200} value={newResto.tables} onChange={event => setNewResto({ ...newResto, tables: Number(event.target.value) })} /></label>
-          <button className="product-button" type="submit" disabled={creating}>{creating ? 'Création…' : 'Créer le restaurant'}</button>
+          <p className="next-muted">Le restaurateur reçoit un e-mail et choisit son propre mot de passe. Aucun identifiant secret n’est partagé.</p>
+          <button className="product-button" type="submit" disabled={creating}>{creating ? 'Création et invitation…' : 'Créer et envoyer l’invitation'}</button>
         </form>
       </section>
       <section className="next-glass-card next-surface-card next-admin-restaurants">

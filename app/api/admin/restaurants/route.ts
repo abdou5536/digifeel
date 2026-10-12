@@ -6,7 +6,7 @@ import { createSupabaseServiceClient } from '@/src/lib/supabase/server';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-/** Crée un restaurant + le compte de son propriétaire + ses tables (puces/QR). Superadmin uniquement. */
+/** Crée un restaurant, invite son propriétaire et provisionne ses tables (puces/QR). Superadmin uniquement. */
 export async function POST(request: NextRequest) {
   const denied = await requireSuperAdmin();
   if (denied) return denied;
@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
   const googleReviewUrl = str('googleReviewUrl');
   const logoUrl = str('logoUrl');
   const ownerEmail = str('ownerEmail').toLowerCase();
-  const ownerPassword = typeof body?.ownerPassword === 'string' ? body.ownerPassword : '';
   const tables = body?.tables;
   const currency = body?.currency === 'EUR' ? 'EUR' : 'DZD';
 
@@ -27,41 +26,53 @@ export async function POST(request: NextRequest) {
   if (googleReviewUrl && !isValidGoogleReviewUrl(googleReviewUrl)) return invalid('Le lien Google d’avis est invalide.');
   if (logoUrl && !/^https:\/\//i.test(logoUrl)) return invalid('Le logo doit être une adresse https://.');
   if (!EMAIL.test(ownerEmail)) return invalid('Adresse e-mail du restaurateur invalide.');
-  if (ownerPassword.length < 10 || ownerPassword.length > 72) return invalid('Le mot de passe doit contenir 10 à 72 caractères.');
   if (!Number.isInteger(tables) || (tables as number) < 0 || (tables as number) > 200) return invalid('Nombre de tables : 0 à 200.');
 
   const supabase = createSupabaseServiceClient();
+  let invitedUserId: string | null = null;
   try {
-    const { data: created, error: userError } = await supabase.auth.admin.createUser({
-      email: ownerEmail,
-      password: ownerPassword,
-      email_confirm: true,
-      user_metadata: { display_name: name }
+    const origin = process.env.APP_ORIGIN ? new URL(process.env.APP_ORIGIN).origin : request.nextUrl.origin;
+    const redirectTo = new URL('/auth/callback', origin);
+    redirectTo.searchParams.set('next', '/login?setup=1');
+    const { data: invitation, error: invitationError } = await supabase.auth.admin.inviteUserByEmail(ownerEmail, {
+      data: { display_name: name },
+      redirectTo: redirectTo.toString()
     });
-    if (userError || !created.user) {
-      const exists = userError?.message?.toLowerCase().includes('already');
-      return NextResponse.json({ error: exists ? 'Un compte existe déjà avec cet e-mail.' : 'Le compte n’a pas pu être créé.' }, { status: exists ? 409 : 503 });
+    if (invitationError || !invitation.user) {
+      const message = invitationError?.message.toLowerCase() ?? '';
+      const exists = message.includes('already') || message.includes('registered');
+      return NextResponse.json({
+        error: exists ? 'Un compte existe déjà avec cet e-mail.' : 'L’invitation n’a pas pu être envoyée. Vérifiez la configuration e-mail Supabase.'
+      }, { status: exists ? 409 : 503 });
     }
+    invitedUserId = invitation.user.id;
 
     const { data: restaurantId, error } = await supabase.rpc('admin_provision_restaurant', {
       p_name: name,
       p_slug: slug || null,
       p_google_url: googleReviewUrl || null,
       p_logo_url: logoUrl || null,
-      p_owner: created.user.id,
+      p_owner: invitedUserId,
       p_tables: tables as number
     });
     if (error) {
-      await supabase.auth.admin.deleteUser(created.user.id);
-      console.error('Restaurant provisioning failed.', error);
-      return NextResponse.json({ error: error.code === '23505' ? 'Cet identifiant d’URL est déjà utilisé.' : 'Le restaurant n’a pas pu être créé.' }, { status: error.code === '23505' ? 409 : 503 });
+      if (error.code === '23505') {
+        await supabase.auth.admin.deleteUser(invitedUserId);
+        invitedUserId = null;
+        return NextResponse.json({ error: 'Cet identifiant d’URL est déjà utilisé.' }, { status: 409 });
+      }
+      throw error;
     }
     if (currency !== 'DZD') {
       const { error: currencyError } = await supabase.from('restaurants').update({ currency }).eq('id', restaurantId as string);
       if (currencyError) console.error('Restaurant currency could not be set.', currencyError);
     }
-    return NextResponse.json({ restaurantId }, { status: 201 });
+    return NextResponse.json({ restaurantId, invitationSent: true }, { status: 201 });
   } catch (error) {
+    if (invitedUserId) {
+      const { error: cleanupError } = await supabase.auth.admin.deleteUser(invitedUserId);
+      if (cleanupError) console.error('Incomplete restaurant invitation could not be removed.', cleanupError);
+    }
     console.error('Restaurant creation service is unavailable.', error);
     return NextResponse.json({ error: 'Le service est momentanément indisponible.' }, { status: 503 });
   }
