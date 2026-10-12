@@ -3,6 +3,12 @@
 .vercel/
 coverage/
 dist/
+.next-e2e/
+.wrangler/
+.agents/
+.claude/
+instagram-carousel/
+test-results/
 node_modules/
 server/
 *.db
