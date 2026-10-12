@@ -1,0 +1,68 @@
+name: Publier une version Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Vérifier que l’étiquette correspond à la version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          DIGIFEEL_APP_URL: ${{ vars.DIGIFEEL_APP_URL }}
+        run: |
+          $version = node -p "require('./package.json').version"
+          if ($env:RELEASE_TAG -ne "v$version") {
+            throw "L’étiquette $env:RELEASE_TAG doit correspondre à la version du package : v$version."
+          }
+          git fetch origin main
+          git merge-base --is-ancestor "refs/tags/$env:RELEASE_TAG" "origin/main"
+          if ($LASTEXITCODE -ne 0) {
+            throw "La version doit être fusionnée dans main avant sa publication."
+          }
+          if (-not $env:DIGIFEEL_APP_URL) {
+            throw "Définissez la variable GitHub Actions DIGIFEEL_APP_URL avec l’URL HTTPS de production."
+          }
+      - run: npm ci
+      - run: npx playwright install chromium
+      - name: Types
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Test de charge multi-restaurants
+        run: npm run test:load
+      - name: Build de production
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      - name: Tests E2E
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      - name: Audit des dépendances
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Construire et publier l’installateur avec les métadonnées de mise à jour
+        run: npm run dist:win -- --publish always
+        env:
+          DIGIFEEL_APP_URL: ${{ vars.DIGIFEEL_APP_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

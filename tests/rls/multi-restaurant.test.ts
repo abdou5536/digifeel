@@ -44,6 +44,17 @@ describe('multi-restaurants : slug, tables, activation', () => {
       const ownEdit = await as(db, 'adminA', async () => attempt(db, `update public.restaurants set name='Nouveau nom', logo_url='https://x.test/l.png' where id='${ids.restA}'`));
       expect(ownEdit).toBe(1);
 
+      const setOwnBrand = await as(db, 'adminA', async () => attempt(db, `update public.restaurants set brand_color='#4f88d9' where id='${ids.restA}'`));
+      expect(setOwnBrand).toBe(1);
+      const setOtherBrand = await as(db, 'adminA', async () => attempt(db, `update public.restaurants set brand_color='#d9755b' where id='${ids.restB}'`));
+      expect(setOtherBrand).toBe(0);
+      const { rows: brandRows } = await as(db, 'adminA', async () =>
+        db.query<{ brand_color: string | null }>(`select brand_color from public.restaurants where id='${ids.restA}'`));
+      expect(brandRows[0].brand_color).toBe('#4f88d9');
+      const invalidBrand = await as(db, 'adminA', async () =>
+        attempt(db, `update public.restaurants set brand_color='blue' where id='${ids.restA}'`));
+      expect(invalidBrand).toBe(-1);
+
       expect(await as(db, 'adminA', async () => attempt(db, `select public.super_set_restaurant_active('${ids.restB}', false)`))).toBe(-1);
       expect(await as(db, 'superAdmin', async () => attempt(db, `select public.super_set_restaurant_active('${ids.restB}', false)`))).toBe(1);
 

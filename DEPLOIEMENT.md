@@ -1,59 +1,67 @@
-# DEPLOIEMENT.md — Cloudflare Workers + retour arrière
+# Déploiement Vercel + Supabase
 
-## Environnements
-| Env | Où | Données | Variables |
-|---|---|---|---|
-| Développement | `npm run dev` | **fictives uniquement**, projet Supabase dédié | `.env.local` (jamais commité) |
-| Test (preview) | Worker de préproduction Cloudflare | fictives, projet Supabase de test | secrets et variables de l'environnement de préproduction |
-| Production | Cloudflare Workers + Static Assets | réelles | secrets et variables de production |
+La cible retenue pour le site est Vercel, avec Supabase pour Postgres et Auth. `vercel.json` configure le build Next.js. Les environnements de préproduction et de production doivent utiliser des projets Supabase distincts : les données de test ne doivent jamais rejoindre la production.
 
-## En-têtes de sécurité
-`public/_headers` définit les en-têtes des fichiers statiques servis par Cloudflare Workers Static Assets. Les réponses SSR/API du Worker ne passent pas par ce fichier : les mêmes en-têtes sont posés par `next.config.ts`, à partir de `src/config/securityHeaders.ts`. Le test `tests/security/headers.test.ts` vérifie leur cohérence. Limite connue : la CSP garde `'unsafe-inline'` pour les scripts (vinext injecte des scripts inline) ; le passage aux nonces est une amélioration à planifier.
+## 1. Vérifier avant déploiement
 
-## Webhooks Stripe (Edge Functions Supabase)
-La fonction `supabase/functions/stripe-webhook/index.ts` vérifie la signature `Stripe-Signature`, puis appelle la RPC idempotente `settle_provider_payment`. Elle est déployée indépendamment du Worker applicatif :
-```
+La CI GitHub exécute les contrôles TypeScript, les tests unitaires/RLS, le test de charge local, le build Next.js, les E2E Playwright et un audit des dépendances critiques. Les tests de base de données utilisent PGlite ; ils ne prouvent pas les limites de capacité, la disponibilité ni la restauration d'un projet Supabase hébergé.
+
+Avant d'ouvrir l'inscription aux restaurants :
+
+1. Importez le dépôt GitHub dans Vercel avec **Next.js** comme framework.
+2. Ajoutez les variables de `.env.example` dans **Settings → Environment Variables**. Mettez les clés serveur uniquement dans Vercel, jamais dans des variables `NEXT_PUBLIC_*`.
+3. Séparez les valeurs des environnements **Preview** et **Production**. Les previews utilisent le projet Supabase de test et une `APP_ORIGIN` de preview ; la production utilise exclusivement les clés et l'URL Supabase de production.
+4. Configurez le domaine de production dans Vercel, puis réglez `APP_ORIGIN` sur son origine HTTPS exacte.
+5. Dans Supabase → Authentication → URL Configuration, définissez le domaine de production et les URL de redirection autorisées nécessaires.
+6. Reliez le CLI Supabase au projet de test, vérifiez le projet lié, puis appliquez les migrations :
+
+   ```powershell
+   npx supabase login
+   npx supabase link --project-ref <REF_DU_PROJET_DE_TEST>
+   npx supabase migration list
+   npx supabase db push
+   npx supabase migration list
+   ```
+
+   Répétez uniquement après validation sur le projet de test pour la production, en vérifiant le ref avant `db push`. Ne collez jamais un jeton ou un mot de passe dans le dépôt ou le chat.
+7. Configurez SMTP, confirmation d'e-mail, récupération de compte, limites Auth et durées de session dans Supabase.
+8. Créez le compte super-admin, puis exécutez `docs/TEST-MANUEL.md` avec des comptes et données de test avant la première vraie inscription.
+
+Les pushes/merges Git vers la branche de production configurée créent un déploiement Vercel ; les autres branches peuvent créer des previews. Protégez `main` avec revue et vérifications CI obligatoires. Avant un déploiement de schéma, faites une sauvegarde et prévoyez un retour arrière compatible.
+
+## 2. Variables et secrets
+
+Les valeurs exactes obligatoires sont listées dans `.env.example`. En production, fournissez les variables Supabase publiques (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) et les secrets serveur (`SUPABASE_SERVICE_ROLE_KEY`, `ACTIVATION_CODE_PEPPER`, `RATE_LIMIT_PEPPER`, `AUTH_BOOTSTRAP_TOKEN`). Les deux peppers doivent être des valeurs aléatoires distinctes d'au moins 32 caractères. Ne réutilisez jamais les clés du projet de test.
+
+Les paramètres Stripe, e-mail, Google/Gemini ou BaridiMob sont facultatifs selon les fonctionnalités activées. Stripe reste désactivé tant que compte, webhook, conformité locale et encaissements de test n'ont pas été validés. `STRIPE_LIVE_PAYMENTS_ENABLED=true` ne doit être ajouté qu'après autorisation explicite et test réel contrôlé.
+
+## 3. Webhook Stripe (facultatif)
+
+La fonction `supabase/functions/stripe-webhook/index.ts` valide la signature Stripe et traite les événements de paiement/abonnement de façon idempotente. Déployez-la séparément sur le projet Supabase concerné et définissez son secret dans Supabase :
+
+```powershell
 npx supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
 npx supabase functions deploy stripe-webhook
 ```
-Configurez l'URL `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` dans Stripe et abonnez-vous aux événements `payment_intent.succeeded` et `payment_intent.payment_failed`. N'utilisez que des clés et événements Stripe TEST. Le webhook et la RPC existent, mais la création d'intentions Stripe n'est pas encore branchée au parcours client : le paiement par carte ne doit pas être présenté comme fonctionnel.
 
-## Déployer
-```
-npm ci
-npm run lint
-npm test
-npm run build:cloudflare
-npm run deploy:cloudflare
-```
-La configuration `wrangler.jsonc` et les scripts `build:cloudflare` / `deploy:cloudflare` utilisent vinext pour déployer le Worker et ses assets statiques. Pour un nouveau poste/projet, installez la CLI Supabase puis créez un jeton localement (ne le collez pas dans le chat) :
-```
-npx supabase login
-npx supabase link --project-ref <REF_DU_PROJET_DE_TEST>
-```
-Vérifiez soigneusement le ref : utilisez un projet de test, jamais la production, avant la validation des migrations. Après avoir lié le CLI au projet Supabase de l'environnement visé, appliquez les migrations :
-```
-npx supabase db push
-```
-Vérifiez les parcours après déploiement. Configurez séparément les secrets Cloudflare/Supabase et n'inscrivez jamais leurs valeurs dans Git.
+Configurez dans Stripe l'URL `https://<project-ref>.supabase.co/functions/v1/stripe-webhook` et uniquement les événements nécessaires documentés dans `README.md`. Commencez avec des clés et webhooks TEST. Ne considérez pas un paiement comme validé avant confirmation par le webhook et vérification de l'écriture dans le journal.
 
-Configurez notamment le secret applicatif qui sert au hachage des empreintes de limitation :
-```
-npx wrangler secret put RATE_LIMIT_PEPPER
-```
-La variable doit contenir une valeur aléatoire d'au moins 32 caractères et être identique sur les instances d'un même environnement.
-Configurez aussi des règles de limitation Cloudflare pour `POST /api/public/table-session` et `POST /api/public/table-payment` afin de limiter l'ouverture automatisée de sessions et les demandes abusives. La limitation des avis est en plus vérifiée en base (6 par heure et empreinte).
-Ajoutez également des règles pour `POST /api/public/table-orders` et `/api/public/table-orders/status` (ainsi qu'une protection adaptée pour `/api/public/table-menu`) : les RPC valident le jeton, le catalogue et les quantités, mais le rate limiting réseau protège contre les rafales de requêtes. Les statuts de commande sont actualisés toutes les 15 secondes tant qu'une commande est suivie.
+## 4. Mises à jour de l'application Windows
 
-Les commandes invitées sont créées par `submit_guest_table_order` dans la migration `202610120001_guest_table_orders.sql`. La transaction ajoute les articles au grand livre au prix courant du catalogue et crée la commande visible par la cuisine. Le retour arrière correspondant est `supabase/rollback/202610120001_guest_table_orders.down.sql` ; les commandes et articles déjà écrits sont conservés.
+Le client Electron ouvre le site HTTPS hébergé ; le site web est mis à jour par les déploiements Vercel. Les mises à jour du client Windows sont publiées dans les releases GitHub et proposées par `electron-updater`.
 
-## Retour arrière
-Les versions Worker précédentes sont conservées. Listez les déploiements, identifiez l'ID de la version à restaurer, puis créez un rollback :
-```
-npx wrangler deployments list
-npx wrangler rollback <VERSION_ID>
-```
-Vous pouvez aussi ouvrir Cloudflare Dashboard → Workers & Pages → `digifeel` → Deployments et restaurer une version précédente. Vérifiez ensuite `/api/health` et les parcours d'authentification. Un rollback de code ne restaure PAS le schéma ni les données Supabase ; les migrations destructives nécessitent un script down relu et une sauvegarde. Voir [RESTAURATION.md](RESTAURATION.md).
+Pour une release Windows, incrémentez ensemble `version` dans `package.json` et `package-lock.json`, fusionnez le code validé dans `main`, définissez la variable GitHub Actions `DIGIFEEL_APP_URL` à l'origine HTTPS de production et poussez l'étiquette `v<version>` (par exemple `v1.0.1`). Le workflow `release-windows.yml` vérifie version, lint, tests, test de charge, build, E2E et vulnérabilités critiques avant de publier l'installateur et `latest.yml`. Il utilise le `GITHUB_TOKEN` limité au dépôt.
 
-## Surveillance
-La route `GET /api/health` répond avec un statut JSON. À faire côté exploitation : créer une sonde externe sur `https://<domaine>/api/health` et configurer un outil de suivi d'erreurs. Aucun DSN Sentry n'est actuellement branché dans le code.
+L'installateur n'est pas signé numériquement ; un certificat de signature de code Windows est nécessaire pour réduire les avertissements SmartScreen. Une mise à jour du client Electron n'annule pas un changement incompatible du schéma Supabase.
+
+## 5. Retour arrière et sauvegarde
+
+Pour revenir en arrière sur le site, utilisez **Vercel → Deployments → déploiement précédent → Instant Rollback**. Contrôlez ensuite le domaine de production et `GET /api/health`. Un rollback de code ne restaure pas le schéma ou les données Supabase ; ne rétrogradez pas le code si une migration destructive/incompatible a déjà été appliquée sans procédure de compatibilité.
+
+Vérifiez sur le plan Supabase la fréquence et la rétention réelles des sauvegardes, puis effectuez une restauration complète sur un projet de test au moins avant lancement et périodiquement. La procédure est dans `RESTAURATION.md`. Les tests de chiffrement présents dans le dépôt ne remplacent pas un test de restauration hébergé.
+
+## 6. Capacité et surveillance
+
+Les requêtes métier filtrent par restaurant et s'appuient sur des index dédiés ; l'isolation RLS est testée. `npm run test:load` mesure localement une page indexée et un agrégat sur 100 000 avis répartis entre 5 000 restaurants. Ce test synthétique n'est pas un test de charge Vercel/Supabase et ne garantit ni un nombre maximal de restaurants, ni une capacité/latence en production.
+
+Avant et après lancement, surveillez les erreurs de fonctions Vercel, la latence/connexions/quotas Supabase et les réponses de `GET /api/health`. Définissez une sonde externe, des alertes de quota et un plan d'augmentation des ressources Supabase à partir de mesures. Aucun Sentry n'est actuellement configuré. Les vérifications réelles du projet Supabase, du domaine, de la restauration, de l'e-mail et du matériel de caisse restent à effectuer dans les comptes du propriétaire.

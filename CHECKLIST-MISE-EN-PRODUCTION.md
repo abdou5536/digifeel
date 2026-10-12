@@ -1,27 +1,33 @@
-# CHECKLIST-MISE-EN-PRODUCTION.md
+# Checklist de lancement — Vercel + Supabase
 
-Légende : ✅ vérifié (preuve dans AUDIT.md §6) · ⛔ à faire · 👤 action humaine.
+## Validé dans le dépôt
 
-## Bloquant (ne pas ouvrir à de vrais clients tant que ce n'est pas ✅)
-- ⛔ Migrer addition / paiement / avis client (`/t`) puis `/app` vers Supabase ; retirer ensuite le drapeau (aujourd'hui masqués : ✅ 404 en production).
-- ⛔ Paiements : Stripe en mode TEST derrière `PaymentProvider`, webhook signé, idempotence, grand livre, tests. 👤 Accord écrit avant tout mode réel.
-- ⛔ Zod sur toutes les routes API, verrouillage après échecs, jeton `/t/:code`, journal d'activité, IP de confiance (proxy Cloudflare).
-- ⛔ Tests E2E (Playwright) des parcours critiques.
-- 👤 Restauration réelle chez l'hébergeur testée et notée (RESTAURATION.md §6) ; vérifier les sauvegardes Supabase (fréquence, PITR).
-- 👤 Supabase Auth : activer e-mail de réinitialisation (SMTP), limite d'essais, durée de session, URL de redirection autorisées.
-- 👤 Clés réelles dans Cloudflare (jamais dans git) ; faire tourner toute clé ayant déjà été partagée.
-- 👤 Validation juridique de la confidentialité, des CGU, des mentions légales ; rappel « pas une caisse certifiée NF525 ».
-- 👤 Protection de branche GitHub « CI obligatoire ».
-- ⛔ Remplacer `xlsx` (haute, sans correctif) avant de réactiver les pages d'import/export Excel.
+- ✅ CI : vérification TypeScript, tests unitaires/RLS, test de charge local, build, tests E2E et audit des vulnérabilités critiques.
+- ✅ Isolation RLS multi-restaurants testée en base locale ; couleur de marque enregistrée restaurant par restaurant et validée contre les accès croisés.
+- ✅ Test synthétique local : 5 000 restaurants, 100 000 avis, parcours de lecture indexé et agrégat.
+- ✅ Mise à jour Windows : workflow de release qui vérifie les contrôles avant la publication GitHub de l'installateur et de ses métadonnées d'auto-update.
+- ✅ Palette de couleurs personnalisée/prédéfinie accessible depuis les réglages du restaurant et appliquée à la caisse.
 
-## Recommandé
-- ⛔ Sentry (`SENTRY_DSN`) + alerte de disponibilité sur `/api/health` (👤 création des comptes).
-- ⛔ Pagination + index et test de charge (40 restaurants, 100 000 avis).
-- ⛔ CSP sans `'unsafe-inline'` (nonces).
-- ⛔ Retrait d'Express (`server/`) après reprise de ses fonctions.
-- ✅ Retour arrière de déploiement documenté (DEPLOIEMENT.md) — 👤 à essayer une fois en preview.
+Ces tests ne garantissent pas l'absence de bugs, ne mesurent pas un vrai projet Vercel/Supabase et ne certifient pas une capacité maximale en production.
 
-## Mise à jour (fin de session)
-- **Bloquant, fait par moi :** voir AUDIT.md §7 à §H (grand livre, sessions client, droits des données, xlsx remplacé).
-- **Bloquant, À FAIRE PAR VOUS :** projet Supabase de test (docs/TEST-SUPABASE.md), tests réels et restauration, config Supabase Auth (SMTP, verrouillage, durée de session), protection de branche GitHub, limite de débit Cloudflare sur `/api/public/*`, relecture juridique (`docs/legal/`), migration de `/t` et `/app` (pages masquées tant que non faite).
-- **Recommandé :** Sentry + alerte `/api/health`, mise à jour de `vinext`, retrait d'Express après migration.
+## Bloquant avant les premiers vrais clients
+
+- ⛔ Créer/valider un projet Supabase de test et un projet Supabase de production séparés ; relire les variables Vercel Preview/Production, domaines et URL de redirection Auth.
+- ⛔ Appliquer les migrations sur le projet de test, valider le parcours complet, puis appliquer en production après une sauvegarde et la vérification du project ref.
+- ⛔ Tester la restauration d'une sauvegarde sur un projet Supabase de test et consigner durée et résultats dans `RESTAURATION.md`.
+- ⛔ Configurer Supabase Auth : SMTP, confirmation/récupération d'e-mail, limites de tentatives et durée de session.
+- ⛔ Tester sur de vrais appareils la caisse, imprimante, réseau hors ligne, mise à jour Windows, parcours QR et comptes par rôle.
+- ⛔ Valider les clés et les webhooks Stripe en mode TEST ; activer le mode réel uniquement après autorisation, accord explicite et confirmation de l'éligibilité du compte et des règles locales.
+- ⛔ Configurer une sonde `/api/health`, alertes Vercel/Supabase, seuils de quotas et procédure de réponse aux incidents.
+- ⛔ Activer les protections de branche GitHub et rendre les vérifications CI obligatoires avant fusion dans `main`.
+- ⛔ Faire relire CGU, confidentialité, mentions légales et obligations fiscales locales par un professionnel ; compléter les informations de l'éditeur et les régions d'hébergement réelles.
+- ⛔ Obtenir un certificat de signature Windows avant une large diffusion afin de réduire les alertes SmartScreen.
+
+## Publication et montée en charge
+
+1. Dans Vercel, déployer le site depuis Git avec des variables Preview reliées uniquement au projet Supabase de test, puis configurer les variables Production sur le projet de production.
+2. Définir `DIGIFEEL_APP_URL` dans les variables GitHub Actions.
+3. Après validation, incrémenter `version` dans `package.json` et `package-lock.json`, fusionner le code dans `main`, puis pousser l'étiquette `v<version>` pour publier le client Windows.
+4. Observer les métriques et les erreurs pendant le pilote. Augmenter l'offre/ressources Supabase et Vercel selon les mesures avant d'ouvrir à davantage de restaurants. Le chiffre de 5 000 dans le test local est une dimension de données synthétiques, pas une promesse de capacité garantie.
+
+Voir `DEPLOIEMENT.md` pour les procédures détaillées. Un déploiement ou une migration distante n'a pas été exécuté depuis cet environnement.

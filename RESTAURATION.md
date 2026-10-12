@@ -29,9 +29,9 @@ Le chiffrement (AES-256-GCM) est testé : `tests/security/backup-crypto.test.ts`
 5. Vérifier (voir §6) puis noter le résultat.
 
 ## 4. Si la base de production est supprimée
-1. Ne rien relancer d'automatique ; basculer le site en maintenance (désactiver la route Cloudflare ou le déploiement).
+1. Ne rien relancer d'automatique ; basculer le site en maintenance ou rétablir le déploiement Vercel précédent.
 2. Supabase → Backups : restaurer la dernière sauvegarde de l'hébergeur (ou PITR) ; sinon créer un nouveau projet et appliquer §3 avec la dernière sauvegarde chiffrée.
-3. Mettre à jour `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` dans Cloudflare, redéployer.
+3. Mettre à jour `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` dans l'environnement Vercel approprié, puis redéployer.
 4. Les puces/liens QR ne changent pas (ils pointent vers le domaine du site, pas vers Supabase).
 
 ## 5. Si une migration échoue / retour arrière

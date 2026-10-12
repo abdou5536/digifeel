@@ -175,10 +175,9 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 .pos-payment-methods button.is-active { border-color: var(--df-accent); box-shadow: 0 0 0 1px var(--df-accent) inset; }
 .pos-checkout-button, .pos-cta {
   min-height: 3.4rem; width: 100%; border-radius: .85rem; border-color: transparent; font-size: 1.02rem; letter-spacing: .01em;
-  background: var(--df-accent); color: #14100a; box-shadow: 0 6px 18px color-mix(in srgb, var(--df-accent) 28%, transparent);
+  background: var(--df-accent); color: var(--df-accent-foreground, #14100a); box-shadow: 0 6px 18px color-mix(in srgb, var(--df-accent) 28%, transparent);
   transition: transform var(--pl-fast) var(--pl-ease), box-shadow var(--pl-base) ease, filter var(--pl-base) ease, opacity var(--pl-base) ease;
 }
-:root[data-theme="light"] .pos-checkout-button, :root[data-theme="light"] .pos-cta { color: #fff; }
 .pos-checkout-button:not(:disabled):hover, .pos-cta:hover { filter: brightness(1.06); box-shadow: 0 10px 24px color-mix(in srgb, var(--df-accent) 34%, transparent); }
 .pos-checkout-button:disabled { box-shadow: none; opacity: .42; }
 .pos-payment-note { text-align: center; }

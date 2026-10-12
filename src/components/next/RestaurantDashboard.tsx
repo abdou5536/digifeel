@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { SetupChecklist } from './SetupChecklist';
-import { applyBrandColor, dominantColor } from '@/src/lib/brand';
+import { applyBrandColor, BRAND_PALETTE, dominantColor } from '@/src/lib/brand';
 import { TableQrSheet } from './TableQrSheet';
 import { NfcChipWriter } from './NfcChipWriter';
 import Link from 'next/link';
@@ -391,12 +391,35 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
                 <label>Adresse<input maxLength={200} value={address} onChange={event => setAddress(event.target.value)} /></label>
                 <label>Lien Google<input required type="url" value={googleReviewUrl} onChange={event => setGoogleReviewUrl(event.target.value)} /></label>
                 <label>Logo (adresse https://, facultatif)<input type="url" maxLength={2048} value={logoUrl} onChange={event => setLogoUrl(event.target.value)} /></label>
-                <label>Couleur du restaurant
-                  <span style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}>
-                    <input type="color" value={brandColor || '#d3a04d'} onChange={event => { setBrandColor(event.target.value); applyBrandColor(event.target.value); }} aria-label="Choisir la couleur" />
-                    <button type="button" className="product-button product-button--secondary" onClick={() => { setBrandColor(''); applyBrandColor(null); }}>Couleur par défaut</button>
-                  </span>
-                </label>
+                <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+                  <legend>Palette de couleurs de la caisse</legend>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.55rem', marginBlock: '.55rem' }}>
+                    {BRAND_PALETTE.map(color => (
+                      <button
+                        key={color.hex}
+                        type="button"
+                        className="product-button product-button--secondary"
+                        aria-label={`Choisir la couleur ${color.name}`}
+                        aria-pressed={brandColor.toLowerCase() === color.hex}
+                        onClick={() => { setBrandColor(color.hex); applyBrandColor(color.hex); }}
+                        style={{
+                          minHeight: '2.75rem',
+                          borderColor: brandColor.toLowerCase() === color.hex ? color.hex : undefined,
+                          boxShadow: brandColor.toLowerCase() === color.hex ? `0 0 0 2px ${color.hex}` : undefined
+                        }}
+                      >
+                        <span aria-hidden="true" style={{ display: 'inline-block', width: '.9rem', height: '.9rem', borderRadius: '50%', background: color.hex, verticalAlign: 'middle', marginInlineEnd: '.4rem' }} />
+                        {color.name}
+                      </button>
+                    ))}
+                  </div>
+                  <label>Couleur personnalisée
+                    <span style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}>
+                      <input type="color" value={brandColor || '#d3a04d'} onChange={event => { setBrandColor(event.target.value); applyBrandColor(event.target.value); }} aria-label="Choisir une couleur personnalisée" />
+                      <button type="button" className="product-button product-button--secondary" onClick={() => { setBrandColor(''); applyBrandColor(null); }}>Couleur par défaut</button>
+                    </span>
+                  </label>
+                </fieldset>
                 <label>Ou choisir une photo / un logo : la couleur est détectée automatiquement
                   <input type="file" accept="image/*" onChange={event => {
                     const file = event.target.files?.[0];

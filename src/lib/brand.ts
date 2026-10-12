@@ -1,11 +1,46 @@
-const ACCENT_VARS = ['--df-accent', '--df-accent-strong', '--workspace-gold'] as const;
+const ACCENT_VARS = [
+  '--df-accent',
+  '--df-accent-strong',
+  '--df-accent-foreground',
+  '--workspace-gold'
+] as const;
 
 export const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+export const BRAND_PALETTE = [
+  { name: 'Or', hex: '#d3a04d' },
+  { name: 'Émeraude', hex: '#2fa38a' },
+  { name: 'Bleu', hex: '#4f88d9' },
+  { name: 'Violet', hex: '#8974d6' },
+  { name: 'Framboise', hex: '#d46b91' },
+  { name: 'Corail', hex: '#d9755b' }
+] as const;
 
 type Rgb = [number, number, number];
 
 function toRgb(hex: string): Rgb {
   return [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)) as Rgb;
+}
+
+function relativeLuminance(hex: string) {
+  const [r, g, b] = toRgb(hex).map(channel => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(first: number, second: number) {
+  const lighter = Math.max(first, second);
+  const darker = Math.min(first, second);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+export function brandForegroundColor(hex: string) {
+  const luminance = relativeLuminance(hex);
+  const whiteContrast = contrastRatio(1, luminance);
+  const darkContrast = contrastRatio(relativeLuminance('#14100a'), luminance);
+  return whiteContrast >= darkContrast ? '#ffffff' : '#14100a';
 }
 
 function toHex(rgb: Rgb) {
@@ -21,6 +56,7 @@ export function applyBrandColor(hex: string | null | undefined) {
   }
   root.style.setProperty('--df-accent', hex);
   root.style.setProperty('--df-accent-strong', toHex(toRgb(hex).map(channel => channel * 0.72) as Rgb));
+  root.style.setProperty('--df-accent-foreground', brandForegroundColor(hex));
   root.style.setProperty('--workspace-gold', hex);
 }
 

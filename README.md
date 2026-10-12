@@ -59,16 +59,24 @@ Pour tester l’application de bureau en développement, démarrez `npm run dev`
 npm run desktop:dev
 ```
 
-Pour créer l’installateur Windows NSIS (Node.js 20+, dépendances installées, accès Internet et URL HTTPS du site) :
+Pour créer un installateur Windows NSIS de test local (Node.js 20+, dépendances installées, accès Internet et URL HTTPS du site) :
 
 ```powershell
 $env:DIGIFEEL_APP_URL = "https://VOTRE-DOMAINE"
 npm run dist:win
 ```
 
-Si Windows bloque la génération (« Une stratégie de contrôle d’application a bloqué ce fichier », Smart App Control), lancez le workflow GitHub **Installateur Windows** (onglet Actions, bouton *Run workflow*, URL du site) : l’installateur est publié comme artefact.
+Si Windows bloque la génération (« Une stratégie de contrôle d’application a bloqué ce fichier », Smart App Control), lancez le workflow GitHub **Installateur Windows** (onglet Actions, bouton *Run workflow*, URL du site) : l’installateur de test est publié comme artefact.
 
-L’installateur et le désinstallateur sont générés dans `release/`. L’installation propose le dossier de destination et crée les raccourcis Démarrer et Bureau. La fenêtre se souvient de sa taille, et le menu **Affichage** permet le plein écran. Les mises à jour sont proposées depuis les versions publiées dans les releases GitHub de `abdou5536/digifeel` ; publier une version exige une release correspondante et un `GH_TOKEN` configuré de manière sécurisée dans l’environnement de publication. L’installateur local n’est pas signé : avant vente ou diffusion, il faut un certificat de signature de code Windows pour limiter les avertissements SmartScreen.
+L’installateur et le désinstallateur sont générés dans `release/`. L’installation propose le dossier de destination et crée les raccourcis Démarrer et Bureau. La fenêtre se souvient de sa taille, et le menu **Affichage** permet le plein écran.
+
+Pour publier une version Windows avec mise à jour intégrée :
+1. Incrémentez `version` dans `package.json` **et** `package-lock.json`, puis fusionnez ces modifications sur `main`.
+2. Dans les paramètres GitHub du dépôt, définissez la variable Actions `DIGIFEEL_APP_URL` avec l’URL HTTPS de production.
+3. Créez et poussez une étiquette Git correspondant exactement à la version, par exemple `v1.0.1`.
+4. Le workflow **Publier une version Windows** relance types, tests, test de charge, build, E2E et audit critique avant de construire l’installateur et ses métadonnées `latest.yml` puis de les publier dans une release GitHub. L’application installée détecte ces releases et propose le téléchargement/redémarrage.
+
+Le poste de publication utilise le jeton `GITHUB_TOKEN` limité au dépôt ; aucun secret de publication manuel n’est requis. Une version rejetée par une vérification n’est pas publiée. La publication met à jour l’enveloppe Windows : le site web chargé par cette enveloppe doit lui-même être déployé par son hébergeur. L’installateur n’est pas signé : avant vente ou diffusion publique, procurez-vous un certificat de signature de code Windows pour limiter les avertissements SmartScreen.
 
 ## Créer le premier super-administrateur
 
@@ -116,11 +124,11 @@ Choix : Next.js tourne nativement sur Vercel (zéro configuration serveur) et Su
    Secret aléatoire : `[Convert]::ToBase64String((1..32 | % {Get-Random -Max 256}))`
 6. **Tester le build** : `npm run build` doit finir sans erreur.
 7. **GitHub** : poussez le projet (`git add . ; git commit -m "Digifeel multi-restaurants" ; git push`).
-8. **Vercel** : vercel.com > Add New > Project > importez le dépôt GitHub. Framework : Next.js (détecté). Dans « Environment Variables », ajoutez toutes les variables obligatoires de `.env.example` (`APP_ORIGIN` = l'adresse Vercel finale, ex. `https://digifeel.vercel.app`). Cliquez Deploy.
+8. **Vercel** : vercel.com > Add New > Project > importez le dépôt GitHub. Framework : Next.js (détecté). Dans « Environment Variables », ajoutez toutes les variables obligatoires de `.env.example` (`APP_ORIGIN` = l'adresse Vercel finale, ex. `https://digifeel.vercel.app`). Gardez les clés de production dans l'environnement Production et configurez l'environnement Preview avec un projet Supabase de test distinct. Cliquez Deploy.
 9. **Redirections Auth** : Supabase > Authentication > URL Configuration : Site URL = votre adresse Vercel ; ajoutez `https://votre-site.vercel.app/**` dans Redirect URLs.
 10. Créez le premier super-administrateur selon la procédure ci-dessus, puis ouvrez `https://votre-site.vercel.app/login`.
 
-Ne déployez jamais le fichier `.env` : il est ignoré par git, les variables se saisissent dans Vercel. Le projet fournit aussi un déploiement Cloudflare (`DEPLOIEMENT.md`), plus complexe.
+Ne déployez jamais le fichier `.env` : il est ignoré par git, les variables se saisissent dans Vercel. Pour la procédure de lancement, les contrôles requis, les sauvegardes et le retour arrière, voir `DEPLOIEMENT.md`.
 
 ### Paiements des additions (sans abonnement client)
 
@@ -136,7 +144,7 @@ Ne déployez jamais le fichier `.env` : il est ignoré par git, les variables se
 
 ## Ce qui fonctionne / reste à faire
 
-Fonctionne : multi-restaurants isolés (RLS), comptes et rôles, superadmin (création, activation, tables/QR), liens `/r/<slug>/t/<n>`, avis + redirection Google, dashboard (avis, serveurs, exports Excel/PDF), menus IA partageables avec deux créations gratuites et QR téléchargeable, synthèse IA des ventes sur abonnement, paiements d’addition BaridiMob (manuel) et Stripe, souscription Stripe Checkout et webhook, installation QR à 9 € par table avec NFC sur devis séparé, portfolio avec dossier PDF complet et exemples PDF/Excel fictifs téléchargeables sur `/portfolio`.
+Fonctionne : multi-restaurants isolés (RLS), comptes et rôles, superadmin (création, activation, tables/QR), liens `/r/<slug>/t/<n>`, avis + redirection Google, dashboard (avis, serveurs, exports Excel/PDF), couleurs de caisse configurables par restaurant (palette et couleur personnalisée), menus IA partageables avec deux créations gratuites et QR téléchargeable, synthèse IA des ventes sur abonnement, paiements d’addition BaridiMob (manuel) et Stripe, souscription Stripe Checkout et webhook, installation QR à 9 € par table avec NFC sur devis séparé, portfolio avec dossier PDF complet et exemples PDF/Excel fictifs téléchargeables sur `/portfolio`.
 À faire : validation du compte Stripe et des exigences locales avant encaissement réel, import en masse des puces NFC, unification/suppression des anciennes pages localStorage et du backend Express, onglets de dashboard séparés (tout est sur une page), mot de passe oublié.
 ## Déploiement sur Google Cloud Run
 
