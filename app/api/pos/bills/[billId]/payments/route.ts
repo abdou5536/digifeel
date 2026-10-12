@@ -7,7 +7,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const id = billIdSchema.safeParse((await params).billId);
   const parsed = paymentRequestSchema.omit({ billId: true }).safeParse(await parseJsonObject(request));
   if (!id.success || !parsed.success) return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 });
-  // Stripe n'est pas branché : refus explicite plutôt qu'une fausse réussite.
+  // Stripe n'est pas branché à cette route de caisse : ne pas simuler une réussite.
   if (parsed.data.method === 'stripe') return NextResponse.json({ error: 'Paiement par carte non activé.' }, { status: 501 });
   return withTeamSession(async supabase => {
     const { data, error } = await supabase.rpc('record_payment', {

@@ -281,6 +281,28 @@ export function RestaurantPOS() {
     }
   };
 
+  const confirmBillCardPayment = async (bill: ActiveBill, paymentId: string) => {
+    if (billBusy || billActionInProgress.current) return;
+    billActionInProgress.current = true;
+    setBillBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch(`/api/pos/bills/${encodeURIComponent(bill.id)}/payments/${encodeURIComponent(paymentId)}/confirm`, {
+        method: 'POST'
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Le paiement carte n’a pas pu être confirmé.');
+      await refreshBills();
+      setMessage('Paiement carte confirmé après vérification du terminal.');
+    } catch (paymentError) {
+      setError(paymentError instanceof Error ? paymentError.message : 'Le paiement carte n’a pas pu être confirmé.');
+    } finally {
+      billActionInProgress.current = false;
+      setBillBusy(false);
+    }
+  };
+
   const synchronize = useCallback(async (ownerId = catalog?.userId ?? '') => {
     if (!navigator.onLine || !ownerId) return;
     setOnline(true);
@@ -415,7 +437,11 @@ export function RestaurantPOS() {
     ? selectedBill.payments.filter(payment => payment.status === 'succeeded')
       .reduce((sum, payment) => sum + Number(payment.amount_dzd), 0)
     : 0;
-  const selectedBillRemaining = Math.max(0, selectedBillTotal - selectedBillPaid);
+  const selectedBillPending = selectedBill
+    ? selectedBill.payments.filter(payment => payment.status === 'pending')
+      .reduce((sum, payment) => sum + Number(payment.amount_dzd), 0)
+    : 0;
+  const selectedBillRemaining = Math.max(0, selectedBillTotal - selectedBillPaid - selectedBillPending);
 
   const applyBillDiscount = async (bill: ActiveBill) => {
     if (billBusy || billActionInProgress.current) return;
@@ -869,7 +895,15 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
           <button className="pos-checkout-button" type="button" disabled={billBusy || !selectedBill.bill_items.some(item => !item.sent_at)} onClick={() => void sendToCounter(selectedBill)}><Printer size={17} />{isArabic ? 'إرسال الطلب إلى الكاونتر' : 'Envoyer la commande au comptoir'}</button>
           <button className="pos-sync-button" type="button" onClick={() => printBill(selectedBill)}><Printer size={15} />{isArabic ? 'طباعة الفاتورة' : 'Imprimer l’addition'}</button>
           <div className="pos-ticket-total"><span>{isArabic ? 'مدفوع' : 'Déjà payé'}</span><strong>{money(selectedBillPaid, locale)}</strong></div>
-          {selectedBill.payments.some(payment => payment.status === 'pending') && <p className="pos-payment-note">{isArabic ? 'يوجد دفع بالبطاقة بانتظار التأكيد من جهاز الدفع.' : 'Un paiement carte attend la confirmation du terminal ; il ne réduit pas encore le solde.'}</p>}
+          {selectedBillPending > 0 && <div className="pos-ticket-total"><span>{isArabic ? 'قيد التحقق' : 'En attente de validation'}</span><strong>{money(selectedBillPending, locale)}</strong></div>}
+          {selectedBill.payments.filter(payment => payment.status === 'pending' && payment.method === 'card').map(payment => (
+            <div className="pos-payment-note" key={payment.id}>
+              <span>{isArabic ? 'بطاقة بانتظار تأكيد جهاز الدفع' : 'Carte en attente ·'} {!isArabic && money(Number(payment.amount_dzd) + Number(payment.tip_dzd), locale)}</span>
+              <button className="pos-sync-button" type="button" disabled={billBusy || !online} onClick={() => void confirmBillCardPayment(selectedBill, payment.id)}>
+                <Check size={15} />{isArabic ? 'تأكيد بعد التحقق' : 'Confirmer après vérification'}
+              </button>
+            </div>
+          ))}
           {selectedBillRemaining > 0 && <form className="pos-product-form" onSubmit={event => void recordBillPayment(event, selectedBill, selectedBillRemaining)}>
             <h3>{isArabic ? 'تسجيل دفعة' : 'Encaisser un paiement'}</h3>
             <label>{isArabic ? 'المبلغ (فارغ = الرصيد)' : 'Montant (vide = solde)'}<input type="text" inputMode="decimal" value={billPaymentAmount} onChange={event => setBillPaymentAmount(event.target.value)} /></label>
@@ -881,7 +915,7 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
               {currency === 'DZD' && <button type="button" className={billPaymentMethod === 'baridimob' ? 'is-active' : ''} aria-pressed={billPaymentMethod === 'baridimob'} onClick={() => setBillPaymentMethod('baridimob')}><ArrowDownToLine />BaridiMob</button>}
             </fieldset>
             <button className="pos-checkout-button" type="submit" disabled={billBusy || selectedBillTotal <= 0}>{billBusy ? (isArabic ? 'جارٍ التسجيل…' : 'Enregistrement…') : (isArabic ? 'تسجيل الدفعة' : 'Enregistrer le paiement')}</button>
-            {billPaymentMethod === 'card' && <p className="pos-payment-note">{isArabic ? 'تحقق من الدفع على جهاز الدفع. ستبقى الدفعة معلقة حتى تأكيدها.' : 'La carte est enregistrée en attente : vérifiez le terminal, la confirmation bancaire n’est pas encore intégrée.'}</p>}
+            {billPaymentMethod === 'card' && <p className="pos-payment-note">{isArabic ? 'تحقق من الدفع على جهاز الدفع، ثم أكّده من قائمة الدفعات المعلقة.' : 'Vérifiez le terminal, puis confirmez le paiement dans la liste des paiements en attente.'}</p>}
           </form>}
         </article>}
       </section>}

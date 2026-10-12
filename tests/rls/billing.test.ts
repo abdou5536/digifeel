@@ -135,6 +135,66 @@ describe('idempotence, double clic, annulation', () => {
   });
 });
 
+describe('confirmation des paiements carte du POS', () => {
+  it('un serveur confirme la carte après vérification du terminal', async () => {
+    const id = await newBill();
+    const result = await pay('serverA', id, 2400, 150, 'card', `pos-card-${id}`);
+    const paymentId = result.rows[0].id as string;
+
+    expect(await billStatus(id)).toBe('open');
+    expect((await paymentsOf(id))[0].status).toBe('pending');
+    expect((await run('serverA', 'select public.confirm_pos_card_payment($1, $2)', [id, paymentId])).ok).toBe(true);
+    expect(await billStatus(id)).toBe('paid');
+    expect((await paymentsOf(id))[0].status).toBe('succeeded');
+
+    const payment = await db.query<{ validated_by: string; ticket_number: string | null }>(
+      'select validated_by, ticket_number from public.payments where id=$1', [paymentId]);
+    expect(payment.rows[0].validated_by).toBe(ids.serverA);
+    expect(payment.rows[0].ticket_number).not.toBeNull();
+    const audit = await db.query(
+      `select 1 from public.audit_log where action='pos_card_payment_confirmed' and entity_id=$1`, [paymentId]);
+    expect(audit.rows).toHaveLength(1);
+    expect((await run('serverA', 'select public.confirm_pos_card_payment($1, $2)', [id, paymentId])).ok).toBe(false);
+  });
+
+  it('refuse les confirmations hors restaurant, par la cuisine, sans session ou pour un paiement Stripe', async () => {
+    const id = await newBill();
+    const paymentId = (await pay('serverA', id, 1200, 0, 'card', `pos-card-auth-${id}`)).rows[0].id as string;
+    const stripeId = (await pay('serverA', id, 1200, 0, 'stripe', `pos-stripe-${id}`)).rows[0].id as string;
+
+    expect((await run('serverB', 'select public.confirm_pos_card_payment($1, $2)', [id, paymentId])).ok).toBe(false);
+    expect((await run('kitchenA', 'select public.confirm_pos_card_payment($1, $2)', [id, paymentId])).ok).toBe(false);
+    expect((await run('anon', 'select public.confirm_pos_card_payment($1, $2)', [id, paymentId])).ok).toBe(false);
+    expect((await run('serverA', 'select public.confirm_pos_card_payment($1, $2)', [id, stripeId])).ok).toBe(false);
+    expect((await paymentsOf(id)).every(payment => payment.status === 'pending')).toBe(true);
+  });
+
+  it('réserve le montant carte en attente avant d’accepter un paiement espèces', async () => {
+    const id = await newBill();
+    const cardId = (await pay('serverA', id, 1000, 0, 'card', `pos-card-reserve-${id}`)).rows[0].id as string;
+
+    expect((await pay('serverA', id, 1401, 0, 'cash', `pos-cash-over-${id}`)).ok).toBe(false);
+    expect((await pay('serverA', id, 1400, 0, 'cash', `pos-cash-rest-${id}`)).ok).toBe(true);
+    expect(await billStatus(id)).toBe('open');
+    expect((await run('serverA', 'select public.confirm_pos_card_payment($1, $2)', [id, cardId])).ok).toBe(true);
+    expect(await billStatus(id)).toBe('paid');
+    expect((await paymentsOf(id)).map(payment => payment.status).sort()).toEqual(['succeeded', 'succeeded']);
+  });
+
+  it('annuler une carte refusée libère le solde et journalise l’annulation', async () => {
+    const id = await newBill();
+    const cardId = (await pay('serverA', id, 2400, 0, 'card', `pos-card-cancel-${id}`)).rows[0].id as string;
+
+    expect((await run('kitchenA', 'select public.cancel_pos_card_payment($1, $2)', [id, cardId])).ok).toBe(false);
+    expect((await run('serverA', 'select public.cancel_pos_card_payment($1, $2)', [id, cardId])).ok).toBe(true);
+    expect((await pay('serverA', id, 2400, 0, 'cash', `pos-cash-after-cancel-${id}`)).ok).toBe(true);
+    expect(await billStatus(id)).toBe('paid');
+    const audit = await db.query(
+      `select 1 from public.audit_log where action='pos_card_payment_cancelled' and entity_id=$1`, [cardId]);
+    expect(audit.rows).toHaveLength(1);
+  });
+});
+
 describe('webhook (service_role) : succès, échec, doublon', () => {
   const settle = (event: string, payment: string, outcome: string) =>
     db.query<{ r: string }>(`select public.settle_provider_payment($1,$2,$3) as r`, [event, payment, outcome]);
