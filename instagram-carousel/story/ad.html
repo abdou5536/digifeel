@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <style>
 *{box-sizing:border-box;margin:0}
@@ -136,8 +136,40 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#000;font-family
  <div id="f1" class="big" style="top:860px;font-size:68px;letter-spacing:-1px;padding:0 70px;line-height:1.1"></div>
  <div id="f2" class="chip" style="left:140px;right:140px;top:1230px;text-align:center;background:var(--a);border:0;font-size:40px;box-shadow:0 0 60px var(--a)"></div>
 </div>
+<style>
+.pgf{position:absolute;left:0;top:0;width:940px;transform-origin:50% 0;box-shadow:0 20px 60px rgba(0,0,0,.5)}.pgf img{display:block;width:940px}
+.xh{height:70px;background:#1d6f42;display:flex;align-items:center;padding:0 24px;font-size:26px;font-weight:700;gap:16px}.xh i{font-style:normal;background:#fff;color:#1d6f42;border-radius:8px;padding:2px 12px;font-weight:900}
+#xt{border-collapse:collapse;transform-origin:0 0;background:#fff;color:#222;font-size:22px}#xt td{border:1px solid #d4d4d4;padding:8px 12px;white-space:nowrap}
+.xtab{position:absolute;bottom:0;height:70px;width:150px;line-height:70px;text-align:center;font-size:24px;font-weight:700;background:#e9ecef;color:#1d6f42;border-top:5px solid transparent}.xtab.on{background:#fff;border-top-color:#1d6f42}
+.mc{position:absolute;width:470px;height:185px;border-radius:30px;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1.5px solid rgba(255,255,255,.22);padding:24px 28px;backdrop-filter:blur(10px)}
+.mc i{font-style:normal;font-size:54px;display:block}.mc b{display:block;font-size:36px;margin-top:6px}.mc span{font-size:24px;color:#aeb8d8}
+</style>
+<div id="s7" class="scene">
+ <div class="cap" style="top:100px">Le rapport PDF · exactement comme reçu</div>
+ <div id="pdfw" class="abs" style="left:70px;top:190px;width:940px;height:1400px;border-radius:26px;overflow:hidden;background:#1d1f26;box-shadow:0 0 80px var(--a)">
+  <div style="height:70px;background:#2a2d36;display:flex;align-items:center;padding:0 24px;font-size:26px;font-weight:700;gap:14px"><span style="color:#ff5a4f">PDF</span><span id="pdfn">Rapport-septembre-2026.pdf</span><span id="pdfp" style="margin-left:auto;color:#aeb8d8"></span></div>
+  <div id="pdfv" class="abs" style="left:0;top:70px;width:940px;height:1330px;overflow:hidden"></div>
+ </div>
+ <div class="abs" style="left:0;right:0;top:1640px;text-align:center"><span class="chip" style="position:static;margin:0 8px;font-size:28px">Journalier</span><span class="chip" style="position:static;margin:0 8px;font-size:28px">Hebdomadaire</span><span class="chip" style="position:static;margin:0 8px;font-size:28px;background:var(--a);border:0">Mensuel</span></div>
+ <div id="pdfc" class="big" style="top:1740px;font-size:44px;letter-spacing:-1px"></div>
+</div>
+<div id="s8" class="scene">
+ <div class="cap" style="top:100px">L'export Excel · 6 feuilles</div>
+ <div id="xwin" class="abs" style="left:40px;top:200px;width:1000px;height:1420px;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 0 80px #1d6f42">
+  <div class="xh"><i>X</i><span>Digifeel-rapport-client-exemple.xlsx</span></div>
+  <div id="xin" class="abs" style="left:0;top:70px;width:1000px;height:1280px;overflow:hidden"><table id="xt"></table></div>
+  <div id="xtabs" class="abs" style="left:0;right:0;bottom:0;height:70px;background:#e9ecef"></div>
+ </div>
+ <div id="xchip" class="big" style="top:1665px;font-size:42px;letter-spacing:-1px"></div>
+</div>
+<div id="s9" class="scene">
+ <div class="cap" style="top:100px">Tout est dans Digifeel</div>
+ <div id="mods"></div>
+ <div id="modt" class="big" style="top:1690px;font-size:70px;letter-spacing:-2px;line-height:1.05">12 modules.<br><span style="color:var(--a)">Une seule application.</span></div>
+</div>
+<div id="wipe" style="position:absolute;left:-200px;width:1480px;height:1100px;z-index:98;pointer-events:none;transform:skewY(-8deg);display:none"></div>
 <svg id="cur" viewBox="0 0 24 24"><path d="M3 2l17 9-7 2-3 7z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
-<div id="wipe" style="position:absolute;left:-200px;width:1480px;height:1100px;z-index:98;pointer-events:none;transform:skewY(-8deg);display:none"></div><div id="vig"></div><div id="flash"></div>
+<div id="vig"></div><div id="flash"></div>
 <script>
 const CONTACT=window.CONTACT||"Instagram : @digifeel.logiciel";
 const $=id=>document.getElementById(id);
@@ -237,7 +269,73 @@ function render(t){document.querySelectorAll(".rip").forEach(e=>e.remove());
  if(!(k===3&&t>14.6&&t<14.85))$("flash").style.opacity=Math.max(fl,k===0?Math.max(0,1-seg(t,2.0,2.25))*(t>1.95?1:0)*0.9:0);
  const shake=(t>21.95&&t<22.2)?(1-seg(t,21.95,22.2))*14:0;document.body.style.transform=`translate(${(rnd(Math.floor(t*60),1)-.5)*shake}px,${(rnd(Math.floor(t*60),2)-.5)*shake}px)`;
 }
-window.render=render;window.ready=document.fonts.ready;
+// ===== version longue : V = temps de la vidéo (68 s) =====
+const origRender=render;const XL=window.XLDATA||[];
+const PGC=["Page 1 / 3 · Vue d'ensemble","Page 2 / 3 · Produits & équipe","Page 3 / 3 · Avis clients · NFC · Synthèse"];
+$("pdfv").innerHTML=[1,2,3].map(i=>`<div class="pgf" id="pg${i}"><img src="assets/doc/rapport-${i}.png"></div>`).join("");
+$("xtabs").innerHTML=XL.map((s,i)=>`<div class="xtab" id="xt${i}" style="left:${20+i*160}px">${s.name}</div>`).join("");
+const MODS=[["🧾","Caisse","Commandes, options, paiement"],["👨‍🍳","Écran cuisine","Tickets en temps réel"],["🪑","Tables & QR","Addition de chaque table"],["📡","Puces NFC","Avis en un seul tap"],["⭐","Avis clients","Notes et bonus étoiles"],["📄","Rapports PDF","Jour, semaine, mois"],["📊","Export Excel","6 feuilles détaillées"],["👥","Serveurs","Ventes et notes de chacun"],["🍽️","Menu & import","Ta carte en quelques clics"],["🖨️","Tickets & clôture Z","Impression et historique"],["🎨","Thèmes","Les couleurs de ton resto"],["💾","Sauvegarde","Tes données en sécurité"]];
+$("mods").innerHTML=MODS.map((m,i)=>`<div class="mc" id="mc${i}" style="left:${55+(i%2)*500}px;top:${230+Math.floor(i/2)*215}px"><i>${m[0]}</i><b>${m[1]}</b><span>${m[2]}</span></div>`).join("");
+function sheetHTML(s){
+ let h=`<colgroup>${s.widths.map(w=>`<col style="width:${Math.round(w*10)+14}px">`).join("")}</colgroup>`;
+ s.rows.forEach(r=>{h+="<tr>";for(let i=0;i<r.length;i++){const c=r[i];if(c.mm)continue;let sp=1;while(r[i+sp]&&r[i+sp].mm)sp++;
+  const num=/^-?\d+([.,]\d+)?$/.test(c.t);
+  h+=`<td colspan="${sp}" style="${c.fill?`background:#${c.fill.slice(2)};`:""}${c.col?`color:#${c.col.slice(2)};`:""}${c.b?"font-weight:700;":""}${num?"text-align:right;":""}">${c.t.replace(/</g,"&lt;")}</td>`;i+=sp-1}h+="</tr>"});
+ return h}
+let curSheet=-1;
+const showV=k=>{for(let i=0;i<10;i++)$("s"+i).style.display=i===k?"block":"none"};
+const VB=[19,31,45,59];
+function addRip(x,y,u){const d=document.createElement("div");d.className="rip";const r=30+u*90;d.style.cssText=`left:${x-r}px;top:${y-r}px;width:${2*r}px;height:${2*r}px;opacity:${1-u}`;document.body.appendChild(d)}
+function renderV(V){
+ for(let i=7;i<10;i++){$("s"+i).style.filter="";$("s"+i).style.transform=""}
+ if(V<19||V>=59){showV(-1);origRender(V<19?V:V-38);if(V<18.78)return}
+ else{
+  document.querySelectorAll(".rip").forEach(e=>e.remove());
+  const th=PAL[0],k=V<31?7:V<45?8:9,lt=V-VB[k-7];showV(k);
+  document.documentElement.style.setProperty("--a",th);
+  $("o1").style.cssText=`left:${-400+Math.sin(V*.8)*200}px;top:${100+Math.cos(V*.6)*250}px;background:radial-gradient(circle,${th}77,transparent 62%)`;
+  $("o2").style.cssText=`left:${300+Math.cos(V*.7)*220}px;top:${900+Math.sin(V*.9)*250}px`;
+  $("grid").style.transform=`translateY(${(V*70)%90}px)`;
+  [...$("parts").children].forEach((p,i)=>{p.style.transform=`translateY(${-(V*(60+i*5)*p.dataset.s)%300}px)`});
+  document.body.style.transform="";$("cur").style.display="none";$("flash").style.opacity=0;
+  if(k===7){
+   const w=E.out(seg(lt,0,.5));$("pdfw").style.opacity=w;$("pdfw").style.transform=`translateY(${(1-w)*80}px) scale(${.94+.06*w})`;
+   for(let i=0;i<3;i++){const u=(lt-i*4)/4,el=$("pg"+(i+1));
+    if(u<-.05||u>1.05){el.style.display="none";continue}el.style.display="block";
+    const inn=E.out(seg(u,0,.12)),out=E.in(seg(u,.9,1));const e=E.io(seg(u,.12,.88)),s=1+.12*e;
+    const x=(1-inn)*940-out*940;
+    el.style.transform=`translate(${x}px,${-Math.max(0,940*1.413*s-1330)*e}px) scale(${s})`;
+    if(u>=0&&u<1){$("pdfc").textContent=PGC[i];$("pdfp").textContent=`${i+1} / 3`}}
+  }
+  if(k===8){
+   $("xwin").style.opacity=E.out(seg(lt,0,.5));
+   const per=2.2,t0=.5,n=XL.length,idx=Math.min(n-1,Math.max(0,Math.floor((lt-t0)/per))),u=cl((lt-t0-idx*per)/per);
+   if(idx!==curSheet){curSheet=idx;$("xt").innerHTML=sheetHTML(XL[idx])}
+   XL.forEach((_,i)=>$("xt"+i).classList.toggle("on",i===idx));
+   const t=$("xt"),w=t.offsetWidth,h=t.offsetHeight,vw=1000,vh=1280;
+   const sc=Math.min(1.6,Math.max(.6,Math.max(vw/w,Math.min(vh/h*.95,1))));
+   const e=E.io(seg(u,.12,.92));t.style.transform=`translate(${-Math.max(0,w*sc-vw)*e}px,${-Math.max(0,h*sc-vh)*e}px) scale(${sc})`;
+   $("xin").style.opacity=cl(u*8+(idx===0?1:0))*cl((1-u)*8+.3);
+   $("xchip").textContent=`Feuille « ${XL[idx].name} » · ${idx+1} / ${n}`;
+   const tx=i=>[40+20+i*160+75,1585],rel=lt-t0-idx*per;
+   let cx,cy;
+   if(idx===0&&lt<t0){const m=E.io(seg(lt,.05,.5));cx=900+(tx(0)[0]-900)*m;cy=1250+(tx(0)[1]-1250)*m}
+   else{const A=tx(idx),Bn=tx(Math.min(n-1,idx+1)),m=E.io(seg(rel,per-.5,per-.05));cx=A[0]+(Bn[0]-A[0])*m;cy=A[1]+(Bn[1]-A[1])*m}
+   if(lt>.05){$("cur").style.display="block";$("cur").style.left=cx+"px";$("cur").style.top=cy+"px"}
+   if(idx>0&&rel>=0&&rel<.4)addRip(tx(idx)[0],tx(idx)[1],rel/.4)}
+  if(k===9){
+   MODS.forEach((_,i)=>{const p=E.back(seg(lt,.3+i*.55,.9+i*.55)),el=$("mc"+i);el.style.opacity=cl(p*1.5);el.style.transform=`translateY(${(1-p)*90}px) scale(${.85+.15*p})`;
+    const act=lt>.9+i*.55&&lt<1.7+i*.55;el.style.borderColor=act?"var(--a)":"rgba(255,255,255,.22)";el.style.boxShadow=act?"0 0 50px var(--a)":"none"});
+   const m=E.out(seg(lt,7.4,8.2));$("modt").style.opacity=m;$("modt").style.transform=`translateY(${(1-m)*60}px)`}
+ }
+ // transitions autour des changements de partie
+ let wp=-1,fl=0,tgt=null;
+ for(const b of VB){const d=V-b;if(Math.abs(d)<.22&&!(b===59&&d>=0)){wp=(d+.22)/.44;const e=1-Math.abs(d)/.22;tgt=document.querySelector(".scene[style*='block']");if(tgt){tgt.style.filter=`blur(${e*7}px)`;tgt.style.transform=`scale(${1+.07*e*(d<0?-1:1)})`}}
+  if(Math.abs(d)<.12)fl=Math.max(fl,.65*(1-Math.abs(d)/.12))}
+ if(wp>=0){const W=$("wipe");W.style.display="block";W.style.top=(1920-E.io(wp)*3020)+"px";W.style.background=`linear-gradient(180deg,transparent,${PAL[0]} 35%,rgba(255,255,255,.6) 50%,${PAL[0]} 65%,transparent)`;W.style.opacity=.5}
+ if(fl>0)$("flash").style.opacity=Math.max(fl,0);
+}
+window.render=renderV;window.ready=document.fonts.ready;
 </script></body></html>
 
 

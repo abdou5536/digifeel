@@ -1,4 +1,4 @@
-// Pub 30 s (1080x1920) : node story/build-ad.mjs [--preview --t=1,5,...]
+// Pub 68 s (1080x1920) : node story/build-ad.mjs [--preview --t=1,5,...]
 // Env : FFMPEG=chemin, CONTACT="Instagram : @toncompte"
 import { chromium } from "playwright";
 import { spawn, spawnSync } from "node:child_process";
@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "output");
 const ffmpeg = process.env.FFMPEG || "ffmpeg";
-const FPS = 30, TOTAL = 30;
+const FPS = 30, TOTAL = 68, DROP = 60;
 await mkdir(out, { recursive: true });
 
 // --- musique synthétisée (120 bpm, drop à 22 s) ---
@@ -26,18 +26,18 @@ function makeMusic() {
   add(0, 2, (x) => Math.sin(2 * Math.PI * 55 * x) * 0.18 * Math.min(1, x));
   add(2.0, 1.2, (x) => Math.sin(2 * Math.PI * 40 * x) * Math.exp(-x * 3) * 0.9 + noise() * Math.exp(-x * 5) * .3);
   for (let b = 6; b < 60; b++) {
-    const t = b * beat; if (t < 3 || t >= 29.4) continue;
-    const drop = t >= 22;
-    if (t < 21.5 || drop) kick(t);
+    const t = b * beat; if (t < 3 || t >= TOTAL - 0.6) continue;
+    const drop = t >= DROP;
+    if (t < DROP - 2.5 || drop) kick(t);
     if (drop || t >= 8) { hat(t + beat / 2, drop ? .16 : .1); }
-    if (drop && b % 2 === 1) clap(t);
+    if ((drop || t >= 31) && b % 2 === 1) clap(t);
     if (t >= 8) bass(t, notes[Math.floor(b / 4) % 4] * (drop ? 1 : 2), beat * .9, drop ? .5 : .25);
-    if (drop) hat(t + beat / 4, .06), hat(t + beat * .75, .06);
+    if (drop || t >= 45) hat(t + beat / 4, .06), hat(t + beat * .75, .06);
   }
   // riser 19.5 -> 22
-  add(19.5, 2.5, (x) => noise() * Math.pow(x / 2.5, 2) * 0.35);
-  add(22, 1.2, (x) => Math.sin(2 * Math.PI * 38 * x) * Math.exp(-x * 2.2) * 1.0);
-  add(26, 2, (x) => Math.sin(2 * Math.PI * 45 * x) * Math.exp(-x * 2) * 0.9 + noise() * Math.exp(-x * 4) * .25);
+  add(DROP - 2.5, 2.5, (x) => noise() * Math.pow(x / 2.5, 2) * 0.35);
+  add(DROP, 1.2, (x) => Math.sin(2 * Math.PI * 38 * x) * Math.exp(-x * 2.2) * 1.0);
+  add(TOTAL - 4, 2, (x) => Math.sin(2 * Math.PI * 45 * x) * Math.exp(-x * 2) * 0.9 + noise() * Math.exp(-x * 4) * .25);
   let max = 0; for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(L[i]));
   const buf = Buffer.alloc(44 + n * 2);
   buf.write("RIFF", 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write("WAVEfmt ", 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(sr, 24); buf.writeUInt32LE(sr * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write("data", 36); buf.writeUInt32LE(n * 2, 40);
@@ -48,6 +48,9 @@ function makeMusic() {
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
 if (process.env.CONTACT) await page.addInitScript((c) => { window.CONTACT = c; }, process.env.CONTACT);
+const { readFile } = await import("node:fs/promises");
+const xl = JSON.parse((await readFile(path.join(here, "assets", "doc", "xlsx.json"), "utf8")).replace(/^\uFEFF/, ""));
+await page.addInitScript((d) => { window.XLDATA = d; }, xl);
 await page.goto(pathToFileURL(path.join(here, "ad.html")).href);
 await page.evaluate(() => window.ready);
 
@@ -72,5 +75,6 @@ for (let i = 0; i < FPS * TOTAL; i++) {
 proc.stdin.end();
 await new Promise((r) => proc.on("close", r));
 await browser.close();
-spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-pub-30s.mp4")], { stdio: "inherit" });
+spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-pub-complete.mp4")], { stdio: "inherit" });
 console.log("OK");
+
