@@ -1,5 +1,5 @@
 const { chromium } = require('@playwright/test');
-const BASE = 'http://localhost:3000';
+const BASE = process.env.BASE_URL || 'http://localhost:3000';
 (async () => {
   const b = await chromium.launch(); let fails = 0;
   const ok = (n, c, x = '') => { console.log(`${c ? 'OK  ' : 'FAIL'} ${n} ${x}`); if (!c) fails++; };

@@ -5,7 +5,7 @@ for (const l of fs.readFileSync('.env', 'utf8').split(/\r?\n/)) { const m = l.ma
 const { createClient } = require('@supabase/supabase-js');
 const { chromium } = require('@playwright/test');
 const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-const BASE = 'http://localhost:3000';
+const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const stamp = Date.now();
 const pw = 'Tmp-' + stamp + '-Aa1!';
 let fails = 0; const users = []; let restId;
