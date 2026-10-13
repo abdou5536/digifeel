@@ -549,6 +549,7 @@ function renderR(t){
  let act=-1;TR.forEach((x,i)=>{if(t>=x.t&&t<x.t+x.d)act=i});
  if(act>=0&&window.SNAP[TR[act].t]){if(built!==act)build(act);animTr(act,t)}else if(built!==-1)trClear();
  const bk=t>=53&&t<54.5?seg(t,53,53.9):0;$("blk").style.opacity=bk;
+ TR.forEach(x=>{const u=(t-x.t)/x.d;if(u>.3&&u<.7)$("flash").style.opacity=.3*Math.sin((u-.3)/.4*Math.PI)});
  if(t>=54.5&&t<54.9)$("flash").style.opacity=.8*(1-seg(t,54.5,54.9));
 }
 window.render=renderR;window.ready=document.fonts.ready;
