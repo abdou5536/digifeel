@@ -38,6 +38,20 @@ function makeMusic() {
   add(DROP - 2.5, 2.5, (x) => noise() * Math.pow(x / 2.5, 2) * 0.35);
   add(DROP, 1.2, (x) => Math.sin(2 * Math.PI * 38 * x) * Math.exp(-x * 2.2) * 1.0);
   add(TOTAL - 4, 2, (x) => Math.sin(2 * Math.PI * 45 * x) * Math.exp(-x * 2) * 0.9 + noise() * Math.exp(-x * 4) * .25);
+  // --- bruitages synchronisés avec l'image ---
+  const click = (t) => { add(t, 0.06, (x) => noise() * Math.exp(-x * 160) * 0.55); add(t, 0.08, (x) => Math.sin(2 * Math.PI * 1900 * x) * Math.exp(-x * 90) * 0.35); add(t + 0.035, 0.06, (x) => Math.sin(2 * Math.PI * 900 * x) * Math.exp(-x * 80) * 0.25); };
+  const whoosh = (t) => { let lp = 0; add(t - 0.25, 0.6, (x) => { const u = x / 0.6, a = Math.sin(Math.PI * u) ** 2; const k = 0.05 + 0.5 * u; lp += k * (noise() - lp); return lp * a * 1.6; }); };
+  const ding = (t, f = 1320) => add(t, 0.9, (x) => (Math.sin(2 * Math.PI * f * x) + 0.5 * Math.sin(2 * Math.PI * f * 1.5 * x)) * Math.exp(-x * 5) * 0.3);
+  const tick = (t) => add(t, 0.04, (x) => Math.sin(2 * Math.PI * 1200 * x) * Math.exp(-x * 120) * 0.18);
+  [9.0, 9.6, 10.0, 10.6, 11.1, 12.0, 17.55, 18.0].forEach(click);
+  for (let i = 1; i <= 5; i++) click(31.5 + i * 2.2);
+  [59.95, 60.0, 61.0, 62.0].forEach(click);
+  [3, 8, 13, 17, 19, 31, 45, 59].forEach(whoosh);
+  [23, 27].forEach(whoosh);
+  ding(12.3, 1320); ding(12.45, 1760); ding(19.1, 1568);
+  add(14.6, 0.25, (x) => Math.sin(2 * Math.PI * 2400 * x) * Math.exp(-x * 14) * 0.3);
+  for (let i = 0; i < 12; i++) tick(45.6 + i * 0.55);
+  for (let i = 0; i < 6; i++) tick(18.0 + i * 0.2);
   let max = 0; for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(L[i]));
   const buf = Buffer.alloc(44 + n * 2);
   buf.write("RIFF", 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write("WAVEfmt ", 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(sr, 24); buf.writeUInt32LE(sr * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write("data", 36); buf.writeUInt32LE(n * 2, 40);
