@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  [hidden] { display: none !important; }
+  body { width: 1080px; height: 1920px; overflow: hidden; font-family: "Segoe UI", Inter, Arial, sans-serif; color: #f1f0eb;
+    background: radial-gradient(1200px 900px at 80% 10%, rgba(121,212,176,.18), transparent 60%), linear-gradient(160deg, #0b1220, #0d1117 60%, #1a1610); }
+  .wrap { height: 100%; padding: 110px 80px; display: flex; flex-direction: column; justify-content: space-between; }
+  .logo { height: 96px; align-self: flex-start; }
+  .kicker { color: #79d4b0; letter-spacing: .22em; font-weight: 700; font-size: 34px; text-transform: uppercase; margin-bottom: 36px; }
+  h1 { font-size: 118px; line-height: 1.02; letter-spacing: -.045em; font-weight: 650; }
+  h1 em { font-style: normal; color: #e1b25e; }
+  p.lead { margin-top: 44px; font-size: 48px; line-height: 1.4; color: #b0bac6; }
+  .list { display: grid; gap: 26px; margin-top: 56px; }
+  .pill { display: flex; align-items: center; gap: 26px; padding: 34px 40px; border: 1px solid rgba(255,255,255,.14); border-radius: 30px; background: rgba(255,255,255,.05); font-size: 50px; font-weight: 600; }
+  .pill i { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; background: #79d4b0; color: #0b1220; font-style: normal; font-size: 38px; font-weight: 800; }
+  .cta { display: inline-block; padding: 38px 52px; border-radius: 34px; background: linear-gradient(135deg, #e1b25e, #c4852a); color: #16120a; font-size: 46px; font-weight: 750; white-space: nowrap; }
+  .foot { font-size: 36px; color: #8995a3; }
+  .foot b { color: #f1f0eb; }
+</style>
+</head>
+<body>
+<div class="wrap" id="intro" hidden>
+  <img class="logo" src="assets/logo.svg" alt="Digifeel">
+  <div>
+    <div class="kicker">Pour les restaurateurs</div>
+    <h1>Ton restaurant,<br><em>version digitale.</em></h1>
+    <p class="lead">Caisse, avis clients et comptabilité. Un seul logiciel.</p>
+  </div>
+  <div class="foot">Glisse pour découvrir 👇</div>
+</div>
+<div class="wrap" id="outro" hidden>
+  <img class="logo" src="assets/logo.svg" alt="Digifeel">
+  <div>
+    <div class="kicker">Prêt à démarrer ?</div>
+    <h1>On l'installe<br><em>chez toi.</em></h1>
+    <div class="list">
+      <div class="pill"><i>✓</i>Ton espace créé pour toi</div>
+      <div class="pill"><i>✓</i>Installation en 5 minutes</div>
+      <div class="pill"><i>✓</i>PC, tablette et téléphone</div>
+    </div>
+  </div>
+  <div>
+    <span class="cta">Écris-moi en message privé 📩</span>
+    <p class="foot" style="margin-top:40px">Le PDF de présentation est dans le lien de la bio · <b>digifeel.vercel.app</b></p>
+  </div>
+</div>
+<script>
+  const id = new URLSearchParams(location.search).get('card');
+  document.getElementById(id).hidden = false;
+</script>
+</body>
+</html>
