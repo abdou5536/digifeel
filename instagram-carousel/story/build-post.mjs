@@ -88,6 +88,7 @@ function makeMusic() {
   clicks.forEach((V) => { const tt = tOfV(V); if (tt > 0) click(tt); });
   const tp = tOfV(12.0); ding(tp, 1100); ding(tp + .3, 1320); ding(tp + .45, 1760);
   [13.1, 16.2].forEach(pop);
+  [4.5, 8.4, 13, 15.9].forEach((t) => add(t, 0.3, (x) => Math.sin(2 * Math.PI * (70 + 60 * Math.exp(-x * 20)) * x) * Math.exp(-x * 10) * .7));
   let max = 0; for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(L[i]));
   const buf = Buffer.alloc(44 + n * 2);
   buf.write("RIFF", 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write("WAVEfmt ", 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(sr, 24); buf.writeUInt32LE(sr * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write("data", 36); buf.writeUInt32LE(n * 2, 40);
@@ -118,5 +119,5 @@ for (let i = 0; i < FPS * TOTAL; i++) {
 proc.stdin.end();
 await new Promise((r) => proc.on("close", r));
 await browser.close();
-spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-publication-22s.mp4")], { stdio: "inherit" });
+spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-publication-pro.mp4")], { stdio: "inherit" });
 console.log("OK");

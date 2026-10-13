@@ -12,6 +12,7 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#000;font-family
 .p{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 12px #8fb4ff}
 .scene{position:absolute;inset:0;display:none;overflow:hidden}
 .abs{position:absolute}
+.scene>.cap:not(#hsub),#pdfc,#xchip{display:none!important}
 .glass{position:absolute;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1.5px solid rgba(255,255,255,.22);border-radius:36px;backdrop-filter:blur(18px);box-shadow:0 30px 120px rgba(0,0,0,.65),inset 0 0 60px rgba(255,255,255,.05)}
 .big{position:absolute;left:0;right:0;text-align:center;font-weight:900;letter-spacing:-3px;line-height:1}
 .cap{position:absolute;left:0;right:0;text-align:center;font-weight:800;letter-spacing:6px;text-transform:uppercase;font-size:34px;color:#cfd8ff}
@@ -221,7 +222,7 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#000;font-family
 </div>
 <div id="tr"></div><div id="blk"></div>
 <svg id="cur" viewBox="0 0 24 24"><path d="M3 2l17 9-7 2-3 7z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
-<div id="vig"></div><div id="flash"></div>
+<div id="vig"></div><div id="flash"></div><div id="pcap" style="position:absolute;left:0;right:0;top:1640px;height:200px;overflow:hidden;z-index:60;text-align:center;font:900 132px/200px Impact,'Arial Black',sans-serif;letter-spacing:2px;color:#fff;text-shadow:0 0 40px rgba(60,130,255,.8);pointer-events:none"><span id="pcapi" style="display:inline-block"></span></div>
 <script>
 const CONTACT=window.CONTACT||"Instagram : @digifeel.logiciel";
 const $=id=>document.getElementById(id);
@@ -536,6 +537,9 @@ function renderR(t){
   $("flash").style.opacity=u<.3?.4*(1-u/.3):0}});
  let act=-1;TR.forEach((x,i)=>{if(t>=x.t&&t<x.t+x.d)act=i});
  if(act>=0&&window.SNAP[TR[act].t]){if(built!==act)build(act);animTr(act,t)}else if(built!==-1)trClear();
+ const CAPS=[[4.5,7.5,"ENCAISSE."],[8.4,12.1,"TES COULEURS."],[13,15.2,"PDF."],[15.9,17.7,"EXCEL."]];
+ const pc=CAPS.find(c=>t>=c[0]&&t<c[1]);const pi=$("pcapi");
+ if(pc){const u=E.out(seg(t,pc[0],pc[0]+.35)),o=E.in(seg(t,pc[1]-.3,pc[1]));pi.textContent=pc[2];pi.style.transform=`translateY(${(1-u)*140+o*-140}px)`;pi.style.opacity=1}else pi.style.opacity=0;
  const en=t>=21.5?seg(t,21.5,22):0;$("blk").style.opacity=en;
 }
 window.render=renderR;window.ready=document.fonts.ready;
