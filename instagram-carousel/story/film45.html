@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000;font-family:"Segoe UI",Arial,sans-serif;color:#fff}
+:root{--a:#2f7bff}
+#bg{position:absolute;inset:0;background:#05070d}
+.orb{position:absolute;width:1300px;height:1300px;border-radius:50%;filter:blur(40px)}
+#o1{background:radial-gradient(circle,rgba(47,123,255,.45),transparent 62%)}
+#o2{background:radial-gradient(circle,rgba(255,122,47,.38),transparent 62%)}
+#grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:90px 90px}
+.p{position:absolute;border-radius:50%;background:#fff;box-shadow:0 0 12px #8fb4ff}
+.scene{position:absolute;inset:0;display:none;overflow:hidden}
+.abs{position:absolute}
+.glass{position:absolute;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1.5px solid rgba(255,255,255,.22);border-radius:36px;backdrop-filter:blur(18px);box-shadow:0 30px 120px rgba(0,0,0,.65),inset 0 0 60px rgba(255,255,255,.05)}
+.big{position:absolute;left:0;right:0;text-align:center;font-weight:900;letter-spacing:-3px;line-height:1}
+.cap{position:absolute;left:0;right:0;text-align:center;font-weight:800;letter-spacing:6px;text-transform:uppercase;font-size:34px;color:#cfd8ff}
+.prod{position:absolute;width:290px;height:200px;border-radius:28px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);padding:22px}
+.prod b{display:block;font-size:34px;margin-top:6px}.prod span{font-size:28px;color:#aeb8d8}.prod i{font-style:normal;font-size:64px}
+.chip{position:absolute;padding:16px 30px;border-radius:99px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.25);font-size:32px;font-weight:700}
+.btn{position:absolute;border-radius:24px;background:var(--a);color:#fff;font-weight:800;text-align:center;box-shadow:0 0 50px var(--a)}
+.line{position:absolute;left:40px;right:40px;display:flex;justify-content:space-between;font-size:34px;font-weight:600}
+.kpi{position:absolute;border-radius:26px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);padding:22px}
+.kpi small{display:block;font-size:22px;color:#aeb8d8;letter-spacing:2px;text-transform:uppercase}.kpi b{display:block;font-size:50px;margin-top:8px}
+#cur{position:absolute;width:56px;height:56px;z-index:50;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+.rip{position:absolute;border-radius:50%;border:5px solid #fff;z-index:49}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:99}
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.65));pointer-events:none;z-index:90}
+.sw{position:absolute;width:110px;height:110px;border-radius:50%;border:5px solid rgba(255,255,255,.3)}
+.tog{position:absolute;width:90px;height:48px;border-radius:30px;background:var(--a)}.tog:after{content:"";position:absolute;right:6px;top:6px;width:36px;height:36px;border-radius:50%;background:#fff}
+</style></head><body>
+<div id="bg"><div id="o1" class="orb"></div><div id="o2" class="orb"></div><div id="grid"></div><div id="parts"></div></div>
+
+<div id="s0" class="scene">
+ <div id="t1" class="big" style="top:640px;font-size:150px">Ton<br>restaurant.</div>
+ <div id="t2" class="big" style="top:1000px;font-size:150px;color:var(--a)">Sous<br>contrôle.</div>
+ <div id="logo0" class="abs" style="left:0;right:0;top:760px;opacity:0"></div>
+</div>
+
+<div id="s1" class="scene">
+ <div class="cap" style="top:130px" id="c1">Le logiciel</div>
+ <div id="mon" class="abs" style="left:60px;top:640px;width:960px;height:600px;transform-style:preserve-3d">
+  <div class="glass" style="inset:0;border-radius:26px;background:linear-gradient(160deg,#0d1424,#070a12);overflow:hidden">
+   <div class="abs" style="left:0;right:0;top:0;height:64px;background:rgba(255,255,255,.06);padding:18px 28px;font-weight:800;font-size:26px">● Digifeel · Tableau de bord</div>
+   <div class="kpi" style="left:28px;top:94px;width:290px;height:120px"><small>Chiffre d'affaires</small><b id="k1">0</b></div>
+   <div class="kpi" style="left:335px;top:94px;width:290px;height:120px"><small>Commandes</small><b id="k2">0</b></div>
+   <div class="kpi" style="left:642px;top:94px;width:290px;height:120px"><small>Note avis</small><b id="k3">0</b></div>
+   <div id="bars" class="abs" style="left:28px;right:28px;top:240px;height:320px"></div>
+  </div>
+  <div class="abs" style="left:-40px;right:-40px;bottom:-40px;height:40px;background:radial-gradient(ellipse,rgba(47,123,255,.6),transparent 70%)"></div>
+ </div>
+ <div id="mref" class="abs" style="left:0;right:0;top:1250px;text-align:center;font-size:56px;font-weight:900;letter-spacing:-1px"></div>
+</div>
+
+<div id="s2" class="scene">
+ <div class="cap" style="top:130px">La caisse</div>
+ <div id="pos" class="glass" style="left:60px;top:300px;width:960px;height:1300px">
+  <div class="abs" style="left:40px;top:30px;font-size:38px;font-weight:800">Caisse · Table 4</div>
+  <div class="prod" style="left:30px;top:110px"><i>🥞</i><b>Crêpe Nutella</b><span>450 DZD</span></div>
+  <div class="prod" style="left:340px;top:110px"><i>🧇</i><b>Gaufre</b><span>500 DZD</span></div>
+  <div class="prod" style="left:650px;top:110px"><i>☕</i><b>Café crème</b><span>150 DZD</span></div>
+  <div class="prod" style="left:30px;top:330px"><i>🍊</i><b>Jus d'orange</b><span>250 DZD</span></div>
+  <div class="prod" style="left:340px;top:330px"><i>🧀</i><b>Crêpe fromage</b><span>400 DZD</span></div>
+  <div class="prod" style="left:650px;top:330px"><i>🍵</i><b>Thé menthe</b><span>120 DZD</span></div>
+  <div class="abs" style="left:40px;top:575px;font-size:26px;letter-spacing:4px;color:#aeb8d8">TICKET</div>
+  <div id="tl1" class="line" style="top:630px"><span>Crêpe Nutella <small style="color:#aeb8d8;font-size:26px">+ banane + chantilly</small></span><span>550</span></div>
+  <div id="tl2" class="line" style="top:700px"><span>Café crème</span><span>150</span></div>
+  <div class="abs" style="left:40px;right:40px;top:790px;height:2px;background:rgba(255,255,255,.2)"></div>
+  <div class="line" style="top:820px;font-size:52px;font-weight:900"><span>Total</span><span id="tot">0 DZD</span></div>
+  <div id="pay" class="btn" style="left:40px;right:40px;top:1000px;height:120px;font-size:46px;line-height:120px">Encaisser</div>
+  <div id="mod" class="glass" style="left:60px;top:150px;width:840px;height:640px;border-radius:30px;background:rgba(10,14,26,.94);z-index:5">
+   <div class="abs" style="left:40px;top:30px;font-size:44px;font-weight:900">Crêpe Nutella</div>
+   <div class="abs" style="left:40px;top:100px;font-size:26px;letter-spacing:4px;color:#aeb8d8">TOPPINGS</div>
+   <div id="tp1" class="chip" style="left:40px;top:200px">Banane +50</div>
+   <div id="tp2" class="chip" style="left:290px;top:200px">Chantilly +50</div>
+   <div id="tp3" class="chip" style="left:560px;top:200px">Noisettes +60</div>
+   <div class="btn" style="left:40px;right:40px;bottom:40px;height:110px;font-size:42px;line-height:110px">Ajouter au ticket</div>
+  </div>
+  <div id="ok" class="abs" style="inset:0;border-radius:36px;background:rgba(5,8,14,.88);z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center">
+   <svg width="300" height="300" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="#2fe08a" stroke-width="6"/><path id="ck" d="M28 52l16 16 30-34" fill="none" stroke="#2fe08a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
+   <div style="font-size:64px;font-weight:900;margin-top:20px">Paiement validé</div></div>
+ </div>
+</div>
+
+<div id="s3" class="scene">
+ <div class="cap" style="top:130px">Un scan. L'addition.</div>
+ <div id="soft" class="glass" style="left:90px;top:250px;width:900px;height:520px">
+  <div class="abs" style="left:40px;top:30px;font-size:30px;letter-spacing:4px;color:var(--a);font-weight:800">DIGIFEEL · SALLE</div>
+  <div class="abs" style="left:40px;top:90px;font-size:64px;font-weight:900">Table 7</div>
+  <div class="line" style="top:200px"><span>2 × Crêpe Nutella</span><span>1 100</span></div>
+  <div class="line" style="top:270px"><span>1 × Thé menthe</span><span>120</span></div>
+  <div class="line" style="top:370px;font-size:56px;font-weight:900"><span>Addition</span><span>1 220 DZD</span></div>
+ </div>
+ <div id="tag" class="abs" style="left:410px;top:1180px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a2f3c,#07090e 70%);border:3px solid #3a4152;box-shadow:0 0 80px rgba(47,123,255,.5);text-align:center;font-weight:900;font-size:34px;line-height:260px;color:#e8ecff">digifeel</div>
+ <div id="phone" class="abs" style="left:0;top:0;width:360px;height:740px;border-radius:56px;background:linear-gradient(160deg,#1a2033,#0a0d16);border:5px solid #323a50;box-shadow:0 40px 100px rgba(0,0,0,.7)">
+  <div class="abs" style="inset:18px;border-radius:40px;background:linear-gradient(160deg,#10224a,#0a0f1e);padding:40px 28px;text-align:center"><div style="font-size:30px;font-weight:800;margin-top:60px" id="ptxt">Approche…</div><div style="font-size:90px;margin-top:40px" id="pico">📶</div></div>
+ </div>
+</div>
+
+<div id="s4" class="scene">
+ <div class="cap" style="top:130px">Rapports en un clic</div>
+ <div id="rep" class="glass" style="left:60px;top:260px;width:960px;height:1300px">
+  <div class="abs" style="left:40px;top:34px;font-size:44px;font-weight:900">Rapports</div>
+  <div id="exb" class="btn" style="right:40px;top:26px;width:230px;height:80px;font-size:34px;line-height:80px">⬇ Exporter</div>
+  <div id="menu" class="glass" style="right:40px;top:120px;width:380px;height:250px;border-radius:24px;background:rgba(10,14,26,.95);z-index:6;padding:20px;font-size:34px;font-weight:700"><div style="margin-bottom:22px">📄 PDF · Journalier</div><div style="margin-bottom:22px;color:#aeb8d8">📄 PDF · Hebdomadaire</div><div style="color:#aeb8d8">📄 PDF · Mensuel</div></div>
+  <div id="prog" class="abs" style="left:40px;right:40px;top:560px;z-index:4"><div style="font-size:34px;font-weight:700;margin-bottom:20px"><span id="pgt">Téléchargement…</span></div><div style="height:24px;border-radius:12px;background:rgba(255,255,255,.12);overflow:hidden"><div id="pgb" style="height:100%;width:0;background:var(--a);box-shadow:0 0 30px var(--a)"></div></div></div>
+ </div>
+ <div id="pdf" class="abs" style="left:150px;top:300px;width:780px;box-shadow:0 40px 140px rgba(0,0,0,.8);border-radius:8px;overflow:hidden;z-index:20;background:#fff"><img src="assets/doc/rapport-1.png" style="width:100%;display:block"></div>
+ <div id="xl" class="abs" style="left:560px;top:520px;width:480px;border-radius:20px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.8);z-index:21;background:#fff;color:#1b1f27">
+  <div style="background:#1d6f42;padding:18px 22px;font-size:26px;font-weight:800;color:#fff">X Rapport-exemple.xlsx</div>
+  <div id="xrows" style="font-size:22px"></div>
+  <div style="background:#e9ecef;padding:12px;font-size:20px;color:#1d6f42;font-weight:700">Synthèse · Ventes · Produits · Équipe · Avis · NFC</div></div>
+</div>
+
+<div id="s5" class="scene">
+ <div class="cap" style="top:130px">Ton logiciel, tes couleurs</div>
+ <div id="theme" class="glass" style="left:60px;top:260px;width:960px;height:1400px">
+  <div class="abs" style="left:40px;top:34px;font-size:44px;font-weight:900">Personnalisation</div>
+  <div id="rname" class="abs" style="left:480px;top:40px;width:440px;text-align:right;font-size:30px;font-weight:800;color:var(--a)"></div><div id="hexl" class="abs" style="left:70px;top:252px;font-size:26px;color:#aeb8d8;letter-spacing:3px"></div>
+  <div id="sw0" class="sw" style="left:70px;top:130px;background:#2f7bff"></div>
+  <div id="sw1" class="sw" style="left:270px;top:130px;background:#ff7a2f"></div>
+  <div id="sw2" class="sw" style="left:470px;top:130px;background:#2fe08a"></div>
+  <div id="sw3" class="sw" style="left:670px;top:130px;background:#a855f7"></div>
+  <div class="kpi" style="left:40px;top:300px;width:420px;height:140px"><small>Ventes du jour</small><b style="color:var(--a)">39 800 DZD</b></div>
+  <div class="kpi" style="left:500px;top:300px;width:420px;height:140px"><small>Avis clients</small><b style="color:var(--a)">4,4 / 5</b></div>
+  <div id="tb" class="abs" style="left:40px;right:40px;top:470px;height:220px"></div>
+  <div class="btn" style="left:40px;width:420px;top:720px;height:100px;font-size:36px;line-height:100px">Encaisser</div>
+  <div id="tiles" class="abs" style="left:500px;top:715px;width:420px;height:110px"></div><div class="abs" style="left:40px;top:860px;font-size:28px;letter-spacing:4px;color:#aeb8d8">SERVEURS</div>
+  <div id="sv" class="abs" style="left:40px;right:40px;top:910px"></div>
+  <div class="abs" style="left:40px;top:1090px;font-size:28px;letter-spacing:4px;color:#aeb8d8">MODULES</div>
+  <div id="md" class="abs" style="left:40px;right:40px;top:1140px"></div>
+ </div>
+</div>
+
+<div id="s6" class="scene"><div id="logo6" class="abs" style="left:0;right:0;top:560px"></div>
+ <div id="f1" class="big" style="top:860px;font-size:68px;letter-spacing:-1px;padding:0 70px;line-height:1.1"></div>
+ <div id="f2" class="chip" style="left:140px;right:140px;top:1230px;text-align:center;background:var(--a);border:0;font-size:40px;box-shadow:0 0 60px var(--a)"></div>
+</div>
+<style>
+.pgf{position:absolute;left:0;top:0;width:940px;transform-origin:50% 0;box-shadow:0 20px 60px rgba(0,0,0,.5)}.pgf img{display:block;width:940px}
+.xh{height:70px;background:#1d6f42;display:flex;align-items:center;padding:0 24px;font-size:26px;font-weight:700;gap:16px}.xh i{font-style:normal;background:#fff;color:#1d6f42;border-radius:8px;padding:2px 12px;font-weight:900}
+#xt{border-collapse:collapse;transform-origin:0 0;background:#fff;color:#222;font-size:22px}#xt td{border:1px solid #d4d4d4;padding:8px 12px;white-space:nowrap}
+.xtab{position:absolute;bottom:0;height:70px;width:150px;line-height:70px;text-align:center;font-size:24px;font-weight:700;background:#e9ecef;color:#1d6f42;border-top:5px solid transparent}.xtab.on{background:#fff;border-top-color:#1d6f42}
+.mc{position:absolute;width:470px;height:185px;border-radius:30px;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1.5px solid rgba(255,255,255,.22);padding:24px 28px;backdrop-filter:blur(10px)}
+.mc i{font-style:normal;font-size:54px;display:block}.mc b{display:block;font-size:36px;margin-top:6px}.mc span{font-size:24px;color:#aeb8d8}
+</style>
+<div id="s7" class="scene">
+ <div class="cap" style="top:100px">Le rapport PDF · exactement comme reçu</div>
+ <div id="pdfw" class="abs" style="left:70px;top:190px;width:940px;height:1400px;border-radius:26px;overflow:hidden;background:#1d1f26;box-shadow:0 0 80px var(--a)">
+  <div style="height:70px;background:#2a2d36;display:flex;align-items:center;padding:0 24px;font-size:26px;font-weight:700;gap:14px"><span style="color:#ff5a4f">PDF</span><span id="pdfn">Rapport-septembre-2026.pdf</span><span id="pdfp" style="margin-left:auto;color:#aeb8d8"></span></div>
+  <div id="pdfv" class="abs" style="left:0;top:70px;width:940px;height:1330px;overflow:hidden"></div>
+ </div>
+ <div class="abs" style="left:0;right:0;top:1640px;text-align:center"><span class="chip" style="position:static;margin:0 8px;font-size:28px">Journalier</span><span class="chip" style="position:static;margin:0 8px;font-size:28px">Hebdomadaire</span><span class="chip" style="position:static;margin:0 8px;font-size:28px;background:var(--a);border:0">Mensuel</span></div>
+ <div id="pdfc" class="big" style="top:1740px;font-size:44px;letter-spacing:-1px"></div>
+</div>
+<div id="s8" class="scene">
+ <div class="cap" style="top:100px">L'export Excel · 6 feuilles</div>
+ <div id="xwin" class="abs" style="left:40px;top:200px;width:1000px;height:1420px;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 0 80px #1d6f42">
+  <div class="xh"><i>X</i><span>Digifeel-rapport-client-exemple.xlsx</span></div>
+  <div id="xin" class="abs" style="left:0;top:70px;width:1000px;height:1280px;overflow:hidden"><table id="xt"></table></div>
+  <div id="xtabs" class="abs" style="left:0;right:0;bottom:0;height:70px;background:#e9ecef"></div>
+ </div>
+ <div id="xchip" class="big" style="top:1665px;font-size:42px;letter-spacing:-1px"></div>
+</div>
+<div id="s9" class="scene">
+ <div class="cap" style="top:100px">Tout est dans Digifeel</div>
+ <div id="mods"></div>
+ <div id="modt" class="big" style="top:1690px;font-size:70px;letter-spacing:-2px;line-height:1.05">12 modules.<br><span style="color:var(--a)">Une seule application.</span></div>
+</div>
+<div id="wipe" style="position:absolute;left:-200px;width:1480px;height:1100px;z-index:98;pointer-events:none;transform:skewY(-8deg);display:none"></div>
+<style>
+#tr{position:absolute;inset:0;z-index:95;pointer-events:none;display:none;overflow:hidden}
+#blk{position:absolute;inset:0;background:#000;opacity:0;z-index:97;pointer-events:none}
+.hp{left:0;top:0;opacity:0}
+.paper{position:absolute;width:280px;height:440px;border-radius:6px;background:#ece8dd repeating-linear-gradient(180deg,transparent 0 34px,rgba(0,0,0,.18) 34px 36px);box-shadow:0 18px 40px rgba(0,0,0,.6);color:#333;font-size:26px;font-weight:700;padding:18px}
+.pill{position:absolute;padding:20px 34px;border-radius:99px;background:rgba(255,40,70,.18);border:2px solid rgba(255,70,90,.8);font-size:38px;font-weight:800;color:#ffd0d6;box-shadow:0 0 40px rgba(255,40,70,.5);white-space:nowrap}
+.pcap{position:absolute;left:0;right:0;text-align:center;font-weight:900;font-size:118px;letter-spacing:-3px;line-height:1}
+.av{position:absolute;width:92px;height:92px;border-radius:50%;background:var(--a);font-size:44px;font-weight:900;text-align:center;line-height:92px;box-shadow:0 0 30px var(--a)}
+.star{font-size:64px;display:inline-block;margin-right:6px}
+.rv{height:84px;font-size:30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.12)}
+</style>
+<svg width="0" height="0" style="position:absolute"><defs>
+<filter id="mbh" x="-30%" y="0" width="160%" height="100%" color-interpolation-filters="sRGB"><feGaussianBlur id="mbhs" stdDeviation="0 0"/></filter>
+<filter id="liq" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feTurbulence id="liqt" type="fractalNoise" baseFrequency="0.008 0.02" numOctaves="2" seed="3" result="n"/><feDisplacementMap id="liqd" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter>
+<filter id="liq2" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feTurbulence id="liqt2" type="fractalNoise" baseFrequency="0.008 0.02" numOctaves="2" seed="3" result="n"/><feDisplacementMap id="liqd2" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter>
+<filter id="fr" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter>
+<filter id="fg" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter>
+<filter id="fb" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/></filter>
+</defs></svg>
+
+<div id="s10" class="scene">
+ <div id="hk_flare" class="abs" style="left:0;right:0;top:795px;height:10px;opacity:0;background:linear-gradient(90deg,transparent,rgba(120,180,255,.95) 30%,#fff 50%,rgba(255,140,60,.95) 70%,transparent);box-shadow:0 0 60px 20px rgba(90,150,255,.6)"></div>
+ <div id="hk_ring" class="abs" style="display:none;border-radius:50%"></div>
+ <div id="hk_parts"></div>
+ <div id="hk_logo" class="abs" style="left:0;right:0;top:760px;opacity:0"></div>
+ <div id="hk_t1" class="big" style="top:930px;font-size:124px;opacity:0">Ton restaurant</div>
+ <div id="hk_t2" class="big" style="top:1080px;font-size:150px;color:var(--a);opacity:0">mérite mieux.</div>
+</div>
+
+<div id="s11" class="scene" style="background:radial-gradient(circle at 50% 45%,rgba(130,0,25,.4),rgba(0,0,0,.92) 75%)">
+ <div id="pb0" class="abs" style="inset:0"></div>
+ <div id="pb1" class="abs" style="inset:0">
+  <div id="tk" class="abs" style="left:250px;top:330px;width:580px;height:920px;background:#efebe0;color:#222;border-radius:8px;padding:40px;box-shadow:0 30px 80px rgba(0,0,0,.7);font-family:Consolas,monospace;font-size:34px">
+   <div style="font-weight:900;font-size:42px">ADDITION · TABLE 4</div><div style="margin:14px 0;border-top:3px dashed #999"></div>
+   <div>2 × Couscous ....... 3 600</div><div>1 × Tajine .......... 2 200</div><div>3 × Thé menthe ...... 1 500</div><div style="margin:14px 0;border-top:3px dashed #999"></div>
+   <div style="font-weight:900;font-size:46px">TOTAL : ??? DZD</div><div style="color:#c33;margin-top:40px">⚠ ligne illisible</div>
+  </div>
+  <div id="stamp" class="abs" style="left:130px;top:700px;padding:10px 40px;border:14px solid #ff2b45;color:#ff2b45;font-size:150px;font-weight:900;border-radius:20px;opacity:0;letter-spacing:6px;background:rgba(0,0,0,.25)">PERDUE</div>
+ </div>
+ <div id="pb2" class="abs" style="inset:0"><div id="emo" class="abs" style="left:0;right:0;top:380px;text-align:center;font-size:330px">🤯</div></div>
+ <div id="pc0" class="pcap" style="top:1500px">Tickets papier.</div>
+ <div id="pc1" class="pcap" style="top:1500px">Addition perdue.</div>
+ <div id="pc2" class="pcap" style="top:1500px">Serveur débordé.</div>
+</div>
+
+<div id="s12" class="scene">
+ <div class="cap" style="top:110px">Gestion · Serveurs · Avis</div>
+ <div id="mA" class="glass" style="left:50px;top:230px;width:980px;height:480px"></div>
+ <div id="mB" class="glass" style="left:50px;top:750px;width:980px;height:700px"></div>
+ <div id="mC" class="glass" style="left:50px;top:1490px;width:980px;height:230px"></div>
+</div>
+<div id="tr"></div><div id="blk"></div>
+<svg id="cur" viewBox="0 0 24 24"><path d="M3 2l17 9-7 2-3 7z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
+<div id="vig"></div><div id="flash"></div>
+<script>
+const CONTACT=window.CONTACT||"Instagram : @digifeel.logiciel";
+const $=id=>document.getElementById(id);
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),seg=(t,a,b)=>cl((t-a)/(b-a));
+const E={out:t=>1-Math.pow(1-t,3),io:t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2,back:t=>{const c=1.70158,d=c+1;return 1+d*Math.pow(t-1,3)+c*Math.pow(t-1,2)},in:t=>t*t*t};
+const rnd=(i,k)=>{const x=Math.sin(i*127.1+k*311.7)*43758.5453;return x-Math.floor(x)};
+const B=[0,3,8,13,17,21,26,30];
+const LOGO=`<svg viewBox="0 0 430 96" width="720" style="display:block;margin:0 auto;filter:drop-shadow(0 0 30px rgba(47,123,255,.7))"><g fill="none" stroke="#79d4b0" stroke-linecap="round" stroke-width="6"><path d="M28 28c-12 12-12 28 0 40M46 20c-17 17-17 39 0 56"/><path d="M80 28c12 12 12 28 0 40M62 20c17 17 17 39 0 56"/></g><path d="m54 10 4.7 10.2 11.1 1.3-8.2 7.6 2.2 10.9L54 34.5l-9.8 5.5 2.2-10.9-8.2-7.6 11.1-1.3z" fill="#ffad73"/><text x="108" y="65" fill="#f5f4ed" font-family="Segoe UI,Arial" font-size="54" font-weight="700" letter-spacing="-2">digifeel</text></svg>`;
+$("logo0").innerHTML=LOGO;$("logo6").innerHTML=LOGO;
+for(let i=0;i<46;i++){const d=document.createElement("div");d.className="p";const s=2+rnd(i,1)*5;d.style.cssText=`width:${s}px;height:${s}px;left:${rnd(i,2)*1080}px;top:${rnd(i,3)*1920}px;opacity:${.3+rnd(i,4)*.6}`;d.dataset.s=.3+rnd(i,5);$("parts").appendChild(d)}
+$("bars").innerHTML=Array.from({length:14},(_,i)=>`<div class="abs bar" style="left:${i*64}px;bottom:0;width:46px;border-radius:10px 10px 0 0;background:linear-gradient(#2f7bff,#ff7a2f);box-shadow:0 0 20px rgba(47,123,255,.5)" data-h="${80+rnd(i,9)*230}"></div>`).join("");
+$("tb").innerHTML=Array.from({length:10},(_,i)=>`<div class="abs tbar" style="left:${i*92}px;bottom:0;width:66px;border-radius:12px 12px 0 0;background:var(--a);box-shadow:0 0 25px var(--a);height:${60+rnd(i,7)*150}px"></div>`).join("");
+$("sv").innerHTML=[["Samir","28 ventes"],["Yasmine","31 ventes"],["Karim","19 ventes"]].map((s,i)=>`<div class="abs" style="left:${i*300}px;top:0;width:280px;height:120px;border-radius:24px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);padding:20px 24px"><b style="font-size:34px">${s[0]}</b><div style="font-size:26px;color:#aeb8d8;margin-top:6px">${s[1]}</div></div>`).join("");
+$("md").innerHTML=["Caisse","Avis NFC","Rapports","Stock"].map((m,i)=>`<div class="abs" style="left:${(i%2)*440}px;top:${Math.floor(i/2)*80}px;width:420px;height:64px;font-size:34px;font-weight:700;line-height:48px">${m}<div class="tog" style="left:auto;right:0;top:0;position:absolute"></div></div>`).join("");
+const XR=[["Date","Produit","Total"],["02/09","Couscous maison","3 600"],["03/09","Tajine de poulet","2 400"],["05/09","Poisson grillé","2 200"],["07/09","Thé à la menthe","500"],["12/09","Salade méchouia","900"]];
+$("xrows").innerHTML=XR.map((r,i)=>`<div style="display:flex;padding:9px 18px;${i===0?"background:#c9973f;color:#fff;font-weight:800":(i%2?"background:#f7f7f7":"")}"><span style="width:90px">${r[0]}</span><span style="flex:1">${r[1]}</span><span>${r[2]}</span></div>`).join("");
+$("tiles").innerHTML=["Crêpe","Pizza","Café"].map((n,i)=>`<div class="abs" style="left:${i*142}px;top:0;width:128px;height:110px;border-radius:20px;border:3px solid var(--a);background:rgba(255,255,255,.07);box-shadow:0 0 28px var(--a);font-size:24px;font-weight:800;text-align:center;line-height:110px">${n}</div>`).join("");
+const RN=["Chez Samir","Pizza Nova","Green Bowl","Le Violet"];
+const PAL=["#2f7bff","#ff7a2f","#2fe08a","#a855f7"];
+const hex=c=>[1,3,5].map(i=>parseInt(c.substr(i,2),16));
+const mix=(a,b,t)=>{const x=hex(a),y=hex(b);return"#"+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,"0")).join("")};
+// curseur : [t, x, y]
+const CUR=[[0,1000,1700],[7.6,900,1300],[8.0,800,1000],[8.9,235,510],[9.2,260,720],[9.55,260,730],[9.95,510,730],[10.45,540,1000],[10.6,540,1000],[11.0,855,510],[11.8,540,1470],[12.0,540,1470],[13,540,1500],[16.9,900,500],[17.4,880,360],[17.55,880,360],[17.9,780,430],[18.0,780,430],[20.2,820,560],[20.6,820,560],[21.3,200,370],[21.95,325,385],[22.95,525,385],[23.95,725,385],[24.5,800,900],[26,800,900]];
+const CLK=[9.0,9.6,10.0,10.6,11.1,12.0,17.55,18.0,20.6,22.0,23.0,24.0,21.95];
+function curAt(t){let i=0;while(i<CUR.length-2&&t>CUR[i+1][0])i++;const a=CUR[i],b=CUR[i+1];const u=E.io(seg(t,a[0],b[0]));return[a[1]+(b[1]-a[1])*u,a[2]+(b[2]-a[2])*u]}
+let ripN=0;
+function ripples(t){
+ CLK.forEach(c=>{const u=(t-c)/.5;if(u>0&&u<1){const [x,y]=curAt(c);const d=document.createElement("div");d.className="rip";const r=30+u*90;d.style.cssText=`left:${x-r}px;top:${y-r}px;width:${2*r}px;height:${2*r}px;opacity:${1-u}`;document.body.appendChild(d)}})}
+function show(k){for(let i=0;i<7;i++)$("s"+i).style.display=i===k?"block":"none"}
+function render(t){document.querySelectorAll(".rip").forEach(e=>e.remove());
+ let k=0;for(let i=0;i<B.length-1;i++)if(t>=B[i])k=i;show(k);const lt=t-B[k],dur=B[k+1]-B[k];
+ // thème
+ let th=PAL[0];if(t>=22)th=mix(PAL[0],PAL[1],E.out(seg(t,22,22.35)));if(t>=23)th=mix(PAL[1],PAL[2],E.out(seg(t,23,23.35)));if(t>=24)th=mix(PAL[2],PAL[3],E.out(seg(t,24,24.35)));
+ if(t<21)th=PAL[0];document.documentElement.style.setProperty("--a",th);
+ $("o1").style.cssText=`left:${-400+Math.sin(t*.8)*200}px;top:${100+Math.cos(t*.6)*250}px;background:radial-gradient(circle,${th}77,transparent 62%)`;
+ $("o2").style.cssText=`left:${300+Math.cos(t*.7)*220}px;top:${900+Math.sin(t*.9)*250}px`;
+ $("grid").style.transform=`translateY(${(t*70)%90}px)`;
+ [...$("parts").children].forEach((p,i)=>{p.style.transform=`translateY(${-(t*(60+i*5)*p.dataset.s)%300}px)`});
+ // scène 0
+ if(k===0){const a=E.out(seg(t,.1,.45)),b=E.out(seg(t,.9,1.25));
+  $("t1").style.opacity=a*(1-seg(t,1.9,2.0));$("t1").style.transform=`scale(${1.5-.5*a})`;
+  $("t2").style.opacity=b*(1-seg(t,1.9,2.0));$("t2").style.transform=`scale(${1.5-.5*b})`;
+  const l=E.out(seg(t,2.0,2.6));$("logo0").style.opacity=l;$("logo0").style.transform=`scale(${.7+.3*l})`;}
+ // scène 1 : écran 3D
+ if(k===1){const a=-38+lt*14;const z=E.out(seg(lt,0,.7));
+  $("mon").style.transform=`perspective(1700px) translateY(${Math.sin(t*2)*10}px) rotateY(${a}deg) rotateX(7deg) scale(${1.0+.16*lt/5+.12*z})`;$("mon").style.opacity=z;
+  const g=seg(lt,.5,3.2);$("k1").textContent=Math.round(39800*E.out(g)).toLocaleString("fr-FR")+" DZD";$("k2").textContent=Math.round(128*E.out(g));$("k3").textContent=(4.4*E.out(g)).toFixed(1)+" ★";
+  document.querySelectorAll(".bar").forEach((b,i)=>{b.style.height=(+b.dataset.h*E.out(seg(lt,.4+i*.1,1.4+i*.1)))+"px"});
+  $("c1").style.opacity=E.out(seg(lt,.2,.6));$("mref").textContent="Tout ton service. En direct.";$("mref").style.opacity=E.out(seg(lt,1.5,2));}
+ // scène 2 : caisse
+ if(k===2){const s=1+.05*lt/5;$("pos").style.transform=`scale(${s})`;$("pos").style.opacity=E.out(seg(lt,0,.3));
+  const mo=seg(t,9.0,9.3)*(1-seg(t,10.6,10.9));$("mod").style.display=mo>0?"block":"none";$("mod").style.opacity=mo;$("mod").style.transform=`scale(${.9+.1*mo})`;
+  const on=(el,c)=>{$(el).style.background=c?"var(--a)":"rgba(255,255,255,.1)";$(el).style.boxShadow=c?"0 0 40px var(--a)":"none"};on("tp1",t>9.6);on("tp2",t>10.0);
+  const l1=E.out(seg(t,10.7,11.0)),l2=E.out(seg(t,11.1,11.4));$("tl1").style.opacity=l1;$("tl1").style.transform=`translateX(${(1-l1)*80}px)`;$("tl2").style.opacity=l2;$("tl2").style.transform=`translateX(${(1-l2)*80}px)`;
+  $("tot").textContent=((t>10.7?550:0)+(t>11.1?150:0)).toLocaleString("fr-FR")+" DZD";
+  const ok=seg(t,12.0,12.25);$("ok").style.opacity=ok;$("ok").style.display=ok>0?"flex":"none";$("ck").style.strokeDashoffset=100*(1-E.out(seg(t,12.15,12.6)));
+  $("pay").style.transform=`scale(${1-.05*(t>11.95&&t<12.1?1:0)})`;}
+ // scène 3 : NFC
+ if(k===3){const a=E.io(seg(lt,0,1.6)),px=1050+(560-1050)*a-180+ (1-a)*0,py=1900+(1030-1900)*a;
+  $("phone").style.transform=`translate(${px}px,${py}px) rotate(${(1-a)*-24}deg) scale(${1-.1*a})`;
+  const hit=t>14.6;$("ptxt").textContent=hit?"Table 7 ✓":"Approche…";$("pico").textContent=hit?"🧾":"📶";
+  if(hit){const u=seg(t,14.6,15.4);const r=130+u*700;const d=document.createElement("div");d.className="rip";d.style.cssText=`left:${540-r}px;top:${1310-r}px;width:${2*r}px;height:${2*r}px;opacity:${1-u};border-color:var(--a)`;document.body.appendChild(d)}
+  $("tag").style.boxShadow=`0 0 ${80+(hit?120*(1-seg(t,14.6,15.6)):0)}px rgba(47,123,255,.8)`;
+  const s=E.back(seg(t,14.9,15.5));$("soft").style.opacity=seg(t,14.85,15.1);$("soft").style.transform=`translateY(${(1-s)*-300}px) scale(${.9+.1*s})`;
+  $("flash").style.opacity=Math.max(0,.9*(1-seg(t,14.6,14.85)))*(t>14.6?1:0);}
+ // scène 4 : PDF
+ if(k===4){$("rep").style.opacity=E.out(seg(lt,0,.3));
+  $("menu").style.display=(t>17.55&&t<18.05)?"block":"none";
+  const pg=seg(t,18.0,19.0);$("prog").style.display=t>18.0&&t<19.1?"block":"none";$("pgb").style.width=(pg*100)+"%";$("pgt").textContent=pg<1?`Rapport PDF · ${Math.round(pg*100)} %`:"Rapport prêt ✓";
+  const pu=E.out(seg(t,19.0,19.7)),slow=seg(t,19.7,20.6),mv=E.io(seg(t,20.4,20.9));
+  const p=$("pdf");p.style.opacity=pu;
+  const sc=.75+.25*pu+.06*slow-.2*mv, x=-(mv*300), y=(1-pu)*1200;
+  p.style.transform=`translate(${x}px,${y}px) scale(${sc}) rotate(${(1-pu)*-6-mv*2}deg)`;p.style.display=t<19?"none":"block";
+  const xo=E.back(seg(t,20.6,21));$("xl").style.opacity=cl(xo*1.5);$("xl").style.transform=`translateX(${(1-xo)*700}px)`;$("xl").style.display=t<20.6?"none":"block";
+  $("exb").style.transform=`scale(${1-.06*(t>17.5&&t<17.65?1:0)})`;}
+ // scène 5 : thèmes
+ if(k===5){$("theme").style.opacity=E.out(seg(lt,0,.3));
+  const idx=t>=24?3:t>=23?2:t>=22?1:0;for(let i=0;i<4;i++){$("sw"+i).style.borderColor=i===idx?"#fff":"rgba(255,255,255,.3)";$("sw"+i).style.transform=`scale(${i===idx?1.15:1})`}
+  const pulse=Math.max(0,1-(t-[22,23,24][Math.min(2,Math.max(0,idx-1))])*2.2);const base=1+.04*Math.sin(t*3);$("theme").style.transform=`scale(${idx>0?1+.025*pulse*(t>=22?1:0):1})`;
+  const sv=E.out(seg(t,24.4,24.9)),md=E.out(seg(t,24.8,25.3));$("sv").style.opacity=sv;$("sv").style.transform=`translateY(${(1-sv)*60}px)`;$("md").style.opacity=md;$("md").style.transform=`translateY(${(1-md)*60}px)`;
+  document.querySelectorAll(".tbar").forEach((b,i)=>b.style.transform=`scaleY(${.6+.4*Math.abs(Math.sin(t*2+i))})`)}
+ if(k===5){const ix=t>=24?3:t>=23?2:t>=22?1:0;$("rname").textContent=RN[ix];$("hexl").textContent="COULEUR  "+PAL[ix].toUpperCase();$("s5").style.background=`radial-gradient(circle at 50% 30%,${th}33,transparent 60%)`}
+ // scène 6 : final
+ if(k===6){const l=E.back(seg(lt,.1,.7));$("logo6").style.opacity=cl(l*1.4);$("logo6").style.transform=`scale(${.6+.4*l})`;
+  const f=E.out(seg(lt,1,1.6));$("f1").innerHTML="Digifeel : le logiciel qui fait tourner ton restaurant.";$("f1").style.opacity=f;$("f1").style.transform=`translateY(${(1-f)*60}px)`;
+  const c=E.out(seg(lt,2,2.6));$("f2").textContent=CONTACT;$("f2").style.opacity=c;$("f2").style.transform=`translateY(${(1-c)*60}px)`;}
+ // curseur
+ const showCur=(t>7.6&&t<13)||(t>16.9&&t<20.8)||(t>21.2&&t<25);$("cur").style.display=showCur?"block":"none";
+ const [cx,cy]=curAt(t);$("cur").style.left=cx+"px";$("cur").style.top=cy+"px";
+ ripples(t);
+ if(window.NOFX)return;
+ // transitions : zoom-flou + bande colorée
+ let wp=-1;for(let i=1;i<B.length-1;i++){const d=t-B[i];if(Math.abs(d)<.22){wp=(d+.22)/.44;const e=1-Math.abs(d)/.22;$("s"+k).style.transform=`scale(${1+.07*e*(d<0?1:-1)*-1})`;$("s"+k).style.filter=`blur(${e*7}px)`}}
+ for(let i=0;i<7;i++)if(wp<0||i!==k){$("s"+i).style.transform="";$("s"+i).style.filter=""}
+ const W=$("wipe");W.style.display=wp<0?"none":"block";if(wp>=0){W.style.top=(1920-E.io(wp)*3020)+"px";W.style.background=`linear-gradient(180deg,transparent,${th} 35%,rgba(255,255,255,.6) 50%,${th} 65%,transparent)`;W.style.opacity=.5}
+ // flash de transition
+ let fl=0;for(let i=1;i<B.length-1;i++){const d=Math.abs(t-B[i]);if(d<.12)fl=Math.max(fl,1-d/.12)*.0+Math.max(fl,.65*(1-d/.12))}
+ if(!(k===3&&t>14.6&&t<14.85))$("flash").style.opacity=Math.max(fl,k===0?Math.max(0,1-seg(t,2.0,2.25))*(t>1.95?1:0)*0.9:0);
+ const shake=(t>21.95&&t<22.2)?(1-seg(t,21.95,22.2))*14:0;document.body.style.transform=`translate(${(rnd(Math.floor(t*60),1)-.5)*shake}px,${(rnd(Math.floor(t*60),2)-.5)*shake}px)`;
+}
+// ===== version longue : V = temps de la vidéo (68 s) =====
+const origRender=render;const XL=window.XLDATA||[];
+const PGC=["Page 1 / 3 · Vue d'ensemble","Page 2 / 3 · Produits & équipe","Page 3 / 3 · Avis clients · NFC · Synthèse"];
+$("pdfv").innerHTML=[1,2,3].map(i=>`<div class="pgf" id="pg${i}"><img src="assets/doc/rapport-${i}.png"></div>`).join("");
+$("xtabs").innerHTML=XL.map((s,i)=>`<div class="xtab" id="xt${i}" style="left:${20+i*160}px">${s.name}</div>`).join("");
+const MODS=[["🧾","Caisse","Commandes, options, paiement"],["👨‍🍳","Écran cuisine","Tickets en temps réel"],["🪑","Tables & QR","Addition de chaque table"],["📡","Puces NFC","Avis en un seul tap"],["⭐","Avis clients","Notes et bonus étoiles"],["📄","Rapports PDF","Jour, semaine, mois"],["📊","Export Excel","6 feuilles détaillées"],["👥","Serveurs","Ventes et notes de chacun"],["🍽️","Menu & import","Ta carte en quelques clics"],["🖨️","Tickets & clôture Z","Impression et historique"],["🎨","Thèmes","Les couleurs de ton resto"],["💾","Sauvegarde","Tes données en sécurité"]];
+$("mods").innerHTML=MODS.map((m,i)=>`<div class="mc" id="mc${i}" style="left:${55+(i%2)*500}px;top:${230+Math.floor(i/2)*215}px"><i>${m[0]}</i><b>${m[1]}</b><span>${m[2]}</span></div>`).join("");
+function sheetHTML(s){
+ let h=`<colgroup>${s.widths.map(w=>`<col style="width:${Math.round(w*10)+14}px">`).join("")}</colgroup>`;
+ s.rows.forEach(r=>{h+="<tr>";for(let i=0;i<r.length;i++){const c=r[i];if(c.mm)continue;let sp=1;while(r[i+sp]&&r[i+sp].mm)sp++;
+  const num=/^-?\d+([.,]\d+)?$/.test(c.t);
+  h+=`<td colspan="${sp}" style="${c.fill?`background:#${c.fill.slice(2)};`:""}${c.col?`color:#${c.col.slice(2)};`:""}${c.b?"font-weight:700;":""}${num?"text-align:right;":""}">${c.t.replace(/</g,"&lt;")}</td>`;i+=sp-1}h+="</tr>"});
+ return h}
+let curSheet=-1;
+const showV=k=>{for(let i=0;i<10;i++)$("s"+i).style.display=i===k?"block":"none"};
+const VB=[21,33,47,61];
+function addRip(x,y,u){const d=document.createElement("div");d.className="rip";const r=30+u*90;d.style.cssText=`left:${x-r}px;top:${y-r}px;width:${2*r}px;height:${2*r}px;opacity:${1-u}`;document.body.appendChild(d)}
+function renderV(V){
+ for(let i=7;i<10;i++){$("s"+i).style.filter="";$("s"+i).style.transform=""}
+ if(V<21||V>=61){showV(-1);origRender(V<21?V:V-40)}
+ else{
+  document.querySelectorAll(".rip").forEach(e=>e.remove());
+  const th=PAL[0],k=V<33?7:V<47?8:9,lt=V-VB[k-7];showV(k);
+  document.documentElement.style.setProperty("--a",th);
+  $("o1").style.cssText=`left:${-400+Math.sin(V*.8)*200}px;top:${100+Math.cos(V*.6)*250}px;background:radial-gradient(circle,${th}77,transparent 62%)`;
+  $("o2").style.cssText=`left:${300+Math.cos(V*.7)*220}px;top:${900+Math.sin(V*.9)*250}px`;
+  $("grid").style.transform=`translateY(${(V*70)%90}px)`;
+  [...$("parts").children].forEach((p,i)=>{p.style.transform=`translateY(${-(V*(60+i*5)*p.dataset.s)%300}px)`});
+  document.body.style.transform="";$("cur").style.display="none";$("flash").style.opacity=0;
+  if(k===7){
+   const w=E.out(seg(lt,0,.5));$("pdfw").style.opacity=w;$("pdfw").style.transform=`translateY(${(1-w)*80}px) scale(${.94+.06*w})`;
+   for(let i=0;i<3;i++){const u=(lt-i*4)/4,el=$("pg"+(i+1));
+    if(u<-.05||u>1.05){el.style.display="none";continue}el.style.display="block";
+    const inn=E.out(seg(u,0,.12)),out=E.in(seg(u,.9,1));const e=E.io(seg(u,.12,.88)),s=1+.12*e;
+    const x=(1-inn)*940-out*940;
+    el.style.transform=`translate(${x}px,${-Math.max(0,940*1.413*s-1330)*e}px) scale(${s})`;
+    if(u>=0&&u<1){$("pdfc").textContent=PGC[i];$("pdfp").textContent=`${i+1} / 3`}}
+  }
+  if(k===8){
+   $("xwin").style.opacity=E.out(seg(lt,0,.5));
+   const per=2.2,t0=.5,n=XL.length,idx=Math.min(n-1,Math.max(0,Math.floor((lt-t0)/per))),u=cl((lt-t0-idx*per)/per);
+   if(idx!==curSheet){curSheet=idx;$("xt").innerHTML=sheetHTML(XL[idx])}
+   XL.forEach((_,i)=>$("xt"+i).classList.toggle("on",i===idx));
+   const t=$("xt"),w=t.offsetWidth,h=t.offsetHeight,vw=1000,vh=1280;
+   const sc=Math.min(1.6,Math.max(.6,Math.max(vw/w,Math.min(vh/h*.95,1))));
+   const e=E.io(seg(u,.12,.92));t.style.transform=`translate(${-Math.max(0,w*sc-vw)*e}px,${-Math.max(0,h*sc-vh)*e}px) scale(${sc})`;
+   $("xin").style.opacity=cl(u*8+(idx===0?1:0))*cl((1-u)*8+.3);
+   $("xchip").textContent=`Feuille « ${XL[idx].name} » · ${idx+1} / ${n}`;
+   const tx=i=>[40+20+i*160+75,1585],rel=lt-t0-idx*per;
+   let cx,cy;
+   if(idx===0&&lt<t0){const m=E.io(seg(lt,.05,.5));cx=900+(tx(0)[0]-900)*m;cy=1250+(tx(0)[1]-1250)*m}
+   else{const A=tx(idx),Bn=tx(Math.min(n-1,idx+1)),m=E.io(seg(rel,per-.5,per-.05));cx=A[0]+(Bn[0]-A[0])*m;cy=A[1]+(Bn[1]-A[1])*m}
+   if(lt>.05){$("cur").style.display="block";$("cur").style.left=cx+"px";$("cur").style.top=cy+"px"}
+   if(idx>0&&rel>=0&&rel<.4)addRip(tx(idx)[0],tx(idx)[1],rel/.4)}
+  if(k===9){
+   MODS.forEach((_,i)=>{const p=E.back(seg(lt,.3+i*.55,.9+i*.55)),el=$("mc"+i);el.style.opacity=cl(p*1.5);el.style.transform=`translateY(${(1-p)*90}px) scale(${.85+.15*p})`;
+    const act=lt>.9+i*.55&&lt<1.7+i*.55;el.style.borderColor=act?"var(--a)":"rgba(255,255,255,.22)";el.style.boxShadow=act?"0 0 50px var(--a)":"none"});
+   const m=E.out(seg(lt,7.4,8.2));$("modt").style.opacity=m;$("modt").style.transform=`translateY(${(1-m)*60}px)`}
+ }
+ if(window.NOFX)return;
+ // transitions autour des changements de partie
+ let wp=-1,fl=0,tgt=null;
+ for(const b of VB){const d=V-b;if(Math.abs(d)<.22&&!(b===59&&d>=0)){wp=(d+.22)/.44;const e=1-Math.abs(d)/.22;tgt=document.querySelector(".scene[style*='block']");if(tgt){tgt.style.filter=`blur(${e*7}px)`;tgt.style.transform=`scale(${1+.07*e*(d<0?-1:1)})`}}
+  if(Math.abs(d)<.12)fl=Math.max(fl,.65*(1-Math.abs(d)/.12))}
+ if(wp>=0){const W=$("wipe");W.style.display="block";W.style.top=(1920-E.io(wp)*3020)+"px";W.style.background=`linear-gradient(180deg,transparent,${PAL[0]} 35%,rgba(255,255,255,.6) 50%,${PAL[0]} 65%,transparent)`;W.style.opacity=.5}
+ if(fl>0)$("flash").style.opacity=Math.max(fl,0);
+}
+// ===================== REEL 60 s =====================
+const SEGS=[
+ {a:0,b:4,k:"hook2"},
+ {a:4,b:8,k:"v",kn:[[4,8],[8,12.99]]},
+ {a:8,b:11.5,k:"v",kn:[[8,13],[11.5,16.99]]},
+ {a:11.5,b:15.5,k:"mgmt"},
+ {a:15.5,b:20,k:"v",kn:[[15.5,3],[20,7.99]]},
+ {a:20,b:26,k:"v",kn:[[20,61],[21.5,62],[23,63],[24.5,64],[25.7,65.9],[26,65.99]]},
+ {a:26,b:28.5,k:"v",kn:[[26,17],[28.5,20.9]]},
+ {a:28.5,b:32.3,k:"v",kn:[[28.5,21],[32.3,28]]},
+ {a:32.3,b:35,k:"v",kn:[[32.3,33],[35,38]]},
+ {a:35,b:41.3,k:"calm"},
+ {a:41.3,b:45.5,k:"v",kn:[[41.3,66],[45,69.99]]}
+];
+const TR=[{t:4,d:1.0,type:"zoom"},{t:8,d:.7,type:"whip"},{t:11.5,d:1.0,type:"shatter"},{t:15.5,d:.9,type:"morph"},{t:20,d:.9,type:"sweep"},{t:26,d:.8,type:"zoom"},{t:28.5,d:.6,type:"whip"},{t:32.3,d:.8,type:"morph"},{t:35,d:1.0,type:"liquid"}];
+window.SEGS=SEGS;window.TR=TR;window.SNAP={};
+const vOf=(t,s)=>{const kn=s.kn;if(t<=kn[0][0])return kn[0][1];for(let i=0;i<kn.length-1;i++)if(t<=kn[i+1][0])return kn[i][1]+(kn[i+1][1]-kn[i][1])*(t-kn[i][0])/(kn[i+1][0]-kn[i][0]);return kn[kn.length-1][1]};
+const live=()=>[...document.querySelectorAll(".scene")].filter(s=>s.style.display==="block");
+const liveReset=()=>document.querySelectorAll(".scene").forEach(s=>{s.style.transform="";s.style.filter="";s.style.opacity=""});
+$("hk_logo").innerHTML=LOGO;
+$("hk_parts").innerHTML=Array.from({length:80},(_,i)=>`<div class="abs hp" style="width:${3+rnd(i,21)*7}px;height:${3+rnd(i,21)*7}px;border-radius:50%;background:${i%3?"#8fb4ff":"#ff9a52"};box-shadow:0 0 14px ${i%3?"#4f8bff":"#ff7a2f"}"></div>`).join("");
+$("pb0").innerHTML=Array.from({length:16},(_,i)=>`<div class="paper" style="left:${rnd(i,31)*820-40}px">TICKET #${100+i}<br><span style="font-size:22px;color:#888">table ${1+i%9} · ???</span></div>`).join("");
+const PILLS=["Table 3 attend !","Commande oubliée","Erreur d'addition","Table 7 : l'addition ?!","Plats froids","Client parti"];
+$("pb2").insertAdjacentHTML("beforeend",PILLS.map((p,i)=>`<div class="pill" style="left:${60+(i%2)*330+rnd(i,51)*70}px;top:${760+i*135}px;opacity:0">${p}</div>`).join(""));
+const SRV=[["Y","Yasmine","4 commandes · 20 650 DZD","4,3",.88],["S","Samir","4 commandes · 19 150 DZD","4,5",.82]];
+$("mA").innerHTML=`<div class="abs" style="left:40px;top:28px;font-size:44px;font-weight:900">Serveurs</div>`+SRV.map((s,i)=>`<div class="abs" style="left:40px;right:40px;top:${120+i*170}px;height:140px;border-radius:26px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.16)"><div class="av" style="left:24px;top:24px">${s[0]}</div><div class="abs" style="left:140px;top:20px;font-size:40px;font-weight:800">${s[1]}</div><div class="abs" style="left:140px;top:72px;font-size:26px;color:#aeb8d8">${s[2]}</div><div class="abs" style="right:30px;top:26px;font-size:46px;font-weight:900;color:#ffc94d">${s[3]} ★</div><div class="abs" style="right:30px;top:96px;width:340px;height:14px;border-radius:9px;background:rgba(255,255,255,.12)"><div class="srvb" data-w="${s[4]}" style="height:100%;border-radius:9px;background:var(--a);box-shadow:0 0 18px var(--a)"></div></div></div>`).join("");
+const RVS=[["Couscous généreux et savoureux.","5/5"],["Très bon thé à la menthe.","4/5"],["Repas en famille, tout était parfait.","5/5"],["Poisson très frais, merci à l'équipe.","4/5"],["Service rapide et couscous excellent.","5/5"]];
+$("mB").innerHTML=`<div class="abs" style="left:40px;top:26px;font-size:44px;font-weight:900">Avis clients</div><div id="bigr" class="abs" style="left:40px;top:90px;font-size:170px;font-weight:900;color:#ffc94d;letter-spacing:-6px">0,0</div><div id="stars" class="abs" style="left:46px;top:290px">${"<span class='star'>★</span>".repeat(5)}</div>`+
+ [5,4,3,2,1].map((n,i)=>`<div class="abs" style="left:520px;top:${100+i*44}px;width:420px;font-size:26px;display:flex;align-items:center;gap:14px"><span style="width:40px">${n}★</span><div style="flex:1;height:16px;border-radius:8px;background:rgba(255,255,255,.12)"><div class="dist" data-w="${[1,.75,.25,0,0][i]}" style="height:100%;border-radius:8px;background:var(--a)"></div></div><span style="width:20px">${[4,3,1,0,0][i]}</span></div>`).join("")+
+ `<div class="abs" style="left:40px;right:40px;top:380px;height:290px;overflow:hidden"><div id="rvl">${[...RVS,...RVS].map(r=>`<div class="rv"><span>${r[0]}</span><b style="color:#ffc94d;margin-left:16px">${r[1]}</b></div>`).join("")}</div></div>`;
+$("mC").innerHTML=[["86","scans NFC / QR"],["8","avis générés"],["9,3 %","scan → avis"]].map((k,i)=>`<div class="abs" style="left:${30+i*315}px;top:30px;width:290px;height:170px;border-radius:24px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.16);text-align:center"><div style="font-size:70px;font-weight:900;color:var(--a);margin-top:26px">${k[0]}</div><div style="font-size:24px;color:#aeb8d8">${k[1]}</div></div>`).join("");
+
+function hook(t){
+ const imp=1.5;
+ $("s10").style.background=`rgba(0,0,0,${t<imp?1:.45+.55*(1-E.out(seg(t,imp,imp+1.2)))})`;
+ const lg=$("hk_logo"),u=seg(t,imp,imp+.6),mv=E.io(seg(t,2.3,3.0)),gl=1-seg(t,imp,imp+.9);
+ lg.style.opacity=t>=imp?1:0;lg.style.top=(760-mv*330)+"px";
+ lg.style.transform=`scale(${(.2+.8*E.back(u))*(1-.28*mv)})`;
+ lg.style.filter=`brightness(${1+3.5*gl}) drop-shadow(0 0 ${30+110*gl}px #5f9bff)`;
+ $("flash").style.opacity=(t>=imp&&t<imp+.4)?1-seg(t,imp,imp+.4):0;
+ const rr=E.out(seg(t,imp,imp+1.3))*1400,rg=$("hk_ring");rg.style.display=t>=imp?"block":"none";
+ rg.style.cssText+=`;left:${540-rr}px;top:${800-rr}px;width:${2*rr}px;height:${2*rr}px;border:7px solid rgba(160,200,255,${1-seg(t,imp,imp+1.3)})`;
+ const fl=$("hk_flare");fl.style.opacity=t>=imp?1-seg(t,imp,imp+.9):0;fl.style.transform=`scaleX(${E.out(seg(t,imp,imp+.5))})`;
+ [...$("hk_parts").children].forEach((p,i)=>{const a=t-imp,ang=rnd(i,22)*6.283,sp=350+rnd(i,23)*1300;
+  const d=sp*(1-Math.exp(-a*2.2))/2.2;p.style.opacity=a>0?Math.max(0,1-a/1.8):0;p.style.transform=`translate(${540+Math.cos(ang)*d}px,${800+Math.sin(ang)*d+60*a*a}px)`});
+ const a1=E.out(seg(t,2.7,3.2)),a2=E.out(seg(t,3.3,3.8)),g=(t>3.2&&t<3.5)?(rnd(Math.floor(t*30),5)-.5)*36:0,g2=(t>3.8&&t<4.1)?(rnd(Math.floor(t*30),6)-.5)*36:0;
+ const t1=$("hk_t1"),t2=$("hk_t2");
+ t1.style.opacity=a1;t1.style.transform=`translateX(${(1-a1)*-1100+g}px)`;t1.style.textShadow=`${g*.6}px 0 #ff2d6a,${-g*.6}px 0 #29e1ff`;
+ t2.style.opacity=a2;t2.style.transform=`translateX(${(1-a2)*1100+g2}px)`;t2.style.textShadow=`${g2*.6}px 0 #ff2d6a,${-g2*.6}px 0 #29e1ff`;
+}
+function prob(t){
+ const lt=t-5,sh=lt<1.6?0:lt<3.2?1:2,ls=lt-[0,1.6,3.2][sh];
+ const fk=(ls<.07&&Math.floor(t*60)%2)?.25:1;
+ for(let i=0;i<3;i++){$("pb"+i).style.display=i===sh?"block":"none";const c=$("pc"+i);c.style.display=i===sh?"block":"none";const e=E.out(seg(ls,.1,.45));c.style.transform=`scale(${1.5-.5*e})`;c.style.opacity=e*fk}
+ $("pb"+sh).style.opacity=fk;
+ const shake=(sh===2?4+ls*18:sh===1?3:2)*(rnd(Math.floor(t*30),7)-.5);$("s11").style.transform=`translate(${shake}px,${shake*.7}px)`;
+ if(sh===0)[...$("pb0").children].forEach((p,i)=>{const sp=.6+rnd(i,33)*.8,y=((ls*1100*sp+rnd(i,34)*2400)%2600)-560;p.style.transform=`translateY(${y}px) rotate(${rnd(i,32)*60-30+ls*40*(rnd(i,35)-.5)}deg)`;p.style.top="0px"});
+ if(sh===1){$("tk").style.transform=`rotate(${Math.sin(ls*6)*1.2-3}deg) scale(${1+.03*Math.sin(ls*4)})`;const s=E.out(seg(ls,.5,.7));$("stamp").style.opacity=s;$("stamp").style.transform=`rotate(-14deg) scale(${3-2*s})`}
+ if(sh===2){$("emo").style.transform=`scale(${1+.08*Math.sin(ls*18)}) rotate(${Math.sin(ls*14)*6}deg)`;[...$("pb2").querySelectorAll(".pill")].forEach((p,i)=>{const a=E.back(seg(ls,.05+i*.22,.3+i*.22));p.style.opacity=cl(a*2);p.style.transform=`scale(${.6+.4*a}) rotate(${(i%2?1:-1)*3}deg)`})}
+}
+function mgmt(t){
+ const lt=t-34,at=[.2,1.3,2.6];
+ ["mA","mB","mC"].forEach((id,i)=>{const p=E.back(seg(lt,at[i],at[i]+.6)),el=$(id);el.style.opacity=cl(p*1.6);el.style.transform=`perspective(1400px) translateY(${(1-p)*140}px) rotateX(${(1-p)*28}deg) rotateY(${Math.sin(t*1.3+i)*2.2}deg)`});
+ document.querySelectorAll(".srvb").forEach((b,i)=>b.style.width=(E.out(seg(lt,.7+i*.25,1.7+i*.25))*b.dataset.w*100)+"%");
+ const v=4.4*E.out(seg(lt,1.8,3.4));$("bigr").textContent=v.toFixed(1).replace(".",",");
+ [...$("stars").children].forEach((s,i)=>s.style.color=v>i+.95?"#ffc94d":v>i+.3?"#a8873a":"rgba(255,255,255,.2)");
+ document.querySelectorAll(".dist").forEach((d,i)=>d.style.width=(E.out(seg(lt,1.9+i*.1,3))*d.dataset.w*100)+"%");
+ $("rvl").style.transform=`translateY(${-((lt-2)*70)%(RVS.length*84)}px)`;
+ document.querySelectorAll("#mC .abs b,#mC .abs>div:first-child").forEach(()=>{});
+}
+// ---- moteur de transitions : l'écran sortant est une capture figée, l'entrant est vivant ----
+let built=-1;
+const urlOf=T=>`url(${window.SNAP[T.t]}) 0 0/1080px 1920px`;
+function build(i){const T=TR[i],c=$("tr"),bg=urlOf(T);c.style.display="block";built=i;const sn=`<div id="sn" style="position:absolute;inset:0;background:${bg}"></div>`;
+ if(T.type==="shatter"){const C=8,Rw=12,w=1080/C,h=1920/Rw,P=[];
+  for(let r=0;r<=Rw;r++){P[r]=[];for(let q=0;q<=C;q++)P[r][q]=[q*w+((q>0&&q<C)?(rnd(r*13+q,41)-.5)*w*.7:0),r*h+((r>0&&r<Rw)?(rnd(r*13+q,42)-.5)*h*.7:0)]}
+  let H="";for(let r=0;r<Rw;r++)for(let q=0;q<C;q++){const a=P[r][q],b=P[r][q+1],d=P[r+1][q+1],e=P[r+1][q];
+   [[a,b,d],[a,d,e]].forEach(tr=>{const cx=(tr[0][0]+tr[1][0]+tr[2][0])/3,cy=(tr[0][1]+tr[1][1]+tr[2][1])/3;
+    H+=`<div class="sh" data-cx="${cx}" data-cy="${cy}" style="position:absolute;inset:0;background:${bg};clip-path:polygon(${tr.map(p=>p[0].toFixed(0)+"px "+p[1].toFixed(0)+"px").join(",")});transform-origin:${cx}px ${cy}px"></div>`})}
+  let L="";for(let k=0;k<16;k++){const an=rnd(k,47)*6.283,ln=300+rnd(k,48)*900;L+=`<line x1="540" y1="860" x2="${540+Math.cos(an)*ln}" y2="${860+Math.sin(an)*ln}" stroke="#fff" stroke-width="${2+rnd(k,49)*3}"/>`}
+  c.innerHTML=H+`<svg id="crk" width="1080" height="1920" style="position:absolute;inset:0;filter:drop-shadow(0 0 8px #8fd0ff)">${L}</svg><div id="fl" style="position:absolute;inset:0;background:#fff;opacity:0"></div>`}
+ else if(T.type==="glitch"){c.innerHTML=`<div style="position:absolute;inset:0;background:#000"></div>`+["fr","fg","fb"].map(f=>`<div class="chn" style="position:absolute;inset:0;filter:url(#${f});mix-blend-mode:screen">`+Array.from({length:10},(_,j)=>`<div class="bd" style="position:absolute;inset:0;background:${bg};clip-path:inset(${j*10}% 0 ${90-j*10}% 0)"></div>`).join("")+`</div>`).join("")}
+ else if(T.type==="morph")c.innerHTML=sn+`<div id="mr" style="position:absolute;border-radius:50%;border:8px solid var(--a);box-shadow:0 0 60px var(--a),inset 0 0 60px var(--a)"></div><div id="mi" style="position:absolute;left:440px;top:660px;width:200px;height:200px;border-radius:50%;background:var(--a);text-align:center;line-height:200px;font-size:110px;box-shadow:0 0 80px var(--a)">🧾</div>`;
+ else if(T.type==="sweep")c.innerHTML=sn+`<div id="fl" style="position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 45%,#fff,rgba(120,170,255,.8) 40%,transparent 75%)"></div><div id="br" style="position:absolute;top:-400px;width:420px;height:2700px;background:linear-gradient(90deg,transparent,rgba(120,180,255,.9),#fff,rgba(255,150,70,.95),transparent);filter:blur(8px)"></div>`;
+ else c.innerHTML=sn}
+function trClear(){const c=$("tr");c.innerHTML="";c.style.display="none";c.style.opacity="";built=-1}
+function animTr(i,t){const T=TR[i],u=cl((t-T.t)/T.d),c=$("tr"),sn=c.querySelector("#sn"),L=live();c.style.opacity=1;
+ if(T.type==="zoom"){const e=E.out(u);sn.style.transform=`scale(${1+E.in(u)*5})`;sn.style.opacity=1-seg(u,.3,.9);sn.style.filter=`blur(${u*16}px)`;L.forEach(el=>{el.style.transform=`scale(${.5+.5*e})`;el.style.opacity=.3+.7*e;el.style.filter=`blur(${(1-e)*10}px)`})}
+ else if(T.type==="whip"){const e=E.io(u);$("mbhs").setAttribute("stdDeviation",(Math.sin(Math.PI*u)*70)+" 0");sn.style.transform=`translateX(${-e*1300}px)`;sn.style.filter="url(#mbh)";L.forEach(el=>{el.style.transform=`translateX(${(1-e)*1300}px)`;el.style.filter="url(#mbh)"})}
+ else if(T.type==="morph"){const R=E.io(u)*1500+10;sn.style.webkitMaskImage=`radial-gradient(circle at 540px 760px,transparent ${R}px,#000 ${R+2}px)`;const m=$("mr");m.style.left=(540-R)+"px";m.style.top=(760-R)+"px";m.style.width=m.style.height=(2*R)+"px";const ic=$("mi");ic.style.opacity=1-seg(u,.05,.3);ic.style.transform=`scale(${1+E.in(u)*2})`}
+ else if(T.type==="sweep"){sn.style.opacity=1-seg(u,.3,.7);$("br").style.left=(-700+E.io(u)*2500)+"px";$("br").style.transform="rotate(18deg)";$("fl").style.opacity=.75*Math.sin(Math.PI*seg(u,.25,.65));L.forEach(el=>el.style.filter=`brightness(${1+1.6*(1-E.out(seg(u,.3,1)))})`)}
+ else if(T.type==="liquid"){$("liqd").setAttribute("scale",E.in(u)*380);$("liqt").setAttribute("baseFrequency",`${.006+u*.005} .018`);sn.style.filter="url(#liq)";sn.style.opacity=1-seg(u,.45,1);
+  $("liqd2").setAttribute("scale",(1-E.out(seg(u,.1,1)))*300);$("liqt2").setAttribute("baseFrequency",`${.011-u*.005} .018`);L.forEach(el=>{el.style.filter="url(#liq2)";el.style.opacity=.4+.6*E.out(u)})}
+ else if(T.type==="glitch"){const fr=Math.floor(t*30);
+  c.querySelectorAll(".chn").forEach((ch,ci)=>{const off=(ci-1)*34*(1-u);ch.querySelectorAll(".bd").forEach((b,j)=>b.style.transform=`translateX(${off+(rnd(j,Math.floor(u*18)+3)-.5)*340*(1-u*.8)}px)`)});
+  c.style.opacity=u<.55?1:(rnd(fr,8)>.45?1-seg(u,.55,1):0);
+  L.forEach(el=>{el.style.transform=`translateX(${(rnd(fr,9)-.5)*50*(1-u)}px)`;el.style.filter=`drop-shadow(${14*(1-u)}px 0 0 rgba(255,0,70,.7)) drop-shadow(${-14*(1-u)}px 0 0 rgba(0,225,255,.7))`})}
+ else if(T.type==="shatter"){const p=cl((u-.06)/.94);c.querySelectorAll(".sh").forEach((s,k)=>{const dx=s.dataset.cx-540,dy=s.dataset.cy-860,d=Math.hypot(dx,dy)+1,sp=260+rnd(k,43)*700;
+   const x=(dx/d*sp+(rnd(k,44)-.5)*200)*p*1.2,y=(dy/d*sp*.6)*p*1.2+1900*p*p*(.5+rnd(k,45)),r=(rnd(k,46)-.5)*320*p;
+   s.style.transform=`translate(${x}px,${y}px) rotate(${r}deg) scale(${1-.25*p})`;s.style.opacity=1-seg(p,.6,1)});
+  $("crk").style.opacity=1-seg(u,.05,.16);$("fl").style.opacity=.7*(1-seg(u,0,.18));
+  L.forEach(el=>{el.style.transform=`scale(${1.06-.06*E.out(u)})`})}
+}
+// ---- scène accroche macro : puce NFC noire, téléphone qui la touche, logo en impact ----
+$("s10").insertAdjacentHTML("afterend",`<div id="s13" class="scene"><div id="bk"></div>
+ <div id="chip" class="abs" style="left:290px;top:560px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2b2f3a,#07080c 70%);box-shadow:0 0 0 6px #12141b,0 0 0 8px rgba(120,170,255,.35),0 40px 100px #000"><div style="position:absolute;inset:60px;border-radius:50%;border:3px solid rgba(160,190,255,.25)"></div><div style="position:absolute;inset:130px;border-radius:50%;border:3px solid rgba(160,190,255,.18)"></div><div id="chipt" style="position:absolute;left:0;right:0;top:220px;text-align:center;font-size:54px;font-weight:700;letter-spacing:2px;color:#cfd8ff">digifeel</div></div>
+ <div id="ph" class="abs" style="left:560px;top:1500px;width:520px;height:900px;border-radius:70px;background:linear-gradient(160deg,#1b2233,#05070c);border:3px solid rgba(160,190,255,.45);box-shadow:0 0 60px rgba(70,130,255,.4)"></div>
+ <div id="rgs"></div><div id="hlogo" class="abs" style="left:0;right:0;top:790px;opacity:0"></div>
+ <div id="hsub" class="cap" style="top:1050px;opacity:0;letter-spacing:5px">TOUT-EN-UN POUR RESTAURANTS</div></div>
+<div id="s14" class="scene"><div class="cap" style="top:130px;font-size:40px">Tout est sous contrôle</div>
+ <div id="cp" class="glass" style="left:60px;top:260px;width:960px;height:1130px"></div>
+ <div id="cph" class="abs" style="left:0;right:0;top:1480px;text-align:center;font-size:96px;font-weight:900;letter-spacing:-3px;opacity:0">Zéro stress.</div></div>`);
+$("hlogo").innerHTML=LOGO;
+$("bk").innerHTML=Array.from({length:16},(_,i)=>`<div class="abs bkh" style="width:${90+rnd(i,61)*160}px;height:${90+rnd(i,61)*160}px;border-radius:50%;background:${i%2?"rgba(60,120,255,.55)":"rgba(255,130,50,.5)"};filter:blur(${14+rnd(i,62)*20}px);left:${rnd(i,63)*1000}px;top:${rnd(i,64)*1800}px;opacity:0"></div>`).join("");
+$("rgs").innerHTML=[0,1,2].map(()=>`<div class="abs rr" style="border-radius:50%;opacity:0"></div>`).join("");
+$("cp").innerHTML=Array.from({length:9},(_,i)=>`<div class="abs tb" style="left:${40+(i%3)*300}px;top:${50+Math.floor(i/3)*330}px;width:270px;height:300px;border-radius:30px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.18);text-align:center"><div style="font-size:60px;font-weight:900;margin-top:50px">Table ${i+1}</div><div class="tk" style="font-size:110px;margin-top:20px;opacity:0;color:#2fe08a;text-shadow:0 0 30px #2fe08a">✓</div><div class="tl" style="font-size:28px;color:#aeb8d8;opacity:0">Payée</div></div>`).join("");
+function hook2(t){
+ const bkh=[...$("bk").children];bkh.forEach((b,i)=>{b.style.opacity=.55*E.out(seg(t,.2,1.2))*(1-seg(t,2.3,3));b.style.transform=`translate(${Math.sin(t*.7+i)*30}px,${Math.cos(t*.5+i*2)*24}px)`});
+ const push=1.45-.25*E.io(seg(t,0,2.6));
+ const ct=$("chip"),ph=$("ph");
+ const fadeIn=E.out(seg(t,0,.9)),gone=E.io(seg(t,2.3,3.0));
+ ct.style.opacity=fadeIn*(1-gone);ct.style.transform=`scale(${push*(1-.3*gone)})`;
+ const pm=E.io(seg(t,.3,1.45));ph.style.opacity=1-gone;ph.style.transform=`translate(${-pm*430}px,${-pm*880}px) rotate(${-8+8*pm}deg) scale(${push})`;
+ const tt=t-1.45;[...$("rgs").children].forEach((r,i)=>{const u=seg(tt,i*.18,i*.18+1.1),sz=40+E.out(u)*900;r.style.opacity=tt>=0?(1-u)*.8:0;r.style.cssText+=`;left:${540-sz/2}px;top:${810-sz/2}px;width:${sz}px;height:${sz}px;border:5px solid rgba(110,170,255,${1-u})`});
+ const lt=t-2.55,lu=E.out(seg(lt,0,.5)),lg=1-seg(lt,0,.7),lo=$("hlogo");
+ lo.style.opacity=lt>=0?1:0;lo.style.transform=`scale(${1.25-.25*lu})`;lo.style.filter=`brightness(${1+2.4*lg}) drop-shadow(0 0 ${30+90*lg}px #5f9bff)`;
+ $("hsub").style.opacity=E.out(seg(t,3.2,3.7));
+ $("flash").style.opacity=(tt>=0&&tt<.3?.35*(1-tt/.3):0)+(lt>=0&&lt<.35?.8*(1-lt/.35):0);
+ $("s13").style.background="#000";
+}
+function calm(t){
+ const lt=t-35,sl=E.io(seg(lt,0,6));
+ const cp=$("cp"),p=E.out(seg(lt,.2,1.2));
+ cp.style.opacity=p;cp.style.transform=`perspective(1600px) rotateY(${-9+9*sl+Math.sin(lt*.4)*1.5}deg) rotateX(${4-4*sl}deg) translateY(${(1-p)*80}px) scale(${.92+.06*sl})`;
+ [...cp.querySelectorAll(".tb")].forEach((b,i)=>{const u=E.back(seg(lt,1+i*.42,1.5+i*.42)),on=lt>=1+i*.42;b.querySelector(".tk").style.opacity=on?cl(u):0;b.querySelector(".tk").style.transform=`scale(${.4+.6*u})`;b.querySelector(".tl").style.opacity=on?1:0;b.style.borderColor=on?"rgba(47,224,138,.7)":"rgba(255,255,255,.18)";b.style.background=on?"rgba(47,224,138,.1)":"rgba(255,255,255,.06)"});
+ $("cph").style.opacity=E.out(seg(lt,4.8,5.5));$("cph").style.transform=`translateY(${(1-E.out(seg(lt,4.8,5.5)))*50}px)`;
+}
+function renderR(t){
+ t=Math.min(44.999,Math.max(0,t));
+ const s=SEGS.find(x=>t>=x.a&&t<x.b)||SEGS[SEGS.length-1];
+ $("flash").style.opacity=0;document.querySelectorAll(".rip").forEach(e=>e.remove());
+ const NEW={hook2:"s13",mgmt:"s12",calm:"s14"},ALL=["s10","s11","s12","s13","s14"];
+ if(s.k==="v"){renderV(vOf(t,s));ALL.forEach(id=>$(id).style.display="none")}
+ else{renderV(.5);for(let i=0;i<10;i++)$("s"+i).style.display="none";$("cur").style.display="none";
+  ALL.forEach(id=>$(id).style.display=id===NEW[s.k]?"block":"none");
+  if(s.k==="hook2")hook2(t);else if(s.k==="calm")calm(t);else mgmt(34+(t-s.a)*1.7)}
+ liveReset();
+ [21.5,23,24.5].forEach(c=>{const u=(t-c)/.45;if(u>=0&&u<1){const a=12*(1-u);
+  live().forEach(e=>{e.style.filter=`drop-shadow(${a}px 0 0 rgba(255,0,70,.6)) drop-shadow(${-a}px 0 0 rgba(0,225,255,.6))`});
+  $("flash").style.opacity=u<.3?.4*(1-u/.3):0}});
+ let act=-1;TR.forEach((x,i)=>{if(t>=x.t&&t<x.t+x.d)act=i});
+ if(act>=0&&window.SNAP[TR[act].t]){if(built!==act)build(act);animTr(act,t)}else if(built!==-1)trClear();
+ const bk=t>=40.3&&t<41.3?seg(t,40.3,40.8):0,en=t>=44.5?seg(t,44.5,45):0;$("blk").style.opacity=Math.max(bk,en);
+ if(t>=41.3&&t<41.7)$("flash").style.opacity=.7*(1-seg(t,41.3,41.7));
+}
+window.render=renderR;window.ready=document.fonts.ready;
+</script></body></html>
+
+
