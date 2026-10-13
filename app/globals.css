@@ -2128,3 +2128,8 @@ html[dir="rtl"] .pos-hero-device { direction:ltr; text-align:left; }
 @media (prefers-reduced-motion: reduce) { .shiny-text { animation: none; color: inherit; background: none; } }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+@media (max-width: 640px) {
+  .next-nav__actions .next-link { display:none; }
+  .next-nav__actions .next-language-toggle { min-width:0; padding-inline:.6rem; }
+}
