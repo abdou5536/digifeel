@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#080b10;font-family:"Segoe UI",Arial,sans-serif;color:#f5f4ed}
+#stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(900px 900px at 50% 38%,#16222a,#080b10 70%)}
+.scene{position:absolute;inset:0;overflow:hidden;display:none}
+#glow{position:absolute;width:1100px;height:1100px;border-radius:50%;background:radial-gradient(circle,rgba(121,212,176,.22),transparent 65%);left:-10px;top:300px}
+#grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:90px 90px}
+.cap{position:absolute;left:60px;right:60px;font-weight:800;letter-spacing:-1px;line-height:1.05}
+.kick{position:absolute;left:60px;font-size:30px;font-weight:700;letter-spacing:5px;color:#e0b25f;text-transform:uppercase}
+.chip{position:absolute;padding:16px 30px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);font-size:30px;font-weight:600;backdrop-filter:blur(6px)}
+.page{position:absolute;background:#fff;box-shadow:0 40px 120px rgba(0,0,0,.6);border-radius:10px;overflow:hidden}
+.page img{width:100%;display:block}
+.win{position:absolute;background:#fff;border-radius:22px;box-shadow:0 40px 120px rgba(0,0,0,.6);overflow:hidden;color:#1b1f27}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:78px;background:#e9ecef;display:flex;gap:6px;padding:10px 14px 0}
+.tab{padding:0 22px;display:flex;align-items:center;font-size:24px;font-weight:600;background:#d5d9de;color:#555;border-radius:10px 10px 0 0;white-space:nowrap}
+.tab.on{background:#fff;color:#1d6f42;box-shadow:inset 0 3px 0 #1d6f42}
+.xhead{position:absolute;left:0;right:0;top:0;height:96px;background:#1d6f42;color:#fff;display:flex;align-items:center;gap:18px;padding:0 28px;font-size:28px;font-weight:700}
+.xhead i{width:44px;height:44px;border-radius:8px;background:#fff;color:#1d6f42;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900}
+#xin{position:absolute;left:0;top:96px;bottom:78px;right:0;overflow:hidden;background:#fff}
+#xt{position:absolute;left:0;top:0;transform-origin:0 0;border-collapse:collapse;font-size:22px;white-space:nowrap}
+#xt td{border:1px solid #d9dde2;padding:7px 12px;height:42px}
+#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.bar{position:absolute;top:-400px;height:2800px;width:260px;transform-origin:50% 50%}
+#trans{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+svg text{font-family:"Segoe UI",Arial,sans-serif;font-weight:700}
+</style></head><body>
+<div id="stage">
+ <div id="glow"></div><div id="grid"></div>
+ <div id="s1" class="scene"><svg id="logo" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;inset:0"></svg>
+  <div id="tag" class="cap" style="top:1080px;text-align:center;font-size:54px;font-weight:600;letter-spacing:0;color:#cfd6d2"></div></div>
+ <div id="s2" class="scene"><img id="tour" style="position:absolute;left:0;top:0;width:1080px;height:1920px;object-fit:cover">
+  <div id="tkick" class="kick" style="top:110px"></div><div id="tcap" class="cap" style="bottom:170px;font-size:92px"></div><div id="tsub" class="cap" style="bottom:100px;font-size:34px;font-weight:500;color:#cfd6d2"></div></div>
+ <div id="s3" class="scene"><div class="kick" style="top:100px">Exemple réel · PDF</div><div id="pcap" class="cap" style="top:150px;font-size:70px"></div>
+  <div id="pfile" class="chip" style="left:60px;bottom:70px"></div><div id="ppg" class="chip" style="right:60px;bottom:70px"></div><div id="pages"></div></div>
+ <div id="s4" class="scene"><div class="kick" style="top:100px">Exemple réel · Excel</div><div id="xcap" class="cap" style="top:150px;font-size:70px">Le fichier Excel complet</div>
+  <div class="win" id="xwin" style="left:40px;top:300px;width:1000px;height:1420px"><div class="xhead"><i>X</i><span>Digifeel-rapport-client-exemple.xlsx</span></div><div id="xin"><table id="xt"></table></div><div class="tabs" id="tabs"></div></div>
+  <div id="xchip" class="chip" style="left:60px;bottom:70px"></div></div>
+ <div id="s5" class="scene"><div class="kick" style="top:100px">Dossier de présentation</div><div id="dcap" class="cap" style="top:150px;font-size:70px">9 pages pour convaincre</div><div id="dpages"></div></div>
+ <div id="s6" class="scene"><svg id="logo2" width="1080" height="1920" viewBox="0 0 1080 1920" style="position:absolute;inset:0"></svg>
+  <div id="cta1" class="cap" style="top:1060px;text-align:center;font-size:76px"></div><div id="cta2" class="cap" style="top:1250px;text-align:center;font-size:40px;font-weight:500;color:#cfd6d2;line-height:1.4"></div><div id="cta3" class="chip" style="left:150px;right:150px;top:1480px;text-align:center;background:#e0b25f;color:#1b1f27;font-weight:800;font-size:38px;border:0"></div></div>
+ <div id="trans"></div><div id="fade"></div>
+</div>
+<script>
+const BRAND="Digifeel";
+const B=[0,6.8,16.8,30.8,46.8,52.8,60], TOTAL=60;
+const ease={out:t=>1-Math.pow(1-t,3),inOut:t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2,back:t=>{const c=1.70158,d=c+1;return 1+d*Math.pow(t-1,3)+c*Math.pow(t-1,2)},in:t=>t*t*t};
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const $=id=>document.getElementById(id);
+const rnd=(i,k)=>{const x=Math.sin(i*127.1+k*311.7)*43758.5453;return x-Math.floor(x)};
+const PAGES=3, PORT=9;
+const imgs={};
+function img(src){const i=new Image();i.src=src;imgs[src]=i;return i}
+const doc=(n,i)=>`assets/doc/${n}-${i}.png`;
+const tourShots=[["../output/social/portfolio/01-avis-nfc.png","Avis NFC / QR","Vos clients notent en 10 secondes","Un scan, une note, un avis Google"],["../output/social/portfolio/02-caisse.png","Caisse","Une caisse tactile, rapide","Encaissement, serveurs, paiements"],["../output/social/portfolio/04-ticket.png","Tickets","Tickets clairs, prêts à imprimer","Détail des lignes et du total"],["../output/social/portfolio/08-exports.png","Exports","Vos chiffres en PDF et Excel","Voyez le vrai rapport, juste après"]];
+tourShots.forEach(s=>img(s[0]));
+for(let i=1;i<=PAGES;i++)img(doc("rapport",i));
+for(let i=1;i<=PORT;i++)img(doc("portfolio",i));
+let XL=[];
+const LOGO={ // coordonnées du logo d'origine (430x96)
+ waves:["M28 28c-12 12-12 28 0 40","M46 20c-17 17-17 39 0 56","M80 28c12 12 12 28 0 40","M62 20c17 17 17 39 0 56"],
+ star:"m54 10 4.7 10.2 11.1 1.3-8.2 7.6 2.2 10.9L54 34.5l-9.8 5.5 2.2-10.9-8.2-7.6 11.1-1.3z"};
+const letters=BRAND.toLowerCase().split("");
+let lx=[];
+(function(){const c=document.createElement("canvas").getContext("2d");c.font="700 54px 'Segoe UI',Arial";let x=108;letters.forEach(l=>{lx.push(x);x+=c.measureText(l).width-2})})();
+const ns="http://www.w3.org/2000/svg";
+function buildLogo(svg,y){ // pièces : 4 ondes, étoile, lettres
+ const S=2.05,W=430*S,ox=(1080-W)/2+134,oy=y;
+ const g=document.createElementNS(ns,"g");svg.appendChild(g);
+ const parts=[];
+ const mk=(tag,attrs,cx,cy)=>{const e=document.createElementNS(ns,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);g.appendChild(e);parts.push({e,cx,cy});return e};
+ LOGO.waves.forEach((d,i)=>mk("path",{d,fill:"none",stroke:"#79d4b0","stroke-width":6,"stroke-linecap":"round"},54,48));
+ mk("path",{d:LOGO.star,fill:"#ffad73"},54,26);
+ letters.forEach((l,i)=>{const t=mk("text",{x:lx[i],y:65,fill:"#f5f4ed","font-size":54},lx[i]+16,45);t.textContent=l});
+ svg._d={g,parts,S,ox,oy};
+}
+// p: assemblage 0..1 ; q: désassemblage 0..1 (1=totalement rangé)
+function setLogo(svg,t,tin,tout,glowTime){
+ const {g,parts,S,ox,oy}=svg._d;
+ parts.forEach((p,i)=>{
+  const nW=4,isW=i<nW,isStar=i===nW,li=i-nW-1;
+  const stag=isW?i*.09:isStar?.15:.35+li*.07;
+  let a=ease.back(seg(t,tin+stag,tin+stag+.8));
+  let b=0;
+  const ostag=isW?(3-i)*.07:isStar?.5:(letters.length-1-li)*.05;
+  b=ease.in(seg(t,tout+ostag*.7,tout+ostag*.7+.65));
+  const sx=(rnd(i,1)-.5)*1500,sy=(rnd(i,2)-.5)*2200,rot=(rnd(i,3)-.5)*540;
+  let tx=(1-a)*sx,ty=(1-a)*sy,r=(1-a)*rot,sc=a<1?.2+.8*a:1;
+  let op=cl(a*1.4);
+  if(b>0){
+   // rangé vers l'étoile, puis rétracté : les pièces se replient dans le centre
+   const targetX=54,targetY=26;
+   tx+=(targetX-p.cx)*b*(isStar?0:1);ty+=(targetY-p.cy)*b*(isStar?0:1)-(isStar?b*60:0);
+   r+=b*(isW?(i<2?-200:200):isStar?360:(rnd(i,4)-.5)*400);sc*=isStar?1+b*.5:1-b*.95;op*=isStar?1-ease.in(seg(b,.5,1)):1-b*b;
+  }
+  const idle=Math.sin(t*2+i)*1.2*(a>=1&&b===0?1:0);
+  p.e.setAttribute("transform",`translate(${p.cx+tx} ${p.cy+ty+idle}) rotate(${r}) scale(${sc}) translate(${-p.cx} ${-p.cy})`);
+  p.e.setAttribute("opacity",op);
+ });
+ g.setAttribute("transform",`translate(${ox} ${oy}) scale(${S})`);
+ svg.style.filter=`drop-shadow(0 0 ${22+10*Math.sin(t*3)}px rgba(121,212,176,.35))`;
+}
+buildLogo($("logo"),780);buildLogo($("logo2"),640);
+// pages PDF (rapport)
+(function(){let h="";for(let i=1;i<=PAGES;i++)h+=`<div class="page" id="rp${i}" style="width:860px"><img src="${doc("rapport",i)}"></div>`;$("pages").innerHTML=h;
+ h="";for(let i=1;i<=PORT;i++)h+=`<div class="page" id="dp${i}" style="width:980px"><img src="${doc("portfolio",i)}"></div>`;$("dpages").innerHTML=h})();
+function loadXL(){const j=window.XLDATA;XL=j;
+ $("tabs").innerHTML=j.map((s,i)=>`<div class="tab" id="tb${i}">${s.name}</div>`).join("")}
+function sheetHTML(s){
+ const colg=s.widths.map(w=>`<col style="width:${Math.round(w*10)+14}px">`).join("");
+ let h=`<colgroup>${colg}</colgroup>`;
+ s.rows.forEach((r,ri)=>{h+="<tr>";for(let i=0;i<r.length;i++){const c=r[i];if(c.mm)continue;let sp=1;while(r[i+sp]&&r[i+sp].mm)sp++;
+  const num=/^-?\d+([.,]\d+)?$/.test(c.t);
+  const st=`${c.fill?`background:#${c.fill.slice(2)};`:""}${c.col?`color:#${c.col.slice(2)};`:""}${c.b?"font-weight:700;":""}${num?"text-align:right;":""}`;
+  h+=`<td colspan="${sp}" style="${st}">${c.t.replace(/</g,"&lt;")}</td>`;i+=sp-1}h+="</tr>"});
+ return h}
+let curSheet=-1;
+function drawXL(lt){
+ const per=2.55,n=XL.length,idx=Math.min(n-1,Math.floor(lt/per)),u=(lt-idx*per)/per;
+ if(idx!==curSheet){curSheet=idx;$("xt").innerHTML=sheetHTML(XL[idx]);XL.forEach((_,i)=>$("tb"+i).classList.toggle("on",i===idx))}
+ const t=$("xt");const w=t.offsetWidth,h=t.offsetHeight;const vw=1000,vh=1246;
+ const sc=Math.max(vw/w,.62>vw/w?.62:vw/w);
+ const scale=Math.min(1.6,Math.max(.6,Math.max(vw/w,Math.min(vh/h*.95,1))));
+ const panX=Math.max(0,w*scale-vw),panY=Math.max(0,h*scale-vh);
+ const e=ease.inOut(seg(u,.1,.95));
+ t.style.transform=`translate(${-panX*e}px,${-panY*e}px) scale(${scale})`;
+ $("xchip").textContent=`Feuille « ${XL[idx].name} » · ${idx+1}/${n}`;
+ $("xin").style.opacity=cl(u*10)*cl((1-u)*10+.4,0,1);
+}
+function drawTrans(t){
+ const el=$("trans");
+ if(!el.children.length){for(let i=0;i<6;i++){const d=document.createElement("div");d.className="bar";el.appendChild(d)}}
+ let on=null;for(let k=1;k<B.length-1;k++){if(Math.abs(t-B[k])<.45)on=B[k]}
+ const cols=["#e0b25f","#79d4b0","#ffad73","#e0b25f","#79d4b0","#ffad73"];
+ [...el.children].forEach((d,i)=>{
+  if(on===null){d.style.display="none";return}
+  d.style.display="block";
+  const u=(t-(on-.45))/.9; // 0..1
+  const e=i*.04;
+  const cover=ease.out(seg(u,e,.5+e*.5)),uncover=ease.in(seg(u,.5+e,1));
+  const w=1280/6+20;d.style.width=w+"px";d.style.left=(i*(1080/6)-120)+"px";d.style.background=cols[i];
+  d.style.transform=`skewX(-12deg) scaleY(1)`;
+  const y=(1-cover)*-2900+uncover*2900;
+  d.style.top=(-400+y)+"px";
+ });
+}
+function showScene(k){for(let i=1;i<=6;i++)$("s"+i).style.display=(i===k+1)?"block":"none"}
+function typeIn(el,txt,t,a,speed=30){el.textContent=txt.slice(0,Math.floor(cl((t-a)*speed,0,txt.length)))}
+function render(t){
+ let k=0;for(let i=0;i<B.length-1;i++)if(t>=B[i])k=i;
+ showScene(k);const lt=t-B[k];
+ $("glow").style.transform=`translate(${Math.sin(t*.5)*160}px,${Math.cos(t*.4)*200}px) scale(${1+.15*Math.sin(t*.7)})`;
+ $("grid").style.transform=`translateY(${(t*30)%90}px)`;
+ if(k===0){setLogo($("logo"),lt,.2,4.6);
+  const a=ease.out(seg(lt,2.3,3.1))*(1-seg(lt,4.3,4.7));$("tag").style.opacity=a;$("tag").style.transform=`translateY(${(1-ease.out(seg(lt,2.3,3.1)))*40}px)`;
+  $("tag").innerHTML="<span style='color:#79d4b0'>Caisse</span> · <span style='color:#ffad73'>Avis NFC</span> · <span style='color:#e0b25f'>Rapports</span>"}
+ if(k===1){const per=2.5,i=Math.min(3,Math.floor(lt/per)),u=(lt-i*per)/per,s=tourShots[i];
+  const im=$("tour");im.src=imgs[s[0]].src;const z=1.0+.12*u;im.style.transform=`scale(${z}) translateY(${-u*30}px)`;
+  const inn=ease.out(seg(u,0,.18));im.style.opacity=inn;
+  
+  
+  }
+ if(k===2){const per=4.6;$("pcap").textContent="Le rapport de gestion complet";
+  $("pfile").textContent="📄 Digifeel-rapport-client-exemple.pdf";
+  const cur=Math.min(PAGES-1,Math.floor(lt/per));$("ppg").textContent=`Page ${cur+1} / ${PAGES}`;
+  for(let i=0;i<PAGES;i++){const el=$("rp"+i+1===null?"":"rp"+(i+1));const st=lt-i*per;
+   const inn=ease.out(seg(st,-.1,.8)),out=ease.in(seg(st,per-.6,per));
+   if(st<-.2||st>per+.1){el.style.display="none";continue}el.style.display="block";
+   const h=el.offsetHeight||1216,sc=1+.1*seg(st,0,per);
+   const x=110+(1-inn)*1200-out*1300,y=330-(seg(st,.6,per-.6))*(h*sc-1320>0?(h*sc-1320):0)*.6+(1-inn)*0;
+   el.style.transform=`translate(${x-110}px,${y-330}px) rotate(${(1-inn)*8-out*8}deg) scale(${sc})`;
+   el.style.left="110px";el.style.top="330px";el.style.transformOrigin="50% 0"}}
+ if(k===3){drawXL(lt);const a=ease.out(seg(lt,0,.7));$("xwin").style.transform=`translateY(${(1-a)*400}px) scale(${.92+.08*a})`;$("xwin").style.opacity=a}
+ if(k===4){$("dcap").textContent="9 pages pour convaincre";const per=.55;
+  for(let i=0;i<PORT;i++){const el=$("dp"+(i+1)),st=lt-i*per;
+   if(st<-.05){el.style.display="none";continue}el.style.display="block";
+   const a=ease.back(seg(st,0,.5)),fan=Math.min(i,Math.max(0,PORT-1));
+   const ang=(i-(PORT-1)/2)*3,fx=(i-(PORT-1)/2)*40;
+   const end=ease.inOut(seg(lt,5.0,6.0));
+   el.style.width="980px";el.style.left=(50+fx*.6)+"px";el.style.top="520px";
+   el.style.transform=`translateY(${(1-a)*1400}px) rotate(${ang*(1)+(1-a)*14}deg) scale(${.9+end*.02})`;
+   el.style.opacity=cl(a*2);el.style.zIndex=i}}
+ if(k===5){setLogo($("logo2"),lt,.1,5.9);
+  $("cta1").style.opacity=ease.out(seg(lt,1.5,2.1));$("cta1").style.transform=`translateY(${(1-ease.out(seg(lt,1.5,2.1)))*50}px)`;$("cta1").textContent="Votre caisse + vos avis clients";
+  $("cta2").style.opacity=ease.out(seg(lt,2.2,2.8));$("cta2").textContent="Installation en 5 minutes · Rapports PDF & Excel";
+  $("cta3").style.opacity=ease.out(seg(lt,3,3.6))*(1-seg(lt,5,5.5));$("cta3").textContent="Demandez votre accès";
+  const hide=1-seg(lt,4.6,5.2);$("cta1").style.opacity*=1;$("cta1").style.opacity=Math.min(+$("cta1").style.opacity,hide);$("cta2").style.opacity=Math.min(+$("cta2").style.opacity,hide)}
+ drawTrans(t);
+ $("fade").style.opacity=Math.max(1-seg(t,0,.25),seg(t,TOTAL-.4,TOTAL));
+}
+window.render=render;
+window.ready=Promise.all([loadXL(),document.fonts.ready,...Object.values(imgs).map(i=>i.decode().catch(()=>0))]);
+</script></body></html>
