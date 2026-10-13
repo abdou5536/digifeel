@@ -1,0 +1,76 @@
+// Pub 30 s (1080x1920) : node story/build-ad.mjs [--preview --t=1,5,...]
+// Env : FFMPEG=chemin, CONTACT="Instagram : @toncompte"
+import { chromium } from "playwright";
+import { spawn, spawnSync } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const out = path.join(here, "output");
+const ffmpeg = process.env.FFMPEG || "ffmpeg";
+const FPS = 30, TOTAL = 30;
+await mkdir(out, { recursive: true });
+
+// --- musique synthétisée (120 bpm, drop à 22 s) ---
+function makeMusic() {
+  const sr = 44100, n = sr * TOTAL, L = new Float32Array(n);
+  const beat = 0.5;
+  const add = (t0, len, fn) => { const s = Math.floor(t0 * sr); for (let i = 0; i < len * sr && s + i < n; i++) L[s + i] += fn(i / sr); };
+  let seed = 7; const noise = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  const kick = (t) => add(t, 0.4, (x) => Math.sin(2 * Math.PI * (45 * x + 110 * (1 - Math.exp(-x * 25)) / 25 * 25 * 0.04 + 50 * Math.exp(-x * 18) * x)) * Math.exp(-x * 9) * 0.9);
+  const hat = (t, v = .12) => add(t, 0.05, (x) => noise() * Math.exp(-x * 90) * v);
+  const clap = (t) => add(t, 0.2, (x) => noise() * Math.exp(-x * 22) * 0.3);
+  const bass = (t, f, len, v) => add(t, len, (x) => (Math.sin(2 * Math.PI * f * x) + .4 * Math.sin(4 * Math.PI * f * x)) * Math.exp(-x * 3) * v);
+  const notes = [55, 55, 65.4, 49];
+  add(0, 2, (x) => Math.sin(2 * Math.PI * 55 * x) * 0.18 * Math.min(1, x));
+  add(2.0, 1.2, (x) => Math.sin(2 * Math.PI * 40 * x) * Math.exp(-x * 3) * 0.9 + noise() * Math.exp(-x * 5) * .3);
+  for (let b = 6; b < 60; b++) {
+    const t = b * beat; if (t < 3 || t >= 29.4) continue;
+    const drop = t >= 22;
+    if (t < 21.5 || drop) kick(t);
+    if (drop || t >= 8) { hat(t + beat / 2, drop ? .16 : .1); }
+    if (drop && b % 2 === 1) clap(t);
+    if (t >= 8) bass(t, notes[Math.floor(b / 4) % 4] * (drop ? 1 : 2), beat * .9, drop ? .5 : .25);
+    if (drop) hat(t + beat / 4, .06), hat(t + beat * .75, .06);
+  }
+  // riser 19.5 -> 22
+  add(19.5, 2.5, (x) => noise() * Math.pow(x / 2.5, 2) * 0.35);
+  add(22, 1.2, (x) => Math.sin(2 * Math.PI * 38 * x) * Math.exp(-x * 2.2) * 1.0);
+  add(26, 2, (x) => Math.sin(2 * Math.PI * 45 * x) * Math.exp(-x * 2) * 0.9 + noise() * Math.exp(-x * 4) * .25);
+  let max = 0; for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(L[i]));
+  const buf = Buffer.alloc(44 + n * 2);
+  buf.write("RIFF", 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write("WAVEfmt ", 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(sr, 24); buf.writeUInt32LE(sr * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write("data", 36); buf.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) { const fade = Math.min(1, (n - i) / (sr * 0.8)); buf.writeInt16LE(Math.round(Math.tanh(L[i] / max * 1.4) * 30000 * fade), 44 + i * 2); }
+  return buf;
+}
+
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
+if (process.env.CONTACT) await page.addInitScript((c) => { window.CONTACT = c; }, process.env.CONTACT);
+await page.goto(pathToFileURL(path.join(here, "ad.html")).href);
+await page.evaluate(() => window.ready);
+
+if (process.argv.includes("--preview")) {
+  const times = (process.argv.find((a) => a.startsWith("--t=")) || "--t=1,2.5,5,10,11.5,12.5,14,15.5,18.5,19.5,20.8,22.1,23.5,25,28").slice(4).split(",").map(Number);
+  for (const t of times) {
+    await page.evaluate((x) => window.render(x), t);
+    await page.screenshot({ path: path.join(out, `ad-${String(t).replace(".", "_")}.jpg`), type: "jpeg", quality: 80 });
+  }
+  await browser.close();
+  process.exit(0);
+}
+
+const wav = path.join(out, "ad-music.wav"), vid = path.join(out, "ad-video.mp4");
+await writeFile(wav, makeMusic());
+const proc = spawn(ffmpeg, ["-y", "-f", "image2pipe", "-framerate", String(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "17", "-preset", "medium", vid], { stdio: ["pipe", "ignore", "inherit"] });
+for (let i = 0; i < FPS * TOTAL; i++) {
+  await page.evaluate((x) => window.render(x), i / FPS);
+  const buf = await page.screenshot({ type: "jpeg", quality: 92 });
+  if (!proc.stdin.write(buf)) await new Promise((r) => proc.stdin.once("drain", r));
+}
+proc.stdin.end();
+await new Promise((r) => proc.on("close", r));
+await browser.close();
+spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-pub-30s.mp4")], { stdio: "inherit" });
+console.log("OK");
