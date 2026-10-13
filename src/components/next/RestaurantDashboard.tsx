@@ -5,6 +5,7 @@ import { SetupChecklist } from './SetupChecklist';
 import { applyBrandColor, BRAND_PALETTE, dominantColor } from '@/src/lib/brand';
 import { TableQrSheet } from './TableQrSheet';
 import { NfcChipWriter } from './NfcChipWriter';
+import { TableScanner } from './TableScanner';
 import Link from 'next/link';
 import { ArrowLeft, Download, LogOut, Star, Users } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/src/lib/supabase/client';
@@ -452,6 +453,7 @@ export function RestaurantDashboard({ demo = false }: { demo?: boolean }) {
             </section>}
             {data.role === 'restaurant_admin' && data.restaurant.slug && <section className="next-glass-card next-surface-card">
               <h2>Liens de vos tables</h2>
+              <TableScanner onSaved={() => window.location.reload()} />
               {data.tableNumbers?.length ? <TableQrSheet restaurantName={data.restaurant.name} slug={data.restaurant.slug} tables={data.tableNumbers} /> : null}
               {data.tableNumbers?.length ? <NfcChipWriter slug={data.restaurant.slug} tables={data.tableNumbers} /> : null}
               {!data.tableNumbers?.length ? <p className="next-muted">Aucune table n’est encore configurée. Contactez Digifeel pour générer vos puces et QR codes.</p> : <ul className="next-table-links">

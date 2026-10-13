@@ -1,11 +1,6 @@
-import type { Metadata } from 'next';
-import { RestaurantRegistration } from '@/src/components/next/RestaurantRegistration';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Inscription restaurant',
-  description: 'Ouvrez votre espace de gestion Digifeel.'
-};
-
+// Les comptes sont ouverts uniquement par Digifeel : pas d'inscription publique.
 export default function RestaurantRegistrationPage() {
-  return <RestaurantRegistration />;
+  redirect('/login');
 }

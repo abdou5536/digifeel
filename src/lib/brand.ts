@@ -9,11 +9,21 @@ export const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 export const BRAND_PALETTE = [
   { name: 'Or', hex: '#d3a04d' },
-  { name: 'Émeraude', hex: '#2fa38a' },
-  { name: 'Bleu', hex: '#4f88d9' },
-  { name: 'Violet', hex: '#8974d6' },
+  { name: 'Ambre', hex: '#e0952b' },
+  { name: 'Corail', hex: '#d9755b' },
+  { name: 'Rouge', hex: '#d64545' },
   { name: 'Framboise', hex: '#d46b91' },
-  { name: 'Corail', hex: '#d9755b' }
+  { name: 'Rose', hex: '#e0629f' },
+  { name: 'Violet', hex: '#8974d6' },
+  { name: 'Indigo', hex: '#5b6bd6' },
+  { name: 'Bleu', hex: '#4f88d9' },
+  { name: 'Ciel', hex: '#38a8d8' },
+  { name: 'Turquoise', hex: '#2bb3b1' },
+  { name: 'Émeraude', hex: '#2fa38a' },
+  { name: 'Vert', hex: '#5aa845' },
+  { name: 'Olive', hex: '#9a9a3a' },
+  { name: 'Ardoise', hex: '#6b7a90' },
+  { name: 'Cacao', hex: '#a2724f' }
 ] as const;
 
 type Rgb = [number, number, number];
@@ -47,17 +57,49 @@ function toHex(rgb: Rgb) {
   return `#${rgb.map(value => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0')).join('')}`;
 }
 
+function mix(hex: string, target: number, amount: number) {
+  return toHex(toRgb(hex).map(channel => channel + (target - channel) * amount) as Rgb);
+}
+
+/** Ajuste la couleur pour rester lisible : plus sombre sur fond clair, plus lumineuse sur fond sombre. */
+export function accentForTheme(hex: string, theme: 'light' | 'dark') {
+  const background = theme === 'light' ? 1 : relativeLuminance('#14100a');
+  let accent = hex;
+  for (let step = 0; step < 12 && contrastRatio(Math.max(relativeLuminance(accent), background), Math.min(relativeLuminance(accent), background)) < 3; step += 1) {
+    accent = mix(accent, theme === 'light' ? 0 : 255, 0.12);
+  }
+  return accent;
+}
+
+let currentBrand: string | null = null;
+let themeObserver: MutationObserver | null = null;
+
+function paintBrand(hex: string) {
+  const root = document.documentElement;
+  const theme = root.dataset.theme === 'light' ? 'light' : 'dark';
+  const accent = accentForTheme(hex, theme);
+  root.style.setProperty('--df-accent', accent);
+  root.style.setProperty('--df-accent-strong', mix(accent, theme === 'light' ? 0 : 255, 0.25));
+  root.style.setProperty('--df-accent-foreground', brandForegroundColor(accent));
+  root.style.setProperty('--workspace-gold', accent);
+}
+
 /** Applique la couleur du restaurant aux accents de l'interface ; sans valeur, le thème par défaut revient. */
 export function applyBrandColor(hex: string | null | undefined) {
   const root = document.documentElement;
   if (!hex || !HEX_COLOR.test(hex)) {
+    currentBrand = null;
+    themeObserver?.disconnect();
+    themeObserver = null;
     for (const name of ACCENT_VARS) root.style.removeProperty(name);
     return;
   }
-  root.style.setProperty('--df-accent', hex);
-  root.style.setProperty('--df-accent-strong', toHex(toRgb(hex).map(channel => channel * 0.72) as Rgb));
-  root.style.setProperty('--df-accent-foreground', brandForegroundColor(hex));
-  root.style.setProperty('--workspace-gold', hex);
+  currentBrand = hex;
+  paintBrand(hex);
+  if (!themeObserver) {
+    themeObserver = new MutationObserver(() => { if (currentBrand) paintBrand(currentBrand); });
+    themeObserver.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  }
 }
 
 /** Couleur vive la plus présente d'une photo ou d'un logo, pour proposer une couleur de marque. */

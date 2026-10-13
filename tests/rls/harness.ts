@@ -25,7 +25,7 @@ const SUPABASE_STUB = `
 create schema if not exists extensions;
 create schema if not exists auth;
 create extension if not exists pgcrypto with schema extensions;
-create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '{}'::jsonb);
+create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '{}'::jsonb, invited_at timestamptz);
 create function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
@@ -71,7 +71,7 @@ export async function seed(db: PGlite) {
   `);
   await db.exec(`insert into public.subscriptions (restaurant_id, status) values ('${ids.restA}', 'active'), ('${ids.restB}', 'active');`);
   for (const [id, role, restaurant, server] of users) {
-    await db.query('insert into auth.users (id) values ($1)', [id]);
+    await db.query('insert into auth.users (id, invited_at) values ($1, now())', [id]);
     await db.query(
       'update public.app_users set role=$2, restaurant_id=$3, server_id=$4 where id=$1',
       [id, role, restaurant, server]

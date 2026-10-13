@@ -2116,3 +2116,15 @@ html[dir="rtl"] .pos-hero-device { direction:ltr; text-align:left; }
 .next-table-links a { overflow-wrap: anywhere; }
 
 .next-account-card > .next-kicker { display: block; margin: 1rem 0 0.75rem; }
+
+/* Effets de la page d'accueil (React Bits / GSAP) */
+.spotlight-card { position: relative; overflow: hidden; }
+.spotlight-card::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(320px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in srgb, var(--df-accent, #d4af37) 22%, transparent), transparent 70%); }
+.spotlight-card:hover::before { opacity: 1; }
+.shiny-text { background: linear-gradient(110deg, currentColor 35%, var(--df-accent, #d4af37) 50%, currentColor 65%); background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: shiny-sweep 4s linear infinite; }
+@keyframes shiny-sweep { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .shiny-text { animation: none; color: inherit; background: none; } }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }

@@ -1,4 +1,7 @@
 project_id = "digifeel"
 
+[auth]
+enable_signup = false
+
 [functions.stripe-webhook]
 verify_jwt = false

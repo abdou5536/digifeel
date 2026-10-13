@@ -43,12 +43,13 @@ export async function POST(request: NextRequest) {
     if (inviteError || !invited.user) throw inviteError || new Error('Supabase n’a pas créé le compte invité.');
     invitedUserId = invited.user.id;
 
-    const { error: profileError } = await admin.from('app_users').update({
+    const { error: profileError } = await admin.from('app_users').upsert({
+      id: invitedUserId,
       role: 'server',
       restaurant_id: current.profile.restaurant_id,
       server_id: serverId,
       display_name: name
-    }).eq('id', invitedUserId);
+    }, { onConflict: 'id' });
     if (profileError) throw profileError;
 
     const { error: linkError } = await admin.from('servers').update({ user_id: invitedUserId }).eq('id', serverId);

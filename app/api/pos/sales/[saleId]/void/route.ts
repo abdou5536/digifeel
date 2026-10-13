@@ -19,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc('void_pos_sale', { p_sale_id: id.data, p_reason: parsed.data.reason || null });
+  const { data: code, error } = await supabase.rpc('void_pos_sale', { p_sale_id: id.data, p_reason: parsed.data.reason || null });
   if (error) {
     console.error('POS sale could not be voided.', error);
     return rpcErrorResponse(error, {
@@ -27,5 +27,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       400: 'Cette vente appartient à une journée déjà clôturée (Z) : elle ne peut plus être annulée.'
     });
   }
-  return NextResponse.json({ ok: true });
+  // Code à usage unique, affiché une seule fois au responsable : jamais relisible ensuite.
+  return NextResponse.json({ ok: true, voidCode: code });
 }

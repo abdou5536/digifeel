@@ -704,10 +704,32 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
       if (!response.ok) throw new Error(result.error || 'La vente n’a pas pu être annulée.');
       await refreshSales();
       setMessage(isArabic ? 'تم إلغاء العملية.' : 'Vente annulée.');
+      if (result.voidCode) window.alert(isArabic ? `رمز الاستخدام الواحد: ${result.voidCode}\nدوّنه الآن، لن يظهر مرة أخرى.` : `CODE UNIQUE : ${result.voidCode}\n\nNotez-le maintenant, il ne sera plus jamais affiché. Il sert à confirmer ou contester cette annulation.`);
     } catch (voidError) {
       setError(voidError instanceof Error ? voidError.message : 'La vente n’a pas pu être annulée.');
     } finally {
       setVoidingSaleId(null);
+    }
+  };
+
+  const reviewVoid = async (saleId: string) => {
+    if (!catalog || catalog.role !== 'restaurant_admin') return;
+    const code = window.prompt('Code à usage unique de l’annulation :', '');
+    if (!code) return;
+    const contested = window.confirm('OK = CONTESTER l’annulation (elle n’est pas légitime).\nAnnuler = la CONFIRMER.');
+    const note = window.prompt('Remarque (optionnel) :', '') ?? '';
+    setError('');
+    try {
+      const response = await fetch(`/api/pos/sales/${saleId}/void-review`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: code.trim(), decision: contested ? 'contested' : 'confirmed', note: note.trim() })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Code refusé.');
+      setMessage(contested ? 'Annulation contestée et enregistrée.' : 'Annulation confirmée.');
+    } catch (reviewError) {
+      setError(reviewError instanceof Error ? reviewError.message : 'Code refusé.');
     }
   };
 
@@ -953,7 +975,7 @@ ${tips > 0 ? `<tr><td>Pourboire</td><td class="r">${fmt(tips)}</td></tr>` : ''}
           {visibleSales.map(sale => <article className={`pos-sale-card${printingSaleId === sale.id ? ' is-printing' : ''}${sale.voidedAt ? ' is-voided' : ''}`} key={sale.id}>
             <div className="pos-sale-card__main"><span className={`pos-sale-state is-${sale.voidedAt ? 'voided' : sale.status}`}>{sale.voidedAt ? (isArabic ? 'ملغاة' : 'Annulée') : sale.status === 'synced' ? (isArabic ? 'مزامن' : 'Synchronisée') : sale.status === 'conflict' ? (isArabic ? 'تحتاج مراجعة' : 'À vérifier') : (isArabic ? 'بانتظار المزامنة' : 'En attente')}</span>{sale.ticketNumber != null && <b className="pos-ticket-number">N° {String(sale.ticketNumber).padStart(6, '0')}</b>}<strong>{money(totalSaleDzd(sale.items), locale)}</strong><small>{new Date(sale.createdAt).toLocaleString(isArabic ? 'ar-DZ' : 'fr-DZ')}</small></div>
             <ul>{sale.items.map((item, index) => <li key={`${sale.id}-${index}`}>{item.quantity} × {item.productName} <span>{money(item.priceDzd * item.quantity, locale)}</span></li>)}</ul>
-            <div className="pos-sale-card__footer"><span>{sale.paymentMethod === 'cash' ? (isArabic ? 'نقداً' : 'Espèces') : sale.paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Carte') : 'BaridiMob'}{sale.paymentReference && ` · ${sale.paymentReference}`}</span><span className="pos-sale-card__actions">{sale.status === 'synced' && !sale.voidedAt && <button type="button" onClick={() => printSale(sale.id)}><Printer size={15} />{isArabic ? 'طباعة' : 'Imprimer'}</button>}{sale.status === 'synced' && !sale.voidedAt && catalog.role === 'restaurant_admin' && <button type="button" className="pos-sale-void" disabled={voidingSaleId === sale.id} onClick={() => void voidSale(sale.id)}>{isArabic ? 'إلغاء' : 'Annuler'}</button>}</span>{sale.error && <small className="pos-sale-error">{sale.error}</small>}</div>
+            <div className="pos-sale-card__footer"><span>{sale.paymentMethod === 'cash' ? (isArabic ? 'نقداً' : 'Espèces') : sale.paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Carte') : 'BaridiMob'}{sale.paymentReference && ` · ${sale.paymentReference}`}</span><span className="pos-sale-card__actions">{sale.status === 'synced' && !sale.voidedAt && <button type="button" onClick={() => printSale(sale.id)}><Printer size={15} />{isArabic ? 'طباعة' : 'Imprimer'}</button>}{sale.status === 'synced' && !sale.voidedAt && catalog.role === 'restaurant_admin' && <button type="button" className="pos-sale-void" disabled={voidingSaleId === sale.id} onClick={() => void voidSale(sale.id)}>{isArabic ? 'إلغاء' : 'Annuler'}</button>}{sale.voidedAt && catalog.role === 'restaurant_admin' && <button type="button" onClick={() => void reviewVoid(sale.id)}>Code d’annulation</button>}</span>{sale.error && <small className="pos-sale-error">{sale.error}</small>}</div>
             {sale.voidedAt && <small className="pos-sale-void-reason">{isArabic ? 'ملغاة' : 'Annulée'} {new Date(sale.voidedAt).toLocaleString(isArabic ? 'ar-DZ' : 'fr-DZ')}{sale.voidReason ? ` · ${sale.voidReason}` : ''}</small>}
           </article>)}
         </div>

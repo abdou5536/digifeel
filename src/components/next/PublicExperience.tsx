@@ -7,6 +7,8 @@ import { PRODUCT_PRICING } from '@/src/config/product';
 import { useLanguage } from './LanguageProvider';
 import { SiteHeader } from './SiteHeader';
 import { ImmersiveBackground } from './ImmersiveBackground';
+import { LandingMotion } from './LandingMotion';
+import { ShinyText, SpotlightCard } from './ReactBits';
 
 const steps = [
   { number: '01', key: 'scan' as const, textKey: 'scanText' as const, Icon: Radio },
@@ -59,6 +61,7 @@ export function PublicExperience() {
     <div className="product-shell immersive-site next-app">
       <ImmersiveBackground />
       <SiteHeader />
+      <LandingMotion />
       <main>
         <section className="next-home-hero" id="accueil">
           <div className="next-home-hero__brandmark" aria-hidden="true" data-next-reveal>
@@ -67,7 +70,7 @@ export function PublicExperience() {
           </div>
           <span className="product-eyebrow next-home-hero__eyebrow" data-next-reveal><Radio aria-hidden="true" /> {text('eyebrow')}</span>
           <h1 className="next-home-hero__title" data-next-reveal>{text('heroTitle').split('\n').map((line, index) => (
-            <React.Fragment key={line}>{index > 0 && <br />}<span className={index === 1 ? 'next-accent' : ''}>{line}</span></React.Fragment>
+            <React.Fragment key={line}>{index > 0 && <br />}<span             className={index === 1 ? 'next-accent' : ''}>{index === 1 ? <ShinyText>{line}</ShinyText> : line}</span></React.Fragment>
           ))}</h1>
           <div className="next-home-hero__copy" data-next-reveal>
             <p>{text('heroText')}</p>
@@ -100,11 +103,11 @@ export function PublicExperience() {
           </div>
           <div className="next-feature-grid">
             {modules.map(({ titleKey, textKey, Icon }) => (
-              <article className="next-glass-card next-feature-card" data-next-reveal key={titleKey}>
+              <SpotlightCard className="next-glass-card next-feature-card" data-next-reveal key={titleKey}>
                 <Icon aria-hidden="true" />
                 <h3>{text(titleKey)}</h3>
                 <p>{text(textKey)}</p>
-              </article>
+                            </SpotlightCard>
             ))}
           </div>
         </section>

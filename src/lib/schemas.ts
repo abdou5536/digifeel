@@ -24,6 +24,12 @@ export const posSaleSchema = z.object({
 
 export const posSaleIdSchema = uuid;
 export const voidPosSaleSchema = z.object({ reason: z.string().trim().max(300).optional() });
+export const reviewVoidSchema = z.object({
+  code: z.string().trim().min(6).max(16),
+  decision: z.enum(['confirmed', 'contested']),
+  note: z.string().trim().max(300).optional()
+});
+export const scanTableSchema = z.object({ chipId: chipIdSchema, name: z.string().trim().min(1).max(40) });
 
 export const paymentRequestSchema = z.object({
   billId: uuid,
