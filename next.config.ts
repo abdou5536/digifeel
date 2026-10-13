@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
     }
   },
   // Les réponses SSR sur Cloudflare ne reçoivent pas public/_headers : on les pose ici aussi.
+  async redirects() {
+    return [{ source: '/inscription', destination: '/login', permanent: false }];
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders(process.env.NODE_ENV !== 'production') }];
   }
