@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "output");
 const ffmpeg = process.env.FFMPEG || "ffmpeg";
-const FPS = 30, TOTAL = 46;
+const FPS = 30, TOTAL = 47.5;
 await mkdir(out, { recursive: true });
 
 const browser = await chromium.launch();
@@ -21,7 +21,7 @@ await page.goto(pathToFileURL(path.join(here, "nike.html")).href);
 await page.evaluate(() => window.ready);
 const NS = await page.evaluate(() => window.NS);
 
-const tOfV = (V) => { for (const s of NS) if (V >= s.V[0] && V <= s.V[1]) return s.a + (s.b - s.a) * (V - s.V[0]) / (s.V[1] - s.V[0]); return 0; };
+const tOfV = (V) => { for (const s of NS) if (s.V && V >= s.V[0] && V <= s.V[1]) return s.a + (s.b - s.a) * (V - s.V[0]) / (s.V[1] - s.V[0]); return 0; };
 
 function makeMusic() {
   const sr = 44100, n = sr * TOTAL, L = new Float32Array(n);
@@ -49,24 +49,25 @@ function makeMusic() {
   for (let t = 3.5; t < 5; t += beat) kick(t, .5);
   for (let b = 10; b < 92; b++) {
     const t = b * beat;
-    if (t < 5 || t >= 45) continue;
-    const drop = t >= 37 && t < 41;
+    if (t < 5 || t >= 46.5) continue;
+    const drop = t >= 37.8 && t < 41.8;
     kick(t, drop ? 1 : .9);
     hat(t + beat / 2, .12);
     if (b % 2 === 1) clap(t);
     bass(t, notes[Math.floor(b / 4) % 4] * (t >= 15 ? 1 : 2), beat * .9, .32);
     if (t >= 10) { hat(t + beat / 4, .06); hat(t + beat * .75, .06); }
     if (t >= 15) add(t, beat * .5, (x) => Math.sin(2 * Math.PI * arp[b % 4] * x) * Math.exp(-x * 8) * .12);
-    if (t >= 23) add(t, beat, (x) => Math.sin(2 * Math.PI * notes[Math.floor(b / 4) % 4] * 4 * x) * .05 * Math.exp(-x * 2));
+    if (t >= 23.4) add(t, beat, (x) => Math.sin(2 * Math.PI * notes[Math.floor(b / 4) % 4] * 4 * x) * .05 * Math.exp(-x * 2));
   }
-  riser(33.5, 2.5, .4);
-  [37, 38, 39].forEach((t) => { boom(t, .9); glitch(t); });
-  riser(39.5, 1.5, .3);
-  boom(41, 1.2); add(41, 5, (x) => (Math.sin(2 * Math.PI * 220 * x) + Math.sin(2 * Math.PI * 329.6 * x) + Math.sin(2 * Math.PI * 440 * x)) * .07 * Math.exp(-x * .5));
+  riser(34.3, 2.5, .4);
+  [38.8, 39.8, 40.8].forEach((t) => { boom(t, .9); glitch(t); });
+  riser(40.3, 1.5, .3);
+  boom(42.8, 1.2); add(42.8, 4.5, (x) => (Math.sin(2 * Math.PI * 220 * x) + Math.sin(2 * Math.PI * 329.6 * x) + Math.sin(2 * Math.PI * 440 * x)) * .07 * Math.exp(-x * .5));
   // coupures à chaque plan
   NS.forEach((s) => { whoosh(s.a, .5); hit(s.a, 70); });
   [9.0, 9.6, 10.0, 10.6, 11.1, 12.0, 17.55, 18.0, 20.6].forEach((V) => click(tOfV(V)));
   [0, 1, 2, 3, 4, 5].forEach((i) => click(tOfV(33.5 + 2.2 * i)));
+  click(24.9); click(32.1);
   const tp = tOfV(12.0); ding(tp, 1100); ding(tp + .3, 1320); ding(tp + .45, 1760);
   add(tOfV(14.6), 0.25, (x) => Math.sin(2 * Math.PI * 2400 * x) * Math.exp(-x * 14) * 0.3);
   for (let i = 0; i < 6; i++) tick(tOfV(18.0 + i * .2));
@@ -78,9 +79,18 @@ function makeMusic() {
 }
 
 const frame = (t) => page.evaluate((x) => window.render(x), t);
+async function thumb(t) {
+  await frame(t);
+  await page.evaluate(() => { for (const id of ["kp", "kg", "kcards"]) document.getElementById(id).style.display = "none"; });
+  const b = await page.screenshot({ type: "jpeg", quality: 88, clip: { x: 90, y: 150, width: 900, height: 1180 } });
+  return "data:image/jpeg;base64," + b.toString("base64");
+}
+const pdfT = NS.find((s) => s.V && s.V[0] === 21), xlT = NS.find((s) => s.V && s.V[0] === 33);
+const thumbs = { pdf: await thumb(pdfT.a + 1.2), xl: await thumb(xlT.a + 1.3) };
+await page.evaluate((th) => { window.THUMBS = th; }, thumbs);
 
 if (process.argv.includes("--preview")) {
-  const times = (process.argv.find((a) => a.startsWith("--t=")) || "--t=.7,1.3,2.2,3,3.6,4.5,5.1,7,10.1,12,15.1,17,19.1,21,23.2,26,29.2,33,36.2,37.2,38.2,41.3,44").slice(4).split(",").map(Number);
+  const times = (process.argv.find((a) => a.startsWith("--t=")) || "--t=1,4,7,12,17,21,24,25.5,26.8,28.5,31.5,32.6,35,38,43,46").slice(4).split(",").map(Number);
   for (const t of times) {
     await frame(t);
     await page.screenshot({ path: path.join(out, `nike-${String(t).replace(".", "_")}.jpg`), type: "jpeg", quality: 80 });
@@ -100,5 +110,5 @@ for (let i = 0; i < FPS * TOTAL; i++) {
 proc.stdin.end();
 await new Promise((r) => proc.on("close", r));
 await browser.close();
-spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-nike-46s.mp4")], { stdio: "inherit" });
+spawnSync(ffmpeg, ["-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", path.join(out, "digifeel-nike-v2.mp4")], { stdio: "inherit" });
 console.log("OK");

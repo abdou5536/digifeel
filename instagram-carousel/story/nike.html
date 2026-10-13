@@ -572,7 +572,79 @@ function renderN(t){
  $("flash").style.opacity=flash;
  $("blk").style.opacity=t>=45.5?seg(t,45.5,46):0;
 }
-window.render=renderN;window.ready=document.fonts.ready;
+// ===================== VERSION CALME : transitions douces, PDF/Excel côte à côte =====================
+const NS2=[
+ {a:5,b:10,V:[3,7.99],cap:["VOIS ","TOUT."]},
+ {a:10,b:15,V:[8,12.99],cap:["ENCAISSE ","EN 3 CLICS."]},
+ {a:15,b:19,V:[13,16.99],cap:["UN SCAN. ","L'ADDITION."]},
+ {a:19,b:23,V:[17,20.9],cap:["EXPORTE ","EN 1 CLIC."]},
+ {a:23,b:26.2,cards:"pdf",click:1.9,cap:["PDF ","+ EXCEL."]},
+ {a:26.2,b:30.6,V:[21,33],cap:["TON RAPPORT ","PDF."]},
+ {a:30.6,b:33.4,cards:"xl",click:1.5,cap:["PDF ","+ EXCEL."]},
+ {a:33.4,b:37.8,V:[33,47],cap:["TON FICHIER ","EXCEL."]},
+ {a:37.8,b:42.8,V:[61,65.99],cap:["TES ","COULEURS."]},
+ {a:42.8,b:47.5,V:[66,69.99],cap:null}
+];
+window.NS=NS2;
+const kcd=document.createElement("div");kcd.id="kcards";kcd.style.cssText="position:absolute;inset:0;z-index:80;pointer-events:none;display:none";
+kcd.innerHTML=`<div id="cpdf" style="position:absolute;left:50px;top:420px;width:470px;height:760px;border-radius:30px;overflow:hidden;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.25);box-shadow:0 40px 90px rgba(0,0,0,.6)"><div style="height:640px;background-size:cover;background-position:top" id="cpi"></div><div style="height:120px;background:rgba(0,0,0,.65);font:900 54px Impact,sans-serif;text-align:center;line-height:120px;color:#fff">📄 PDF</div></div>
+<div id="cxl" style="position:absolute;left:560px;top:420px;width:470px;height:760px;border-radius:30px;overflow:hidden;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.25);box-shadow:0 40px 90px rgba(0,0,0,.6)"><div style="height:640px;background-size:cover;background-position:top" id="cxi"></div><div style="height:120px;background:rgba(0,0,0,.65);font:900 54px Impact,sans-serif;text-align:center;line-height:120px;color:#fff">📊 EXCEL</div></div>
+<div id="kring" style="position:absolute;width:20px;height:20px;border-radius:50%;border:5px solid #fff;opacity:0"></div>
+<svg id="kcur2" width="70" height="70" viewBox="0 0 24 24" style="position:absolute;left:0;top:0;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))"><path d="M3 2l17 9-7.5 2L9 21z" fill="#fff" stroke="#000" stroke-width="1.2"/></svg>`;
+document.body.appendChild(kcd);
+const lerp=(a,b,u)=>a+(b-a)*u;
+function renderN2(t){
+ t=Math.min(47.499,Math.max(0,t));
+ $("flash").style.opacity=0;document.querySelectorAll(".rip").forEach(e=>e.remove());
+ const sg=NS2.find(x=>t>=x.a&&t<x.b);
+ const kc=$("kc"),kp=$("kp"),kg=$("kg"),kl=$("kl"),kcds=$("kcards");
+ kc.style.display="none";kp.style.opacity=0;kg.style.opacity=0;kl.style.opacity=0;kcds.style.display="none";
+ let flash=0;
+ const hideAll=()=>{for(let i=0;i<10;i++)$("s"+i).style.display="none";["s10","s11","s12"].forEach(id=>$(id).style.display="none");$("cur").style.display="none"};
+ if(!sg){
+  renderV(.5);hideAll();liveReset();
+  const ci=NCARDS.findIndex(c=>t>=c[0]&&t<c[1]);
+  if(ci>=0){const c=NCARDS[ci],lt=t-c[0];kc.style.display="flex";kc.style.background=c[3];const s=$("kct");s.textContent=c[2];s.style.color=c[4];fit(s,940,520);
+   s.style.transform=`scale(${1+.35*Math.pow(1-seg(lt,0,.14),2)})`;flash=lt<.06?.5:0}
+  else if(t>=3.5){const lt=t-3.5,u=E.back(seg(lt,0,.25));kl.style.opacity=1;kl.style.transform=`scale(${.3+.7*u+.05*seg(lt,.3,1.5)})`;
+   kl.style.filter=`drop-shadow(0 0 ${20+80*(1-seg(lt,0,.6))}px var(--a)) brightness(${1+2*(1-seg(lt,0,.3))})`;flash=lt<.1?.9:0}
+ }else{
+  const si=NS2.indexOf(sg),D=sg.b-sg.a,lt=t-sg.a,u=lt/D;
+  const inn=E.out(seg(lt,0,.7)),outp=E.in(seg(lt,D-.4,D)),first=si===0;
+  // entrée : vol 3D doux depuis le fond ; sortie : recul et fondu
+  const rot=(si%2?-1:1)*(22*(1-inn)-14*outp),tz=-260*(1-inn)-200*outp,ty=60*(1-inn)+30*outp;
+  const op=cl(inn*1.4)*(1-outp);
+  const tfm=`perspective(1800px) translate3d(0,${ty}px,${tz}px) rotateY(${rot}deg) scale(${.84+.03*u})`;
+  if(sg.cards){
+   renderV(.5);hideAll();liveReset();
+   kcds.style.display="block";kcds.style.opacity=op;kcds.style.transform=tfm;
+   const T=window.THUMBS||{};$("cpi").style.backgroundImage=T.pdf?`url(${T.pdf})`:"";$("cxi").style.backgroundImage=T.xl?`url(${T.xl})`:"";
+   const tx=sg.cards==="pdf"?285:795,ck=sg.click,mv=E.io(seg(lt,.8,ck-.2));
+   const cx=lerp(540,tx,mv)+ (1-mv)*0,cy=lerp(1500,820,mv);
+   const cur=$("kcur2");cur.style.transform=`translate(${cx}px,${cy}px)`;cur.style.opacity=lt>.7?1:0;
+   const pr=lt>=ck?seg(lt,ck,ck+.15):0,ex=E.io(seg(lt,ck+.2,D-.1));
+   const a=sg.cards==="pdf"?$("cpdf"):$("cxl"),b=sg.cards==="pdf"?$("cxl"):$("cpdf");
+   a.style.transform=`scale(${lt>=ck?1-.04*Math.sin(Math.PI*pr)+.5*ex:1})`;a.style.zIndex=5;
+   b.style.opacity=1-ex;b.style.transform="";
+   a.style.borderColor=lt>=ck?"var(--a)":"rgba(255,255,255,.25)";
+   const rg=$("kring"),rt=lt-ck;rg.style.opacity=(rt>=0&&rt<.45)?1-rt/.45:0;rg.style.left=(tx-10-rt*160)+"px";rg.style.top=(820-10-rt*160)+"px";rg.style.width=rg.style.height=(20+rt*320)+"px";
+  }else{
+   renderV(sg.V[0]+(sg.V[1]-sg.V[0])*u);
+   ["s10","s11","s12"].forEach(id=>$(id).style.display="none");
+   liveReset();const L=live();
+   L.forEach(e=>{e.style.transform=tfm;e.style.opacity=op});
+   if(sg.V[0]===61)[38.8,39.8,40.8].forEach(c=>{const x=(t-c)/.35;if(x>=0&&x<1){const fr=Math.floor(t*30),aa=22*(1-x);L.forEach(e=>{e.style.filter=`drop-shadow(${aa}px 0 0 rgba(255,0,70,.8)) drop-shadow(${-aa}px 0 0 rgba(0,225,255,.8))`});flash=Math.max(flash,.35*(1-x))}});
+  }
+  if(sg.cap){const e=E.back(seg(lt+.15,0,.22)),out=seg(lt,D-.6,D-.2);
+   kg.style.opacity=e*(1-out);kp.style.opacity=cl(e*3)*(1-out);
+   kp.innerHTML=`<span id="kpi"><span style="color:#fff">${sg.cap[0]}</span><span style="color:var(--a)">${sg.cap[1]}</span></span>`;
+   fit($("kpi"),980,200);kp.style.fontSize=$("kpi").style.fontSize;
+   kp.style.transform=`translateY(${(1-e)*160}px) scale(${1+.25*(1-e)})`}
+ }
+ $("flash").style.opacity=flash;
+ $("blk").style.opacity=t>=47?seg(t,47,47.5):0;
+}
+window.render=renderN2;window.ready=document.fonts.ready;
 </script></body></html>
 
 
