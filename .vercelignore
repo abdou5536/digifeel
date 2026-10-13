@@ -14,3 +14,8 @@ server/
 *.db
 *.log
 *.sqlite
+
+.next/
+release/
+build/
+electron/app-config.json
