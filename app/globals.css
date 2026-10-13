@@ -1057,11 +1057,12 @@ body, .restaurant-workspace, .restaurant-tools, .guest-shell, .guest-page, .work
   z-index: 1;
   margin: 1.3rem 0 1.6rem;
   color: #f1f0eb;
-  font-size: clamp(3.4rem, 10.5vw, 9.5rem);
+  font-size: clamp(2.6rem, 8vw, 7.5rem);
   font-weight: 580;
-  letter-spacing: -0.08em;
-  line-height: 0.95;
-  text-wrap: balance;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  max-width: 100%;
+  overflow-wrap: break-word;
   white-space: pre-line;
 }
 
@@ -1626,7 +1627,7 @@ html[dir="rtl"] .next-app .next-team-art { direction:ltr; }
   .next-nav__actions { flex-shrink:0; gap:.35rem; }
   .next-nav__actions .product-button { min-height:48px; padding-inline:.8rem; font-size:.82rem; }
   .next-home-hero { width:calc(100% - 2rem); padding-top:4.5rem; }
-  .next-home-hero__title { font-size:clamp(3rem,14vw,4.4rem); }
+  .next-home-hero__title { font-size:clamp(2.4rem,11vw,3.6rem); }
   .next-step-grid { grid-template-columns:minmax(0,1fr); }
   .next-feature-grid { grid-template-columns:minmax(0,1fr); }
   .next-step-card,.next-step-card:nth-child(2) { min-height:14rem; }
@@ -2150,7 +2151,7 @@ html[dir="rtl"] .pos-hero-device { direction:ltr; text-align:left; }
 .spotlight-card::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;
   background: radial-gradient(320px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in srgb, var(--df-accent, #d4af37) 22%, transparent), transparent 70%); }
 .spotlight-card:hover::before { opacity: 1; }
-.shiny-text { background: linear-gradient(110deg, currentColor 35%, var(--df-accent, #d4af37) 50%, currentColor 65%); background-size: 220% 100%;
+.shiny-text { display: inline-block; padding-right: .08em; background: linear-gradient(110deg, var(--shiny-base, #c99445) 35%, #fff1c9 50%, var(--shiny-base, #c99445) 65%); background-size: 220% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent; animation: shiny-sweep 4s linear infinite; }
 @keyframes shiny-sweep { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 @media (prefers-reduced-motion: reduce) { .shiny-text { animation: none; color: inherit; background: none; } }
